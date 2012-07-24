@@ -70,3 +70,11 @@ In addition to defining custom jobs, a job can also be enqueued by invoking the 
 3. Commit your changes (`git commit -am 'Added some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
+
+## References
+
+Used a few other excellent projects as references:
+
+ * [DelayedJob](https://github.com/collectiveidea/delayed_job)
+ * [DJ AR Backend](https://github.com/collectiveidea/delayed_job_active_record/tree/master/lib/delayed/backend)
+ * [Stalker](https://github.com/han/stalker)
