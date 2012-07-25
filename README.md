@@ -110,13 +110,13 @@ require 'echelon/tasks'
 so you can run:
 
 ```
-$ TUBES=newsletter-sender,push_message rake echelon:work
+$ TUBES=newsletter-sender,push-message rake echelon:work
 ```
 
 You can also run the echelon binary for a convenient worker:
 
 ```
-bundle exec echelon newsletter-sender,push_message -d -P /var/run/echelon.pid -l /var/log/echelon.log
+bundle exec echelon newsletter-sender,push-message -d -P /var/run/echelon.pid -l /var/log/echelon.log
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
