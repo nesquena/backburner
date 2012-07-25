@@ -65,7 +65,7 @@ Notice that you must include the `Echelon::Job` module and that you can set a `q
 Echelon.enqueue NewsletterJob, 'lorem ipsum...', 5
 ```
 
-`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters to that object's `perform` method. The queue name used by default is the normalized class name (i.e "{namespace}.newsletter-job") if not otherwise specified.
+`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`) if not otherwise specified.
 
 ### Simple Async Jobs ###
 
@@ -85,7 +85,7 @@ end
 @user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
 ```
 
-This will automatically enqueue a job that will run `activate` with the specified argument for that user record. The queue name used by default is the normalized class name (i.e "{namespace}.user") if not otherwise specified. Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
+This will automatically enqueue a job that will run `activate` with the specified argument for that user record. The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified. Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
 
 ### Working Jobs
 
