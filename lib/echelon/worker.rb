@@ -3,13 +3,12 @@ module Echelon
     include Echelon::Helpers
     include Echelon::Logger
 
-    # Raises when a job times out
     class JobNotFound < RuntimeError; end
     class JobTimeout < RuntimeError; end
     class JobQueueNotSet < RuntimeError; end
 
-    # Enqueues a job to be performed
-    # Options include `pri` (priority), `delay` (delay in secs), `ttr` (time to respond)
+    # Enqueues a job to be processed later by a worker
+    # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
     # Echelon::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
     def self.enqueue(job_class, args=[], opts={})
       pri   = opts[:pri] || Echelon.configuration.default_priority
@@ -23,15 +22,18 @@ module Echelon
     end
 
     # Starts processing jobs in the specified tube_names
+    # Echelon::Worker.start(["foo.tube.name"])
     def self.start(tube_names=nil)
       self.new(tube_names).start
     end
 
     # Returns the worker connection
+    # Echelon::Worker.connection => <Beanstalk::Pool>
     def self.connection
       @connection ||= Connection.new(Echelon.configuration.beanstalk_url)
     end
 
+    # List of tube names to be watched and processed
     attr_accessor :tube_names
 
     # Worker.new(['test.job'])
@@ -39,11 +41,17 @@ module Echelon
       @tube_names = tube_names if tube_names && tube_names.size > 0
     end
 
-    def start(&block)
+    # Starts processing new jobs indefinitely
+    # Primary way to consume and process jobs in specified tubes
+    # @worker.start
+    def start
       prepare
       loop { work_one_job }
     end
 
+    # Setup beanstalk tube_names and watch all specified tubes for jobs.
+    # Used to prepare job queues before processing jobs.
+    # @worker.prepare
     def prepare
       self.tube_names ||= Echelon.default_queues.any? ? Echelon.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
@@ -57,6 +65,10 @@ module Echelon
       failed_connection(e)
     end
 
+    # Reserves one job within the specified queues
+    # Pops the job off and serializes the job to JSON
+    # Each job is performed by invoking `perform` on the job class.
+    # @worker.work_one_job
     def work_one_job
       job = self.connection.reserve
       body = JSON.parse job.body
@@ -88,6 +100,8 @@ module Echelon
 
     protected
 
+    # Returns a list of all tubes known within the system
+    # Filtered for tubes that match the known prefix
     def all_existing_queues
       self.connection.list_tubes.values.flatten.uniq.select { |tube|
         tube =~ /^#{tube_namespace}/
@@ -113,6 +127,7 @@ module Echelon
     end
 
     # Handles an error according to custom definition
+    # Used when processing a job that errors out
     def handle_error(e, name, args)
       if error_handler = Echelon.configuration.on_error
         if error_handler.arity == 1
@@ -124,11 +139,11 @@ module Echelon
     end
   end # Worker
 
-  # Prints message about failure
+  # Prints message about failure when beastalk cannot be connected
   def failed_connection(e)
     log_error exception_message(e)
-    log_error "*** Failed connection to #{beanstalk_url}"
-    log_error "*** Check that beanstalkd is running (or set a different BEANSTALK_URL)"
+    log_error "*** Failed connection to #{connection.url}"
+    log_error "*** Check that beanstalkd is running (or set a different beanstalk url)"
     exit 1
   end
 end # Echelon

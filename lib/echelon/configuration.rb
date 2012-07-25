@@ -1,5 +1,4 @@
 module Echelon
-  # Rabl.host
   class Configuration
     attr_accessor :beanstalk_url    # beanstalk url connection
     attr_accessor :tube_namespace   # namespace prefix for every queue

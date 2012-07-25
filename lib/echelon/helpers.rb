@@ -1,6 +1,6 @@
 module Echelon
   module Helpers
-
+    # Loads in instance and class levels
     def self.included(base)
       base.extend self
     end
@@ -18,7 +18,6 @@ module Echelon
     end
 
     # Given a word with dashes, returns a camel cased version of it.
-    #
     # classify('job-name') # => 'JobName'
     def classify(dashed_word)
       dashed_word.to_s.split('-').each { |part| part[0] = part[0].chr.upcase }.join
@@ -30,8 +29,7 @@ module Echelon
       classify(word).to_s.gsub(/::/, '/').
             gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
             gsub(/([a-z\d])([A-Z])/,'\1_\2').
-            tr("_", "-").
-            downcase
+            tr("_", "-").downcase
     end
 
     # Tries to find a constant with the name specified in the argument string:
@@ -75,6 +73,7 @@ module Echelon
     end
 
     # Returns tube_namespace for echelon
+    # tube_namespace => "some.namespace"
     def tube_namespace
       Echelon.configuration.tube_namespace
     end

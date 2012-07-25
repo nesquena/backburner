@@ -7,7 +7,7 @@ module Echelon
       @klazz, @id, @opts = klazz, id, opts
     end
 
-    # Enqueue when a method is called
+    # Enqueue as job when a method is invoked
     def method_missing(method, *args, &block)
       ::Echelon::Worker.enqueue(@klazz, [@id, method, *args], @opts)
     end
@@ -21,6 +21,8 @@ module Echelon
     end
 
     module InstanceMethods
+      # Return proxy object to enqueue jobs for object
+      # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
       # @model.async(:pri => 1000).do_something("foo")
       def async(opts={})
         Echelon::AsyncProxy.new(self.class, self.id, opts)
@@ -28,11 +30,14 @@ module Echelon
     end # InstanceMethods
 
     module ClassMethods
+      # Return proxy object to enqueue jobs for object
+      # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
       # Model.async(:ttr => 300).do_something("foo")
       def async(opts={})
         Echelon::AsyncProxy.new(self, nil, opts)
       end
 
+      # Defines perform method for job processing
       # perform(55, :do_something, "foo", "bar")
       def perform(id, method, *args)
         if id # instance
