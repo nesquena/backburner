@@ -118,7 +118,7 @@ require 'echelon/tasks'
 so you can run:
 
 ```
-$ TUBES=newsletter-sender,push-message rake echelon:work
+$ QUEUES=newsletter-sender,push-message rake echelon:work
 ```
 
 You can also run the echelon binary for a convenient worker:
