@@ -4,11 +4,6 @@ module Echelon
   class Connection < SimpleDelegator
     class BadURL < RuntimeError; end
 
-    # Echelon::Connection.setup("beanstalk://localhost")
-    def self.setup(url)
-      @connection ||= self.new(url)
-    end
-
     attr_accessor :url, :beanstalk
 
     def initialize(url)

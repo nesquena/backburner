@@ -33,3 +33,6 @@ and:
 is
 
     Echelon::Worker.enqueue Echelon::PerformableMethod, { :klass => User, :id => 1, :method => "some_method", :args => [] }
+
+- Better way to enummerate job names in worker (right now using the tubes that exist but they may not exist even tho they will)
+  - Use a better way to aggregate tube names for different jobs

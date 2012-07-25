@@ -1,12 +1,25 @@
 module Echelon
-  class Job
-    class << self
-      attr_reader :tube_name
+  module Job
+    def self.included(base)
+      base.send(:include, InstanceMethods)
+      base.send(:extend, Echelon::Helpers)
+      base.extend ClassMethods
+    end
 
-      # Assigns tube name for this job
+    module InstanceMethods
+      # TODO
+    end
+
+    module ClassMethods
+      # Assigns queue name for this job
       # tube "some.task.name"
-      def tube(name)
-        @tube_name = name
+      def queue(name)
+        @queue_name = name
+      end
+
+      # Returns queue_name with proper tube namespace
+      def queue_name
+        name = @queue_name || dasherize(self.name)
       end
     end
   end # Job

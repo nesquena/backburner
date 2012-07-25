@@ -1,28 +1,46 @@
 require File.expand_path('../test_helper', __FILE__)
 
-$foo = 0
-$users = []
-class TestJob < Echelon::Job
-  tube "test.job"
+$echelon_sum = 0
+$echelon_numbers = []
 
-  def initialize(args)
-    @value, @user = args['value'], args['user']
-  end
+class TestEchelonJob
+  include Echelon::Job
+  queue "test.jobber"
 
-  def perform
-    $foo += @value
-    $users << @user
+  def self.perform(value, number)
+    $echelon_sum += value
+    $echelon_numbers << number
   end
 end
 
-describe "echelon module" do
-  before do
-    Echelon::Worker.enqueue TestJob, { :value => 5, :user => User.new(3, "Bob") }
-    Echelon::Worker.enqueue TestJob, { :value => 6, :user => User.new(4, "Frank") }
-  end
+describe "Echelon module" do
+  describe "for enqueue method" do
+    before do
+      Echelon.enqueue TestEchelonJob, 5, 6
+      Echelon.enqueue TestEchelonJob, 15, 10
+      silenced(2) do
+        worker = Echelon::Worker.new('test.jobber')
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+    end
 
-  it "can run jobs using #run method" do
-    assert_equal 11, $foo
-    assert_equal [3, 4], $users.map(&:id)
-  end
-end
+    it "can run jobs using #run method" do
+      assert_equal 20, $echelon_sum
+      assert_same_elements [6, 10], $echelon_numbers
+    end
+  end # enqueue
+
+  describe "for work! method" do
+    it "invokes worker start" do
+      Echelon::Worker.expects(:start).with(["foo", "bar"])
+      Echelon.work!("foo", "bar")
+    end
+  end # work!
+
+  describe "for configuration" do
+    it "remembers the tube_namespace" do
+      assert_equal "demo.test", Echelon.configuration.tube_namespace
+    end
+  end # configuration
+end # Echelon

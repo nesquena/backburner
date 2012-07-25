@@ -1,7 +1,7 @@
 # Echelon
 
 Processing background jobs reliably has never been easier. Echelon is a beanstalkd-powered messaging job queue designed
-to be as simple and easy to use as possible. Defining jobs is intuitive and familiar. Echelon works with any ruby-based 
+to be as simple and easy to use as possible. Defining jobs is intuitive and familiar. Echelon works with any ruby-based
 web framework but is particularly designed for use with Sinatra and [Padrino](http://padrinorb.com).
 
 If you have been using beanstalk for job processing, consider moving to echelon.
@@ -27,40 +27,92 @@ Echelon is extremely simple to use. First, configure basic settings for echelon:
 ```ruby
 Echelon.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
-  config.tube_namespace = "myblog.production"
+  config.tube_namespace = "some.app.production"
+  config.on_error = lambda { |e| puts e }
+  config.default_priority = 65536
+  config.respond_timeout = 120
 end
 ```
 
-At the core, echelon is about jobs to process. Jobs are simple ruby objects with a method called process. Any object which responds to `process` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner.
+At the core, echelon is about jobs to process. Jobs are simple ruby objects with a method called perform.
+Any object which responds to `process` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner.
 
 ```ruby
-class NewsletterJob < Echelon::Job
-  name "newsletter"
+class NewsletterJob
+  include Echelon::Job
+  queue "newsletter"
 
-  def initialize(args)
-    @body, @customer = args['body'], args['customer']
-  end
-
-  def perform
-    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
+  def self.perform(email, body)
+    NewsletterMailer.deliver_text_to_email(email, body)
   end
 end
 ```
 
-Jobs can then be enqueued using 
+Jobs can then be enqueued using
 
-    Echelon::Worker.enqueue NewsletterJob, { :body => 'lorem ipsum...', :customer => Customer.first }
+```ruby
+Echelon::Worker.enqueue NewsletterJob, 'lorem ipsum...', 5
+```
 
 ### Methods as Jobs ###
 
-In addition to defining custom jobs, a job can also be enqueued by invoking the `delay` method on any object.
+In addition to defining custom jobs, a job can also be enqueued by invoking the `delay` method on any object which includes `Echelon::Performable`.
 
 ```ruby
-# without echelon
-@user.activate!(@device)
+class User
+  include Echelon::Performable
 
-# with echelon
-@user.delay.activate!(@device)
+  def activate(device_id)
+    @device = Device.find(device_id)
+    # ...
+  end
+end
+
+@user = User.first
+@user.async(:pri => 1000, :ttr => 1000).activate(@device.id)
+```
+
+### Workers
+
+Echelon workers are processes that run forever. They basically do:
+
+```ruby
+They basically do this:
+
+``` ruby
+start
+loop do
+  if job = reserve
+    job.process
+  else
+    sleep 5 # Polling frequency = 5
+  end
+end
+shutdown
+```
+
+Starting a worker in ruby code is simple:
+
+```ruby
+Echelon.work!
+```
+
+This will process jobs in all queues, you can also restrict to only specific jobs:
+
+```ruby
+Echelon.work!('newsletter_sender')
+```
+
+Echelon exists as a rake task as well as a binary daemon:
+
+```ruby
+require 'echelon/tasks'
+```
+
+and then you can run:
+
+```
+$ TUBES=newsletter_sender,push_message rake echelon:work
 ```
 
 ## Contributing
