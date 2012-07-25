@@ -40,13 +40,15 @@ end
 
 ## Usage
 
-Echelon allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and process them asynchronously.
+Echelon allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and 
+process them asynchronously.
 
 ### Enqueuing Jobs ###
 
 At the core, Echelon is about jobs that can be processed. Jobs are simple ruby objects with a method defined named `perform`.
 
-Any object which responds to `perform` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner. Here's an example:
+Any object which responds to `perform` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner. 
+Here's an example:
 
 ```ruby
 class NewsletterJob
@@ -59,17 +61,21 @@ class NewsletterJob
 end
 ```
 
-Notice that you must include the `Echelon::Job` module and that you can set a `queue` name within the job automatically. Jobs can then be enqueued using:
+Notice that you must include the `Echelon::Job` module and that you can set a `queue` name within the job automatically. 
+Jobs can then be enqueued using:
 
 ```ruby
 Echelon.enqueue NewsletterJob, 'lorem ipsum...', 5
 ```
 
-`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`) if not otherwise specified.
+`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters 
+to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`) 
+if not otherwise specified.
 
 ### Simple Async Jobs ###
 
-In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which includes `Echelon::Performable`.
+In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which 
+includes `Echelon::Performable`.
 
 ```ruby
 class User
@@ -85,7 +91,9 @@ end
 @user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
 ```
 
-This will automatically enqueue a job that will run `activate` with the specified argument for that user record. The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified. Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
+This will automatically enqueue a job that will run `activate` with the specified argument for that user record. 
+The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified. 
+Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
 
 ### Working Jobs
 
@@ -120,6 +128,27 @@ bundle exec echelon newsletter-sender,push-message -d -P /var/run/echelon.pid -l
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
+
+### Default Queues
+
+Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
+process **all** queues instead, then you can leave the queue list blank.
+
+Unfortunately, when you execute a worker without queues specified any job tubes that have not yet been 
+created **will not be processed** by the worker. For this reason, you may want to take control over the default list of 
+queues processed when none are specified. To do this, you can use the `default_queues` class method:
+
+```ruby
+Echelon.default_queues.concat(["foo", "bar"])
+```
+
+You can also add particular job classes to the queue:
+
+```ruby
+Echelon.default_queues << NewsletterJob.queue
+```
+
+The `default_queues` stores the specific list of queues that should be processed by default by a worker.
 
 ### Failures
 

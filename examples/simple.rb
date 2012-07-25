@@ -39,4 +39,5 @@ end
 User.async.foo("bar", "baz")
 
 # Run work
-Echelon.work!("user")
+# Echelon.default_queues << "user"
+Echelon.work!

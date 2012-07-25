@@ -14,6 +14,8 @@ class TestEchelonJob
 end
 
 describe "Echelon module" do
+  before { Echelon.default_queues.clear }
+
   describe "for enqueue method" do
     before do
       Echelon.enqueue TestEchelonJob, 5, 6
@@ -43,4 +45,12 @@ describe "Echelon module" do
       assert_equal "demo.test", Echelon.configuration.tube_namespace
     end
   end # configuration
+
+  describe "for default_queues" do
+    it "supports assignment" do
+      Echelon.default_queues << "foo"
+      Echelon.default_queues << "bar"
+      assert_same_elements ["foo", "bar"], Echelon.default_queues
+    end
+  end
 end # Echelon

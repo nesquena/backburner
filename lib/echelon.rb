@@ -42,9 +42,11 @@ module Echelon
       @_configuration ||= Configuration.new
     end
 
-    # Resets the Echelon configuration back to the defaults.
-    def reset_configuration!
-      @_configuration = nil
+    # Returns the queues that are processed by default if none are specified
+    # default_queues << "foo"
+    # default_queues => ["foo", "bar"]
+    def default_queues
+      configuration.default_queues
     end
   end
 end

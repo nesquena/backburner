@@ -13,6 +13,8 @@ class TestAsyncJob
 end
 
 describe "Echelon::Worker module" do
+  before { Echelon.default_queues.clear }
+
   describe "for enqueue class method" do
     it "should support enqueuing job" do
       Echelon::Worker.enqueue TestJob, [3, 4], :ttr => 100
@@ -83,8 +85,17 @@ describe "Echelon::Worker module" do
       assert_match /demo\.test\.foo/, out
     end # single
 
+    it "should respect default_queues settings" do
+      Echelon.default_queues.concat(["foo", "bar"])
+      worker = Echelon::Worker.new
+      out = capture_stdout { worker.prepare }
+      assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], Echelon::Worker.connection.list_tubes_watched.values.first
+      assert_match /demo\.test\.foo/, out
+    end
+
     it "should support all tubes" do
-      Echelon::Worker.any_instance.expects(:all_queues).once.returns("bar")
+      Echelon::Worker.any_instance.expects(:all_existing_queues).once.returns("bar")
       worker = Echelon::Worker.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names

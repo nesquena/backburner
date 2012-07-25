@@ -45,7 +45,7 @@ module Echelon
     end
 
     def prepare
-      self.tube_names ||= all_queues
+      self.tube_names ||= Echelon.default_queues.any? ? Echelon.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| name =~ /^#{tube_namespace}/ ? name : [tube_namespace, name].join(".")  }
       log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
@@ -88,7 +88,7 @@ module Echelon
 
     protected
 
-    def all_queues
+    def all_existing_queues
       self.connection.list_tubes.values.flatten.uniq.select { |tube|
         tube =~ /^#{tube_namespace}/
       }

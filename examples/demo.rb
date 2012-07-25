@@ -54,6 +54,7 @@ Echelon.enqueue Tester::TestJob, 10, 6
 @user.async.hello("foo", "bar")
 Tester::UserModel.async.foo("bar", "baz")
 
-# Echelon.work!
+Echelon.default_queues.concat([Tester::TestJob.queue, Tester::UserModel.queue])
+Echelon.work!
 # Echelon.work!("test.job")
-Echelon.work!("tester/user-model")
+# Echelon.work!("tester/user-model")

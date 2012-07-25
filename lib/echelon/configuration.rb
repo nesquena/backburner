@@ -1,18 +1,20 @@
 module Echelon
   # Rabl.host
   class Configuration
-    attr_accessor :beanstalk_url
-    attr_accessor :tube_namespace
-    attr_accessor :default_priority
-    attr_accessor :respond_timeout
-    attr_accessor :on_error
+    attr_accessor :beanstalk_url    # beanstalk url connection
+    attr_accessor :tube_namespace   # namespace prefix for every queue
+    attr_accessor :default_priority # default job priority
+    attr_accessor :respond_timeout  # default job timeout
+    attr_accessor :on_error         # error handler
+    attr_accessor :default_queues   # default queues
 
     def initialize
-      @beanstalk_url  = "beanstalk://localhost"
-      @tube_namespace = "unique.jobs"
+      @beanstalk_url    = "beanstalk://localhost"
+      @tube_namespace   = "unique.jobs"
       @default_priority = 65536
       @respond_timeout  = 120
-      @on_error = nil
+      @on_error         = nil
+      @default_queues   = []
     end
   end # Configuration
 end # Echelon
