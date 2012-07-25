@@ -11,17 +11,17 @@ module Tester
     end
   end
 
-  class User
+  class UserModel
     include Echelon::Performable
 
     attr_accessor :id, :name
 
     def self.first
-      User.find(3, "John")
+      self.find(3, "John")
     end
 
     def self.find(id, name="Fetched")
-      User.new(id, name)
+      self.new(id, name)
     end
 
     def initialize(id, name)
@@ -50,10 +50,10 @@ end
 
 Echelon.enqueue Tester::TestJob, 5, 3
 Echelon.enqueue Tester::TestJob, 10, 6
-@user = Tester::User.first
-@user.async(:hello, "foo", "bar")
-Tester::User.async(:foo, "bar", "baz")
+@user = Tester::UserModel.first
+@user.async.hello("foo", "bar")
+Tester::UserModel.async.foo("bar", "baz")
 
 # Echelon.work!
 # Echelon.work!("test.job")
-# Echelon.work!("tester/user-hello", "tester/user-foo")
+Echelon.work!("tester/user-model")

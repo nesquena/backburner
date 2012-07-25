@@ -30,7 +30,7 @@ end
 Echelon.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "demo.production"
-  # config.on_error = lambda { |e| puts "HEY!!! #{e.class}" }
+  config.on_error = lambda { |e| puts "HEY!!! #{e.class}" }
 end
 
 # Enqueue tasks
@@ -39,4 +39,4 @@ end
 User.async.foo("bar", "baz")
 
 # Run work
-Echelon.work!("user-hello", "user-foo")
+Echelon.work!("user")
