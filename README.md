@@ -65,7 +65,7 @@ Notice that you must include the `Echelon::Job` module and that you can set a `q
 Echelon.enqueue NewsletterJob, 'lorem ipsum...', 5
 ```
 
-`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of arguments.
+`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters to that object's `perform` method. The queue name used by default is the normalized class name (i.e "{namespace}.newsletter-job") if not otherwise specified.
 
 ### Simple Async Jobs ###
 
@@ -82,11 +82,10 @@ class User
 end
 
 @user = User.first
-@user.async(:pri => 1000, :ttr => 100).activate(@device.id)
+@user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
 ```
 
-This will automatically enqueue a job that will run `activate` with the specified argument for that user record. Note you are able to pass
-`pri`, `ttr`, `delay` and `queue` directly as options into `async`
+This will automatically enqueue a job that will run `activate` with the specified argument for that user record. The queue name used by default is the normalized class name (i.e "{namespace}.user") if not otherwise specified. Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
 
 ### Working Jobs
 
@@ -96,36 +95,35 @@ Echelon workers are processes that run forever handling jobs that get reserved. 
 Echelon.work!
 ```
 
-This will process jobs in all queues but you can also restrict to only specific jobs:
+This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
 Echelon.work!('newsletter_sender')
 ```
 
-Echelon worker exists as a rake task:
+The Echelon worker also exists as a rake task:
 
 ```ruby
 require 'echelon/tasks'
 ```
 
-and then you can run:
+so you can run:
 
 ```
-$ TUBES=newsletter_sender,push_message rake echelon:work
+$ TUBES=newsletter-sender,push_message rake echelon:work
 ```
 
-You can also use the echelon daemon for a convenient daemonized process:
+You can also run the echelon binary for a convenient worker:
 
 ```
-bundle exec echelon newsletter\_sender,push_message -d -P /var/run/echelon.pid -l /var/log/echelon.log
+bundle exec echelon newsletter-sender,push_message -d -P /var/run/echelon.pid -l /var/log/echelon.log
 ```
 
-This will daemonize a worker and store the pid and logs automatically.
+This will daemonize the worker and store the pid and logs automatically.
 
 ### Failures
 
 You can setup the error handler for jobs using configure:
-
 
 ```ruby
 Echelon.configure do |config|
