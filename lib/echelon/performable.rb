@@ -16,6 +16,7 @@ module Echelon
   module Performable
     def self.included(base)
       base.send(:include, InstanceMethods)
+      base.send(:include, Echelon::Job)
       base.extend ClassMethods
     end
 
@@ -40,11 +41,6 @@ module Echelon
           send(method, *args)
         end
       end # perform
-
-      # Returns true to notify object is performable
-      def echelon_performable?
-        true
-      end
     end # ClassMethods
   end # Performable
 end # Echelon

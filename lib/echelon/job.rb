@@ -8,19 +8,20 @@ module Echelon
 
     module InstanceMethods
       # TODO
-    end
+    end # InstanceMethods
 
     module ClassMethods
-      # Assigns queue name for this job
-      # tube "some.task.name"
-      def queue(name)
-        @queue_name = name
+      # Returns or assigns queue name for this job
+      # queue "some.task.name"
+      # queue => "some.task.name"
+      def queue(name=nil)
+        if name
+          @queue_name = name
+        else # accessor
+          @queue_name || dasherize(self.name)
+        end
       end
+    end # ClassMethods
 
-      # Returns queue_name with proper tube namespace
-      def queue_name
-        name = @queue_name || dasherize(self.name)
-      end
-    end
   end # Job
 end # Echelon

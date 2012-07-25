@@ -1,21 +1,21 @@
 require File.expand_path('../test_helper', __FILE__)
 
-class TestJob
-  include Echelon::Job
+module NestedDemo
+  class TestJobA; include Echelon::Job; end
+  class TestJobB; include Echelon::Job; end
 end
 
 describe "Echelon::Job module" do
-  describe "for queue_name method" do
+  describe "for queue method accessor" do
     it "should return the queue name" do
-      TestJob.queue(nil)
-      assert_equal "test-job", TestJob.queue_name
+      assert_equal "nested-demo/test-job-a", NestedDemo::TestJobA.queue
     end
   end # queue_name
 
   describe "for queue assignment method" do
     it "should allow queue name to be assigned" do
-      TestJob.queue("test-job")
-      assert_equal "test-job", TestJob.queue_name
+      NestedDemo::TestJobB.queue("nested/job")
+      assert_equal "nested/job", NestedDemo::TestJobB.queue
     end
   end # queue
 end # Echelon::Job

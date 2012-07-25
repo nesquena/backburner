@@ -74,7 +74,7 @@ module Echelon
       constant
     end
 
-    # Returns the tube_namespace
+    # Returns tube_namespace for echelon
     def tube_namespace
       Echelon.configuration.tube_namespace
     end

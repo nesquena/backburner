@@ -15,8 +15,7 @@ module Echelon
       pri   = opts[:pri] || Echelon.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Echelon.configuration.respond_timeout
-      queue = opts[:queue] ? [tube_namespace, opts[:queue]].join(".") : nil
-      connection.use queue || job_queue_name(job_class, args)
+      connection.use job_queue_name(opts[:queue]  || job_class)
       data = { :class => job_class, :args => args }
       connection.put data.to_json, pri, delay, ttr
     rescue Beanstalk::NotConnected => e
@@ -97,11 +96,11 @@ module Echelon
 
     # Returns the queue_name for a particular job
     # job_queue_name(NewsletterSender, [5, 10]) => "newsletter-sender"
-    def self.job_queue_name(job_class, args)
-      job_name = if job_class.respond_to?(:queue_name) # queue_name is set
-        job_class.queue_name
-      elsif job_class.respond_to?(:echelon_performable?) # auto-name based on performable
-        [dasherize(job_class), args[1].to_s].join("-")
+    def self.job_queue_name(job_class)
+      job_name = if job_class.is_a?(String)
+        dasherize(job_class)
+      elsif job_class.respond_to?(:queue) # queue is set
+        job_class.queue
       else # no queue name
         raise JobQueueNotSet, "Please set the queue name for #{job_class}!"
       end

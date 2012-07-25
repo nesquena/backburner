@@ -35,10 +35,4 @@ describe "Echelon::Performable module" do
       assert_equal "baz false true", TestObj.perform(nil, :bar, false, true)
     end # class
   end # perform
-
-  describe "for echelon_performable?" do
-    it "should return true" do
-      assert_equal true, TestObj.echelon_performable?
-    end
-  end # echelon_performable?
 end
