@@ -175,6 +175,13 @@ To be completed is an admin dashboard that provides insight into beanstalk jobs 
 
 To be filled in. DelayedJob, Resque, Stalker, et al.
 
+## Acknowledgements
+
+ * Nathan Esquenazi - Project maintainer
+ * Kristen Tucker - Coming up with the gem name
+ * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
+ * [Miso](http://gomiso.com) - Open-source friendly place to work
+
 ## Contributing
 
 1. Fork it
