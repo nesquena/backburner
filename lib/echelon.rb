@@ -23,6 +23,7 @@ module Echelon
     # Begins working on jobs enqueued with optional tubes specified
     # Echelon.work!('newsletter_sender', 'test_job')
     def work!(*tubes)
+      tubes = tubes.first if tubes.size == 1 && tubes.first.is_a?(Array)
       Echelon::Worker.start(tubes)
     end
 

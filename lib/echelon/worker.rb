@@ -49,7 +49,7 @@ module Echelon
       self.tube_names ||= all_queues
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| name =~ /^#{tube_namespace}/ ? name : [tube_namespace, name].join(".")  }
-      log "Working #{tube_names.size} queues: [ #{tube_names.join(' ')} ]"
+      log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
       self.tube_names.each { |name| self.connection.watch(name) }
       self.connection.list_tubes_watched.each do |server, tubes|
         tubes.each { |tube| self.connection.ignore(tube) unless self.tube_names.include?(tube) }

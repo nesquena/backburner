@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency(%q<beanstalk-client>, [">= 0"])
   s.add_runtime_dependency(%q<json_pure>, [">= 0"])
+  s.add_runtime_dependency(%q<dante>)
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest'
