@@ -99,10 +99,10 @@ module Echelon
     def self.job_queue_name(job_class)
       job_name = if job_class.is_a?(String)
         dasherize(job_class)
-      elsif job_class.respond_to?(:queue) # queue is set
+      elsif job_class.respond_to?(:queue) # use queue name
         job_class.queue
-      else # no queue name
-        raise JobQueueNotSet, "Please set the queue name for #{job_class}!"
+      else # no queue name, use job_class
+        dasherize(job_class.name)
       end
       [tube_namespace, job_name].join(".")
     end

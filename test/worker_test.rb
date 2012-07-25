@@ -4,11 +4,12 @@ $worker_test_count = 0
 
 class TestJob
   include Echelon::Job
+  def self.perform(x, y); $worker_test_count += x + y; end
+end
 
-  def self.perform(x, y)
-    "The total is #{x + y}"
-    $worker_test_count += x + y
-  end
+class TestAsyncJob
+  include Echelon::Performable
+  def self.foo(x, y); $worker_test_count = x * y; end
 end
 
 describe "Echelon::Worker module" do
@@ -31,6 +32,15 @@ describe "Echelon::Worker module" do
       assert_equal 5000, job.pri
       assert_equal Echelon.configuration.respond_timeout, job.ttr
     end # custom
+
+    it "should support async job" do
+      TestAsyncJob.async(:ttr => 100, :queue => "bar.baz.foo").foo(10, 5)
+      job, body = pop_one_job("bar.baz.foo")
+      assert_equal "TestAsyncJob", body["class"]
+      assert_equal [nil, "foo", 10, 5], body["args"]
+      assert_equal 100, job.ttr
+      assert_equal Echelon.configuration.default_priority, job.pri
+    end # async
   end # enqueue
 
   describe "for start class method" do
@@ -84,7 +94,7 @@ describe "Echelon::Worker module" do
   end # prepare
 
   describe "for work_one_job method" do
-    it "should work every job" do
+    it "should work an enqueued job" do
       $worker_test_count = 0
       Echelon::Worker.enqueue TestJob, [1, 2], :queue => "foo.bar"
       silenced(2) do
@@ -93,6 +103,17 @@ describe "Echelon::Worker module" do
         worker.work_one_job
       end
       assert_equal 3, $worker_test_count
+    end
+
+    it "should work for an async job" do
+      $worker_test_count = 0
+      TestAsyncJob.async(:queue => "bar.baz").foo(3, 5)
+      silenced(2) do
+        worker = Echelon::Worker.new('bar.baz')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_equal 15, $worker_test_count
     end
   end # work_one_job
 end # Echelon::Worker
