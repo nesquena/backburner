@@ -7,6 +7,13 @@ module Backburner
     class JobTimeout < RuntimeError; end
     class JobQueueNotSet < RuntimeError; end
 
+    # Backburner::Worker.known_queue_classes
+    # List of known_queue_classes
+    class << self
+      attr_writer :known_queue_classes
+      def known_queue_classes; @known_queue_classes ||= []; end
+    end
+
     # Enqueues a job to be processed later by a worker
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
     # Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000

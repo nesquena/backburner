@@ -134,15 +134,22 @@ This will daemonize the worker and store the pid and logs automatically.
 Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
 process **all** queues instead, then you can leave the queue list blank.
 
-Unfortunately, when you execute a worker without queues specified any job tubes that have not yet been
-created **will not be processed** by the worker. For this reason, you may want to take control over the default list of
+When you execute a worker without queues specified, any queue for a known job queue class with `include Backburner::Queue` will be processed. To access the list of known
+queue classes, you can use:
+
+```ruby
+Backburner::Worker.known\_queue\_classes
+# => [NewsletterJob, SomeOtherJob]
+```
+
+Dynamic queues created by passing queue options **will not be processed** by a default worker. For this reason, you may want to take control over the default list of
 queues processed when none are specified. To do this, you can use the `default_queues` class method:
 
 ```ruby
 Backburner.default_queues.concat(["foo", "bar"])
 ```
 
-You can also add particular job classes to the queue:
+This will ensure that the _foo_ and _bar_ queues are processed by default. You can also add job queue names:
 
 ```ruby
 Backburner.default_queues << NewsletterJob.queue
