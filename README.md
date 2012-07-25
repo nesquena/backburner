@@ -138,7 +138,7 @@ When you execute a worker without queues specified, any queue for a known job qu
 queue classes, you can use:
 
 ```ruby
-Backburner::Worker.known\_queue\_classes
+Backburner::Worker.known_queue_classes
 # => [NewsletterJob, SomeOtherJob]
 ```
 
