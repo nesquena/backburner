@@ -76,9 +76,6 @@ end
 
 Echelon workers are processes that run forever. They basically do:
 
-```ruby
-They basically do this:
-
 ``` ruby
 start
 loop do
