@@ -6,6 +6,13 @@ module NestedDemo
 end
 
 describe "Backburner::Queue module" do
+  describe "contains known_job_classes" do
+    it "has all defined job queues" do
+      assert_contains Backburner.configuration.known_job_classes, NestedDemo::TestJobA
+      assert_contains Backburner.configuration.known_job_classes, NestedDemo::TestJobB
+    end
+  end
+
   describe "for queue method accessor" do
     it "should return the queue name" do
       assert_equal "nested-demo/test-job-a", NestedDemo::TestJobA.queue

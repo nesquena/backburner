@@ -48,6 +48,5 @@ module Backburner
     def default_queues
       configuration.default_queues
     end
-
   end
 end

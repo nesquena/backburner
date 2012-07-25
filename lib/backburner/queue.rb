@@ -3,6 +3,7 @@ module Backburner
     def self.included(base)
       base.send(:extend, Backburner::Helpers)
       base.extend ClassMethods
+      Backburner.configuration.known_job_classes << base
     end
 
     module ClassMethods

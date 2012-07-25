@@ -60,6 +60,20 @@ class MiniTest::Spec
     assert_equal(a1h, a2h, msg)
   end
 
+  #   assert_contains(['a', '1'], /\d/) => passes
+  #   assert_contains(['a', '1'], 'a') => passes
+  #   assert_contains(['a', '1'], /not there/) => fails
+  def assert_contains(collection, x, extra_msg = "")
+    collection = [collection] unless collection.is_a?(Array)
+    msg = "#{x.inspect} not found in #{collection.to_a.inspect} #{extra_msg}"
+    case x
+    when Regexp
+      assert(collection.detect { |e| e =~ x }, msg)
+    else
+      assert(collection.include?(x), msg)
+    end
+  end
+
   # silenced(5) { ... }
   def silenced(time=3, &block)
     Timeout::timeout(time) { capture_stdout(&block) }

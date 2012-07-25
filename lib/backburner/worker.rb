@@ -57,7 +57,7 @@ module Backburner
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| name =~ /^#{tube_namespace}/ ? name : [tube_namespace, name].join(".")  }
       log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
-      self.tube_names.each { |name| self.connection.watch(name) }
+      self.tube_names.uniq.each { |name| self.connection.watch(name) }
       self.connection.list_tubes_watched.each do |server, tubes|
         tubes.each { |tube| self.connection.ignore(tube) unless self.tube_names.include?(tube) }
       end
@@ -103,9 +103,9 @@ module Backburner
     # Returns a list of all tubes known within the system
     # Filtered for tubes that match the known prefix
     def all_existing_queues
-      self.connection.list_tubes.values.flatten.uniq.select { |tube|
-        tube =~ /^#{tube_namespace}/
-      }
+      known_queues    = Echelon.configuration.known_job_classes.map(&:queue)
+      existing_tubes  = self.connection.list_tubes.values.flatten.uniq.select { |tube| tube =~ /^#{tube_namespace}/ }
+      known_queues + existing_tubes
     end
 
     # Returns the queue_name for a particular job

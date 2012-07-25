@@ -9,12 +9,13 @@ module Backburner
     attr_accessor :known_job_classes  # list of known job classes
 
     def initialize
-      @beanstalk_url    = "beanstalk://localhost"
-      @tube_namespace   = "unique.jobs"
-      @default_priority = 65536
-      @respond_timeout  = 120
-      @on_error         = nil
-      @default_queues   = []
+      @beanstalk_url     = "beanstalk://localhost"
+      @tube_namespace    = "unique.jobs"
+      @default_priority  = 65536
+      @respond_timeout   = 120
+      @on_error          = nil
+      @default_queues    = []
+      @known_job_classes = []
     end
   end # Configuration
 end # Backburner
