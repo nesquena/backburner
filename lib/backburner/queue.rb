@@ -1,7 +1,7 @@
-module Echelon
-  module Job
+module Backburner
+  module Queue
     def self.included(base)
-      base.send(:extend, Echelon::Helpers)
+      base.send(:extend, Backburner::Helpers)
       base.extend ClassMethods
     end
 
@@ -17,6 +17,5 @@ module Echelon
         end
       end
     end # ClassMethods
-
   end # Job
-end # Echelon
+end # Backburner

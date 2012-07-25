@@ -1,9 +1,9 @@
 $:.unshift "lib"
-require 'echelon'
+require 'backburner'
 
 # Define ruby job
 class TestJob
-  include Echelon::Job
+  include Backburner::Queue
   # queue "test-job"
 
   def self.perform(value, user)
@@ -11,15 +11,15 @@ class TestJob
   end
 end
 
-# Configure Echelon
-Echelon.configure do |config|
+# Configure Backburner
+Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "demo.production"
 end
 
 # Enqueue tasks
-Echelon.enqueue TestJob, 5, 3
-Echelon.enqueue TestJob, 10, 6
+Backburner.enqueue TestJob, 5, 3
+Backburner.enqueue TestJob, 10, 6
 
 # Work tasks
-Echelon.work!("test-job")
+Backburner.work("test-job")

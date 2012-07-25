@@ -1,7 +1,7 @@
 require File.expand_path('../test_helper', __FILE__)
 
-describe "Echelon::Logger module" do
-  include Echelon::Logger
+describe "Backburner::Logger module" do
+  include Backburner::Logger
 
   describe "for log method" do
     it "prints out to std out" do

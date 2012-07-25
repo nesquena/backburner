@@ -1,3 +1,3 @@
-module Echelon
+module Backburner
   VERSION = "0.0.1"
 end

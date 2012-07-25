@@ -1,9 +1,9 @@
 $:.unshift "lib"
-require 'echelon'
+require 'backburner'
 
 module Tester
   class TestJob
-    include Echelon::Job
+    include Backburner::Queue
     queue "test.job"
 
     def self.perform(value, user)
@@ -12,7 +12,7 @@ module Tester
   end
 
   class UserModel
-    include Echelon::Performable
+    include Backburner::Performable
 
     attr_accessor :id, :name
 
@@ -38,23 +38,23 @@ module Tester
   end
 end
 
-# connection = Echelon::Connection.new("beanstalk://localhost")
+# connection = Backburner::Connection.new("beanstalk://localhost")
 
-Echelon.configure do |config|
+Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "myblog.production"
 end
 
-# p Echelon.configuration.beanstalk_url
-# p Echelon::Worker.connection
+# p Backburner.configuration.beanstalk_url
+# p Backburner::Worker.connection
 
-Echelon.enqueue Tester::TestJob, 5, 3
-Echelon.enqueue Tester::TestJob, 10, 6
+Backburner.enqueue Tester::TestJob, 5, 3
+Backburner.enqueue Tester::TestJob, 10, 6
 @user = Tester::UserModel.first
 @user.async.hello("foo", "bar")
 Tester::UserModel.async.foo("bar", "baz")
 
-Echelon.default_queues.concat([Tester::TestJob.queue, Tester::UserModel.queue])
-Echelon.work!
-# Echelon.work!("test.job")
-# Echelon.work!("tester/user-model")
+Backburner.default_queues.concat([Tester::TestJob.queue, Tester::UserModel.queue])
+Backburner.work
+# Backburner.work("test.job")
+# Backburner.work("tester/user-model")

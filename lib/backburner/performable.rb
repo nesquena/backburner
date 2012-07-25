@@ -1,4 +1,4 @@
-module Echelon
+module Backburner
   # Class allows async task to be proxied
   class AsyncProxy < BasicObject
     # AsyncProxy(User, 10, :pri => 1000, :ttr => 1000)
@@ -9,14 +9,14 @@ module Echelon
 
     # Enqueue as job when a method is invoked
     def method_missing(method, *args, &block)
-      ::Echelon::Worker.enqueue(@klazz, [@id, method, *args], @opts)
+      ::Backburner::Worker.enqueue(@klazz, [@id, method, *args], @opts)
     end
   end
 
   module Performable
     def self.included(base)
       base.send(:include, InstanceMethods)
-      base.send(:include, Echelon::Job)
+      base.send(:include, Backburner::Queue)
       base.extend ClassMethods
     end
 
@@ -25,7 +25,7 @@ module Echelon
       # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
       # @model.async(:pri => 1000).do_something("foo")
       def async(opts={})
-        Echelon::AsyncProxy.new(self.class, self.id, opts)
+        Backburner::AsyncProxy.new(self.class, self.id, opts)
       end
     end # InstanceMethods
 
@@ -34,7 +34,7 @@ module Echelon
       # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
       # Model.async(:ttr => 300).do_something("foo")
       def async(opts={})
-        Echelon::AsyncProxy.new(self, nil, opts)
+        Backburner::AsyncProxy.new(self, nil, opts)
       end
 
       # Defines perform method for job processing
@@ -48,4 +48,4 @@ module Echelon
       end # perform
     end # ClassMethods
   end # Performable
-end # Echelon
+end # Backburner

@@ -1,9 +1,9 @@
 require File.expand_path('../test_helper', __FILE__)
 
-describe "Echelon::Connection class" do
+describe "Backburner::Connection class" do
   describe "for initialize" do
     before do
-      @connection = Echelon::Connection.new("beanstalk://localhost")
+      @connection = Backburner::Connection.new("beanstalk://localhost")
     end
 
     it "should store url in accessor" do
@@ -17,15 +17,15 @@ describe "Echelon::Connection class" do
 
   describe "for bad uri" do
     it "should raise a BadUrl" do
-      assert_raises(Echelon::Connection::BadURL) {
-        @connection = Echelon::Connection.new("fake://foo")
+      assert_raises(Backburner::Connection::BadURL) {
+        @connection = Backburner::Connection.new("fake://foo")
       }
     end
   end
 
   describe "for delegated methods" do
     before do
-      @connection = Echelon::Connection.new("beanstalk://localhost")
+      @connection = Backburner::Connection.new("beanstalk://localhost")
     end
 
     it "delegate methods to beanstalk connection" do

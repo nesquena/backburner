@@ -1,4 +1,4 @@
-module Echelon
+module Backburner
   module Helpers
     # Loads in instance and class levels
     def self.included(base)
@@ -72,10 +72,10 @@ module Echelon
       constant
     end
 
-    # Returns tube_namespace for echelon
+    # Returns tube_namespace for backburner
     # tube_namespace => "some.namespace"
     def tube_namespace
-      Echelon.configuration.tube_namespace
+      Backburner.configuration.tube_namespace
     end
   end
 end

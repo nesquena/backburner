@@ -1,8 +1,8 @@
 $:.unshift "lib"
-require 'echelon'
+require 'backburner'
 
 class User
-  include Echelon::Performable
+  include Backburner::Performable
   attr_accessor :id, :name
 
   def self.first
@@ -26,8 +26,8 @@ class User
   end
 end
 
-# Configure Echelon
-Echelon.configure do |config|
+# Configure Backburner
+Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "demo.production"
   config.on_error = lambda { |e| puts "HEY!!! #{e.class}" }
@@ -39,5 +39,5 @@ end
 User.async.foo("bar", "baz")
 
 # Run work
-# Echelon.default_queues << "user"
-Echelon.work!
+# Backburner.default_queues << "user"
+Backburner.work

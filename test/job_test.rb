@@ -1,11 +1,11 @@
 require File.expand_path('../test_helper', __FILE__)
 
 module NestedDemo
-  class TestJobA; include Echelon::Job; end
-  class TestJobB; include Echelon::Job; end
+  class TestJobA; include Backburner::Queue; end
+  class TestJobB; include Backburner::Queue; end
 end
 
-describe "Echelon::Job module" do
+describe "Backburner::Queue module" do
   describe "for queue method accessor" do
     it "should return the queue name" do
       assert_equal "nested-demo/test-job-a", NestedDemo::TestJobA.queue
@@ -18,4 +18,4 @@ describe "Echelon::Job module" do
       assert_equal "nested/job", NestedDemo::TestJobB.queue
     end
   end # queue
-end # Echelon::Job
+end # Backburner::Queue

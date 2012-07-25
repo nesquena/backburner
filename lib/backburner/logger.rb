@@ -1,5 +1,6 @@
-module Echelon
+module Backburner
   module Logger
+
     # Loads in instance and class levels
     def self.included(base)
       base.extend self

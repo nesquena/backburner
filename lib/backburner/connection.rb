@@ -1,6 +1,6 @@
 require 'delegate'
 
-module Echelon
+module Backburner
   class Connection < SimpleDelegator
     class BadURL < RuntimeError; end
 
@@ -40,4 +40,4 @@ module Echelon
       "#{uri.host}:#{uri.port || 11300}"
     end
   end # Connection
-end # Echelon
+end # Backburner

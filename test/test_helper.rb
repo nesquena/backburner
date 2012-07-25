@@ -3,10 +3,10 @@ require 'tempfile'
 require 'minitest/autorun'
 require 'mocha'
 $:.unshift File.expand_path("../../lib")
-require 'echelon'
+require 'backburner'
 
-# Configure Echelon
-Echelon.configure do |config|
+# Configure Backburner
+Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://localhost"
   config.tube_namespace = "demo.test"
 end
@@ -67,8 +67,8 @@ class MiniTest::Spec
 
   # pop_one_job(tube_name)
   def pop_one_job(tube_name)
-    connection = Echelon::Worker.connection
-    tube_name = [Echelon.configuration.tube_namespace, tube_name].join(".")
+    connection = Backburner::Worker.connection
+    tube_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
     connection.watch(tube_name)
     connection.list_tubes_watched.each do |server, tubes|
       tubes.each { |tube| connection.ignore(tube) unless tube == tube_name }

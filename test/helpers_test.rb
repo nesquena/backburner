@@ -1,7 +1,7 @@
 require File.expand_path('../test_helper', __FILE__)
 
-describe "Echelon::Helpers module" do
-  include Echelon::Helpers
+describe "Backburner::Helpers module" do
+  include Backburner::Helpers
 
   describe "for classify method" do
     it "should support simple classify" do
@@ -15,7 +15,7 @@ describe "Echelon::Helpers module" do
 
   describe "for constantize method" do
     it "should constantize known constant" do
-      assert_equal Echelon, constantize("Echelon")
+      assert_equal Backburner, constantize("Backburner")
     end
 
     it "should properly report when constant is undefined" do

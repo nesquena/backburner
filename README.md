@@ -1,20 +1,20 @@
-# Echelon
+# Backburner
 
-Echelon is a beanstalkd-powered job queue designed to be as simple and easy to use as possible.
+Backburner is a beanstalkd-powered job queue designed to be as simple and easy to use as possible.
 You can create background jobs, place those on specialized queues and process them later.
 
-Processing background jobs reliably has never been easier. Echelon works with any ruby-based
+Processing background jobs reliably has never been easier. Backburner works with any ruby-based
 web framework but is particularly designed for use with Sinatra and [Padrino](http://padrinorb.com).
 
-If you want to use beanstalk for job processing, consider using echelon. Echelon is heavily inspired by Resque and DelayedJob.
-Echelon can be a persistent queue if the beanstalk persistence mode is enabled, supports priority, delays, and timeouts.
-Echelon stores jobs as simple JSON payloads.
+If you want to use beanstalk for job processing, consider using Backburner. Backburner is heavily inspired by Resque and DelayedJob.
+Backburner can be a persistent queue if the beanstalk persistence mode is enabled, supports priority, delays, and timeouts.
+Backburner stores jobs as simple JSON payloads.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'echelon'
+    gem 'backburner'
 
 And then execute:
 
@@ -22,14 +22,14 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install echelon
+    $ gem install backburner
 
 ## Configuration ##
 
-Echelon is extremely simple to setup. Just configure basic settings for echelon:
+Backburner is extremely simple to setup. Just configure basic settings for backburner:
 
 ```ruby
-Echelon.configure do |config|
+Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "some.app.production"
   config.on_error = lambda { |e| puts e }
@@ -40,19 +40,19 @@ end
 
 ## Usage
 
-Echelon allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and 
+Backburner allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and
 process them asynchronously.
 
 ### Enqueuing Jobs ###
 
-At the core, Echelon is about jobs that can be processed. Jobs are simple ruby objects with a method defined named `perform`.
+At the core, Backburner is about jobs that can be processed. Jobs are simple ruby objects with a method defined named `perform`.
 
-Any object which responds to `perform` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner. 
+Any object which responds to `perform` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner.
 Here's an example:
 
 ```ruby
 class NewsletterJob
-  include Echelon::Job
+  include Backburner::Queue
   queue "newsletter"
 
   def self.perform(email, body)
@@ -61,25 +61,25 @@ class NewsletterJob
 end
 ```
 
-Notice that you must include the `Echelon::Job` module and that you can set a `queue` name within the job automatically. 
+Notice that you must include the `Backburner::Queue` module and that you can set a `queue` name within the job automatically.
 Jobs can then be enqueued using:
 
 ```ruby
-Echelon.enqueue NewsletterJob, 'lorem ipsum...', 5
+Backburner.enqueue NewsletterJob, 'lorem ipsum...', 5
 ```
 
-`Echelon.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters 
-to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`) 
+`Backburner.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters
+to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`)
 if not otherwise specified.
 
 ### Simple Async Jobs ###
 
-In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which 
-includes `Echelon::Performable`.
+In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which
+includes `Backburner::Performable`.
 
 ```ruby
 class User
-  include Echelon::Performable
+  include Backburner::Performable
 
   def activate(device_id)
     @device = Device.find(device_id)
@@ -91,40 +91,40 @@ end
 @user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
 ```
 
-This will automatically enqueue a job that will run `activate` with the specified argument for that user record. 
-The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified. 
-Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
+This will automatically enqueue a job that will run `activate` with the specified argument for that user record.
+The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
+Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
 
 ### Working Jobs
 
-Echelon workers are processes that run forever handling jobs that get reserved. Starting a worker in ruby code is simple:
+Backburner workers are processes that run forever handling jobs that get reserved. Starting a worker in ruby code is simple:
 
 ```ruby
-Echelon.work!
+Backburner.work
 ```
 
 This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
-Echelon.work!('newsletter_sender')
+Backburner.work('newsletter_sender')
 ```
 
-The Echelon worker also exists as a rake task:
+The Backburner worker also exists as a rake task:
 
 ```ruby
-require 'echelon/tasks'
+require 'backburner/tasks'
 ```
 
 so you can run:
 
 ```
-$ QUEUES=newsletter-sender,push-message rake echelon:work
+$ QUEUES=newsletter-sender,push-message rake backburner:work
 ```
 
-You can also run the echelon binary for a convenient worker:
+You can also run the backburner binary for a convenient worker:
 
 ```
-bundle exec echelon newsletter-sender,push-message -d -P /var/run/echelon.pid -l /var/log/echelon.log
+bundle exec backburner newsletter-sender,push-message -d -P /var/run/backburner.pid -l /var/log/backburner.log
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
@@ -134,18 +134,18 @@ This will daemonize the worker and store the pid and logs automatically.
 Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
 process **all** queues instead, then you can leave the queue list blank.
 
-Unfortunately, when you execute a worker without queues specified any job tubes that have not yet been 
-created **will not be processed** by the worker. For this reason, you may want to take control over the default list of 
+Unfortunately, when you execute a worker without queues specified any job tubes that have not yet been
+created **will not be processed** by the worker. For this reason, you may want to take control over the default list of
 queues processed when none are specified. To do this, you can use the `default_queues` class method:
 
 ```ruby
-Echelon.default_queues.concat(["foo", "bar"])
+Backburner.default_queues.concat(["foo", "bar"])
 ```
 
 You can also add particular job classes to the queue:
 
 ```ruby
-Echelon.default_queues << NewsletterJob.queue
+Backburner.default_queues << NewsletterJob.queue
 ```
 
 The `default_queues` stores the specific list of queues that should be processed by default by a worker.
@@ -155,7 +155,7 @@ The `default_queues` stores the specific list of queues that should be processed
 You can setup the error handler for jobs using configure:
 
 ```ruby
-Echelon.configure do |config|
+Backburner.configure do |config|
   config.on_error = lambda { |ex| Airbrake.notify(ex) }
 end
 ```
@@ -171,7 +171,7 @@ Right now, all logging happens to standard out and can be piped to a file or any
 
 To be completed is an admin dashboard that provides insight into beanstalk jobs via a simple Sinatra front-end. Coming soon.
 
-## Why Echelon?
+## Why Backburner?
 
 To be filled in. DelayedJob, Resque, Stalker, et al.
 

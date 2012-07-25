@@ -1,7 +1,7 @@
-module Echelon
+module Backburner
   class Worker
-    include Echelon::Helpers
-    include Echelon::Logger
+    include Backburner::Helpers
+    include Backburner::Logger
 
     class JobNotFound < RuntimeError; end
     class JobTimeout < RuntimeError; end
@@ -9,11 +9,11 @@ module Echelon
 
     # Enqueues a job to be processed later by a worker
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
-    # Echelon::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
+    # Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
     def self.enqueue(job_class, args=[], opts={})
-      pri   = opts[:pri] || Echelon.configuration.default_priority
+      pri   = opts[:pri] || Backburner.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
-      ttr   = opts[:ttr] || Echelon.configuration.respond_timeout
+      ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
       connection.use job_queue_name(opts[:queue]  || job_class)
       data = { :class => job_class, :args => args }
       connection.put data.to_json, pri, delay, ttr
@@ -22,15 +22,15 @@ module Echelon
     end
 
     # Starts processing jobs in the specified tube_names
-    # Echelon::Worker.start(["foo.tube.name"])
+    # Backburner::Worker.start(["foo.tube.name"])
     def self.start(tube_names=nil)
       self.new(tube_names).start
     end
 
     # Returns the worker connection
-    # Echelon::Worker.connection => <Beanstalk::Pool>
+    # Backburner::Worker.connection => <Beanstalk::Pool>
     def self.connection
-      @connection ||= Connection.new(Echelon.configuration.beanstalk_url)
+      @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
 
     # List of tube names to be watched and processed
@@ -53,7 +53,7 @@ module Echelon
     # Used to prepare job queues before processing jobs.
     # @worker.prepare
     def prepare
-      self.tube_names ||= Echelon.default_queues.any? ? Echelon.default_queues : all_existing_queues
+      self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| name =~ /^#{tube_namespace}/ ? name : [tube_namespace, name].join(".")  }
       log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
@@ -129,7 +129,7 @@ module Echelon
     # Handles an error according to custom definition
     # Used when processing a job that errors out
     def handle_error(e, name, args)
-      if error_handler = Echelon.configuration.on_error
+      if error_handler = Backburner.configuration.on_error
         if error_handler.arity == 1
           error_handler.call(e)
         else
@@ -146,4 +146,4 @@ module Echelon
     log_error "*** Check that beanstalkd is running (or set a different beanstalk url)"
     exit 1
   end
-end # Echelon
+end # Backburner
