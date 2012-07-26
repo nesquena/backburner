@@ -233,9 +233,26 @@ If a job fails in beanstalk, the job is automatically buried and must be 'kicked
 
 Right now, all logging happens to standard out and can be piped to a file or any other output manually. More on logging coming later.
 
-### Front-end Monitoring
+### Front-end
 
 To be completed is an admin dashboard that provides insight into beanstalk jobs via a simple Sinatra front-end. Coming soon.
+
+### Workers in Production
+
+Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
+is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
+    
+    # Rakefile
+    require 'backburner/tasks'
+
+and then you can start the rake task with:
+    
+    $ rake backburner:work
+    $ QUEUES=newsletter-sender,push-message rake backburner:work
+
+The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
+which watches processes and ensures their stability. A simple God recipe for Backburner can be found in 
+[examples/god](https://github.com/nesquena/backburner/blob/master/examples/god.rb).
 
 ## Acknowledgements
 
