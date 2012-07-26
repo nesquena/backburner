@@ -113,11 +113,11 @@ class NewsletterJob
 end
 ```
 
-Notice that you must include the `Backburner::Queue` module and that you can set a `queue` name within the job automatically.
-Jobs can then be enqueued using:
+Notice that you can include the optional `Backburner::Queue` module so you can specify a `queue` name for this job.
+Jobs can be enqueued with:
 
 ```ruby
-Backburner.enqueue NewsletterJob, 'lorem ipsum...', 5
+Backburner.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...'
 ```
 
 `Backburner.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters
