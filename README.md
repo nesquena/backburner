@@ -62,7 +62,7 @@ In the end, **beanstalk is the ideal job queue** while also being ridiculously e
 First, you probably want to [install beanstalkd](http://kr.github.com/beanstalkd/download.html), which powers the job queues.
 Depending on your platform, this should be as simple as (for Ubuntu):
 
-    sudo apt-get install beanstalkd
+    $ sudo apt-get install beanstalkd
 
 Add this line to your application's Gemfile:
 
