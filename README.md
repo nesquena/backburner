@@ -12,18 +12,18 @@ Backburner stores all jobs as simple JSON message payloads.
 
 ## Why Backburner?
 
+Backburner is well tested and has a familiar, no-nonsense approach to job processing but that is of secondary importance.
 Let's face it; there are a lot of options for background job processing. [DelayedJob](https://github.com/collectiveidea/delayed_job),
 and [Resque](https://github.com/defunkt/resque) are the first that come to mind immediately. So, how do we make sense
 of which one to use? And why use Backburner over other alternatives?
 
-The key to understanding the differences lies in understanding the different projects and protocols that underlie these popular queue
-libraries. Every job queue requires a queue store that jobs are put into and popped out of. In the case of Resque, jobs are processed
-through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through 
+The key to understanding the differences lies in understanding the different projects and protocols that power these popular queue
+libraries under the hood. Every job queue requires a queue store that jobs are put into and pulled out of. 
+In the case of Resque, jobs are processed through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through 
 **ActiveRecord** and a database such as PostgreSQL.
 
-Backburner is well tested and has a familiar, no-nonsense approach to handling job processing but that is of secondary importance.
-The work queue underlying these gems tells you infinitely more about the differences. 
-Beanstalk is arguably the best solution for job queues available today for many reasons. 
+The work queue underlying these gems tells you infinitely more about the differences then anything else. 
+Beanstalk is probably the best solution for job queues available today for many reasons. 
 The real question then is... "Why Beanstalk?".
 
 ## Why Beanstalk?
