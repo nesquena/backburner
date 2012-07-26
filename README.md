@@ -1,7 +1,7 @@
 # Backburner
 
-Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue designed to with an easy and familiar DSL.
-You can create background jobs, place those on specialized queues and then process them later.
+Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue which can scale handling a very high volume of jobs.
+You create background jobs, place those on multiple work queues to be processed later.
 
 Processing background jobs reliably has never been easier then with beanstalkd and Backburner. This gem works with any ruby-based
 web framework but is well-suited for use with [Sinatra](http://sinatrarb.com), [Padrino](http://padrinorb.com) and Rails.
@@ -18,33 +18,33 @@ and [Resque](https://github.com/defunkt/resque) are the first that come to mind 
 of which one to use? And why use Backburner over other alternatives?
 
 The key to understanding the differences lies in understanding the different projects and protocols that power these popular queue
-libraries under the hood. Every job queue requires a queue store that jobs are put into and pulled out of. 
-In the case of Resque, jobs are processed through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through 
+libraries under the hood. Every job queue requires a queue store that jobs are put into and pulled out of.
+In the case of Resque, jobs are processed through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through
 **ActiveRecord** and a database such as PostgreSQL.
 
-The work queue underlying these gems tells you infinitely more about the differences then anything else. 
-Beanstalk is probably the best solution for job queues available today for many reasons. 
+The work queue underlying these gems tells you infinitely more about the differences then anything else.
+Beanstalk is probably the best solution for job queues available today for many reasons.
 The real question then is... "Why Beanstalk?".
 
 ## Why Beanstalk?
 
-Illya has an excellent blog post 
+Illya has an excellent blog post
 [Scalable Work Queues with Beanstalk](http://www.igvita.com/2010/05/20/scalable-work-queues-with-beanstalk/) and
 Adam Wiggins posted [an excellent comparison](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend/).
 
-You will quickly see that **beanstalkd** is an underrated but incredible project that is extremely well-suited as a job queue. 
-Significantly better suited for this task then Redis or a database. Beanstalk is a simple, 
-and a very fast work queue service rolled into a single binary - it is the memcached of work queues. 
-Originally built to power the backend for the 'Causes' Facebook app, it is a mature and production ready open source project. 
+You will quickly see that **beanstalkd** is an underrated but incredible project that is extremely well-suited as a job queue.
+Significantly better suited for this task then Redis or a database. Beanstalk is a simple,
+and a very fast work queue service rolled into a single binary - it is the memcached of work queues.
+Originally built to power the backend for the 'Causes' Facebook app, it is a mature and production ready open source project.
 [PostRank](http://www.postrank.com) uses beanstalk to reliably process millions of jobs a day.
 
-A single instance of Beanstalk is perfectly capable of handling thousands of jobs a second (or more, depending on your job size) 
-because it is an in-memory, event-driven system. Powered by libevent under the hood, 
-it requires zero setup (launch and forget, ala memcached), optional log based persistence, an easily parsed ASCII protocol, 
+A single instance of Beanstalk is perfectly capable of handling thousands of jobs a second (or more, depending on your job size)
+because it is an in-memory, event-driven system. Powered by libevent under the hood,
+it requires zero setup (launch and forget, ala memcached), optional log based persistence, an easily parsed ASCII protocol,
 and a rich set of tools for job management that go well beyond a simple FIFO work queue.
 
 Beanstalk supports the following features natively, out of the box, without any questions asked:
- 
+
  * **Parallel Queues** - Supports multiple work queues, which are created and deleted on demand.
  * **Reliable** - Beanstalk’s reserve, work, delete cycle, with a timeout on a job, means bad clients basically can't lose a job.
  * **Scheduling** - Delay enqueuing jobs by a specified interval to schedule processing later.
@@ -54,7 +54,7 @@ Beanstalk supports the following features natively, out of the box, without any 
  * **Federation** - Fault-tolerance and horizontal scalability is provided the same way as Memcache - through federation by the client.
  * **Buried jobs** - When a job causes an error, you can bury it which keeps it around for later debugging and inspection.
 
-Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support. 
+Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
 In the end, **beanstalk is the ideal job queue** while also being ridiculously easy to install and setup.
 
 ## Installation
@@ -241,17 +241,17 @@ To be completed is an admin dashboard that provides insight into beanstalk jobs 
 
 Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
 is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
-    
+
     # Rakefile
     require 'backburner/tasks'
 
 and then you can start the rake task with:
-    
+
     $ rake backburner:work
     $ QUEUES=newsletter-sender,push-message rake backburner:work
 
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
-which watches processes and ensures their stability. A simple God recipe for Backburner can be found in 
+which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
 [examples/god](https://github.com/nesquena/backburner/blob/master/examples/god.rb).
 
 ## Acknowledgements
