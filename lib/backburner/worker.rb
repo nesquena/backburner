@@ -137,12 +137,4 @@ module Backburner
       end
     end
   end # Worker
-
-  # Prints message about failure when beastalk cannot be connected
-  def failed_connection(e)
-    log_error exception_message(e)
-    log_error "*** Failed connection to #{connection.url}"
-    log_error "*** Check that beanstalkd is running (or set a different beanstalk url)"
-    exit 1
-  end
 end # Backburner
