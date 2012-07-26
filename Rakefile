@@ -11,5 +11,7 @@ task :test do
   end
 end
 
+task :default => :test
+
 # task :doc do
 #  YARD::CLI::Yardoc.new.run
