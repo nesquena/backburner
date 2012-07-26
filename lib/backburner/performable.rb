@@ -11,7 +11,9 @@ module Backburner
     module InstanceMethods
       # Return proxy object to enqueue jobs for object
       # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
-      # @model.async(:pri => 1000).do_something("foo")
+      # @example
+      #   @model.async(:pri => 1000).do_something("foo")
+      #
       def async(opts={})
         Backburner::AsyncProxy.new(self.class, self.id, opts)
       end
@@ -20,13 +22,15 @@ module Backburner
     module ClassMethods
       # Return proxy object to enqueue jobs for object
       # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
-      # Model.async(:ttr => 300).do_something("foo")
+      # @example
+      #   Model.async(:ttr => 300).do_something("foo")
       def async(opts={})
         Backburner::AsyncProxy.new(self, nil, opts)
       end
 
       # Defines perform method for job processing
-      # perform(55, :do_something, "foo", "bar")
+      # @example
+      #   perform(55, :do_something, "foo", "bar")
       def perform(id, method, *args)
         if id # instance
           find(id).send(method, *args)

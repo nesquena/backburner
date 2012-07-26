@@ -16,7 +16,10 @@ module Backburner
 
     # Enqueues a job to be processed later by a worker
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
-    # Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
+    #
+    # @example
+    #   Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
+    #
     def self.enqueue(job_class, args=[], opts={})
       pri   = opts[:pri] || Backburner.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
@@ -29,13 +32,15 @@ module Backburner
     end
 
     # Starts processing jobs in the specified tube_names
-    # Backburner::Worker.start(["foo.tube.name"])
+    # @example
+    #   Backburner::Worker.start(["foo.tube.name"])
     def self.start(tube_names=nil)
       self.new(tube_names).start
     end
 
     # Returns the worker connection
-    # Backburner::Worker.connection => <Beanstalk::Pool>
+    # @example
+    #   Backburner::Worker.connection # => <Beanstalk::Pool>
     def self.connection
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
@@ -43,7 +48,8 @@ module Backburner
     # List of tube names to be watched and processed
     attr_accessor :tube_names
 
-    # Worker.new(['test.job'])
+    # @example
+    #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
       @tube_names = begin
         tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
@@ -55,7 +61,8 @@ module Backburner
 
     # Starts processing new jobs indefinitely
     # Primary way to consume and process jobs in specified tubes
-    # @worker.start
+    # @example
+    #   @worker.start
     def start
       prepare
       loop { work_one_job }
@@ -63,7 +70,8 @@ module Backburner
 
     # Setup beanstalk tube_names and watch all specified tubes for jobs.
     # Used to prepare job queues before processing jobs.
-    # @worker.prepare
+    # @example
+    #   @worker.prepare
     def prepare
       self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
@@ -80,7 +88,8 @@ module Backburner
     # Reserves one job within the specified queues
     # Pops the job off and serializes the job to JSON
     # Each job is performed by invoking `perform` on the job class.
-    # @worker.work_one_job
+    # @example
+    #   @worker.work_one_job
     def work_one_job
       job = self.connection.reserve
       body = JSON.parse job.body

@@ -30,6 +30,7 @@ module Backburner
     #
     # @example
     #   dasherize('JobName') # => "job-name"
+    #
     def dasherize(word)
       classify(word).to_s.gsub(/::/, '/').
             gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
@@ -69,7 +70,9 @@ module Backburner
 
     # Returns tube_namespace for backburner
     #
-    # tube_namespace => "some.namespace"
+    # @example
+    #   tube_namespace => "some.namespace"
+    #
     def tube_namespace
       Backburner.configuration.tube_namespace
     end

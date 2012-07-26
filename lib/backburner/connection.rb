@@ -26,16 +26,20 @@ module Backburner
     end
 
     # Returns the beanstalk queue addresses
+    #
     # @example
     #   beanstalk_addresses => ["localhost:11300"]
+    #
     def beanstalk_addresses
       uris = self.url.split(/[\s,]+/)
       uris.map {|uri| beanstalk_host_and_port(uri)}
     end
 
     # Returns a host and port based on the uri_string given
+    #
     # @example
     #   beanstalk_host_and_port("beanstalk://localhost") => "localhost:11300"
+    #
     def beanstalk_host_and_port(uri_string)
       uri = URI.parse(uri_string)
       raise(BadURL, uri_string) if uri.scheme != 'beanstalk'

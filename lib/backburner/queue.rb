@@ -7,9 +7,11 @@ module Backburner
     end
 
     module ClassMethods
-      # Returns or assigns queue name for this job
-      # queue "some.task.name"
-      # queue => "some.task.name"
+      # Returns or assigns queue name for this job.
+      #
+      # @example
+      #   queue "some.task.name"
+      #   queue => "some.task.name"
       def queue(name=nil)
         if name
           @queue_name = name

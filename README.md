@@ -281,8 +281,8 @@ Thanks to these projects for inspiration and certain design and implementation d
 
 ## Links
 
-Code: `git clone git://github.com/nesquena/backburner.git`
-Home: <http://github.com/nesquena/backburner>
-Docs: <http://rdoc.info/github/nesquena/backburner/master/frames>
-Bugs: <http://github.com/nesquena/backburner/issues>
-Gems: <http://gemcutter.org/gems/backburner>
+ * Code: `git clone git://github.com/nesquena/backburner.git`
+ * Home: <http://github.com/nesquena/backburner>
+ * Docs: <http://rdoc.info/github/nesquena/backburner/master/frames>
+ * Bugs: <http://github.com/nesquena/backburner/issues>
+ * Gems: <http://gemcutter.org/gems/backburner>
