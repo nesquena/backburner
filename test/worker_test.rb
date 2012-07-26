@@ -94,14 +94,22 @@ describe "Backburner::Worker module" do
       assert_match /demo\.test\.foo/, out
     end
 
-    it "should support all tubes" do
+    it "should assign based on all tubes" do
       Backburner::Worker.any_instance.expects(:all_existing_queues).once.returns("bar")
       worker = Backburner::Worker.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.bar"], Backburner::Worker.connection.list_tubes_watched.values.first
       assert_match /demo\.test\.bar/, out
-    end # all
+    end # all assign
+
+    it "should properly retrieve all tubes" do
+      worker = Backburner::Worker.new
+      out = capture_stdout { worker.prepare }
+      assert_contains worker.tube_names, "demo.test.test-job"
+      assert_contains Backburner::Worker.connection.list_tubes_watched.values.first, "demo.test.test-job"
+      assert_match /demo\.test\.test-job/, out
+    end # all read
   end # prepare
 
   describe "for work_one_job method" do

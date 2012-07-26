@@ -110,7 +110,7 @@ module Backburner
     # Returns a list of all tubes known within the system
     # Filtered for tubes that match the known prefix
     def all_existing_queues
-      known_queues    = Echelon.configuration.known_job_classes.map(&:queue)
+      known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
       existing_tubes  = self.connection.list_tubes.values.flatten.uniq.select { |tube| tube =~ /^#{tube_namespace}/ }
       known_queues + existing_tubes
     end
