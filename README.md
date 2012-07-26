@@ -271,8 +271,18 @@ which watches processes and ensures their stability. A simple God recipe for Bac
 
 ## References
 
-The code in this project has been adapted from a few excellent projects:
+The code in this project has been made in light of a few excellent projects:
 
  * [DelayedJob](https://github.com/collectiveidea/delayed_job)
  * [Resque](https://github.com/defunkt/resque)
  * [Stalker](https://github.com/han/stalker)
+
+Thanks to these projects for inspiration and certain design and implementation decisions.
+
+## Links
+
+Code: `git clone git://github.com/nesquena/backburner.git`
+Home: <http://github.com/nesquena/backburner>
+Docs: <http://rdoc.info/github/nesquena/backburner/master/frames>
+Bugs: <http://github.com/nesquena/backburner/issues>
+Gems: <http://gemcutter.org/gems/backburner>

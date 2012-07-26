@@ -18,13 +18,18 @@ module Backburner
     end
 
     # Given a word with dashes, returns a camel cased version of it.
-    # classify('job-name') # => 'JobName'
+    #
+    # @example
+    #   classify('job-name') # => 'JobName'
+    #
     def classify(dashed_word)
       dashed_word.to_s.split('-').each { |part| part[0] = part[0].chr.upcase }.join
     end
 
     # Given a class, dasherizes the name, used for getting tube names
-    # dasherize('JobName') => "job-name"
+    #
+    # @example
+    #   dasherize('JobName') # => "job-name"
     def dasherize(word)
       classify(word).to_s.gsub(/::/, '/').
             gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
@@ -34,19 +39,9 @@ module Backburner
 
     # Tries to find a constant with the name specified in the argument string:
     #
-    # constantize("Module") # => Module
-    # constantize("Test::Unit") # => Test::Unit
-    #
-    # The name is assumed to be the one of a top-level constant, no matter
-    # whether it starts with "::" or not. No lexical context is taken into
-    # account:
-    #
-    # C = 'outside'
-    # module M
-    #   C = 'inside'
-    #   C # => 'inside'
-    #   constantize("C") # => 'outside', same as ::C
-    # end
+    # @example
+    #   constantize("Module") # => Module
+    #   constantize("Test::Unit") # => Test::Unit
     #
     # NameError is raised when the constant is unknown.
     def constantize(camel_cased_word)
@@ -73,14 +68,18 @@ module Backburner
     end
 
     # Returns tube_namespace for backburner
+    #
     # tube_namespace => "some.namespace"
     def tube_namespace
       Backburner.configuration.tube_namespace
     end
 
     # Expands a tube to include the prefix
-    # expand_tube_name("foo") => <prefix>.foo
-    # expand_tube_name(FooJob) => <prefix>.foo-job
+    #
+    # @example
+    #   expand_tube_name("foo") # => <prefix>.foo
+    #   expand_tube_name(FooJob) # => <prefix>.foo-job
+    #
     def expand_tube_name(tube)
       prefix = tube_namespace
       queue_name = if tube.is_a?(String)

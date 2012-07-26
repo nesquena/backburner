@@ -20,6 +20,7 @@ module Backburner
     end
 
     # Prints message about failure when beastalk cannot be connected
+    #
     # failed_connection(ex)
     def failed_connection(e)
       log_error exception_message(e)
@@ -29,12 +30,14 @@ module Backburner
     end
 
     # Print a message to stdout
+    #
     # log("Working on task")
     def log(msg)
       puts msg
     end
 
     # Print an error to stderr
+    #
     # log_error("Task failed!")
     def log_error(msg)
       $stderr.puts msg
