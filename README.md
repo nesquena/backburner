@@ -127,7 +127,7 @@ if not otherwise specified.
 ### Simple Async Jobs ###
 
 In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which
-includes `Backburner::Performable`.
+includes `Backburner::Performable`. Async enqueuing works for both instance and class methods on any _performable_ object.
 
 ```ruby
 class User
@@ -137,13 +137,20 @@ class User
     @device = Device.find(device_id)
     # ...
   end
+
+  def self.reset_password(user_id)
+    # ...
+  end
 end
 
+# Async works for instance methods on a persisted model
 @user = User.first
 @user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
+# ..as well as for class methods
+User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 ```
 
-This will automatically enqueue a job that will run `activate` with the specified argument for that user record.
+This will automatically enqueue a job for that user record that will run `activate` with the specified argument.
 The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
 Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
 
