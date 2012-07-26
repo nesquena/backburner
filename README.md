@@ -1,6 +1,6 @@
 # Backburner
 
-Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue which can scale handling a very high volume of jobs.
+Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue which can handle a very high volume of jobs.
 You create background jobs, place those on multiple work queues to be processed later.
 
 Processing background jobs reliably has never been easier then with beanstalkd and Backburner. This gem works with any ruby-based
