@@ -22,7 +22,7 @@ module Backburner
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
       connection.use expand_tube_name(opts[:queue]  || job_class)
-      data = { :class => job_class, :args => args }
+      data = { :class => job_class.name, :args => args }
       connection.put data.to_json, pri, delay, ttr
     rescue Beanstalk::NotConnected => e
       failed_connection(e)
