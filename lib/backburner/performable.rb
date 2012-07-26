@@ -1,18 +1,6 @@
+require 'backburner/async_proxy'
+
 module Backburner
-  # Class allows async task to be proxied
-  class AsyncProxy < BasicObject
-    # AsyncProxy(User, 10, :pri => 1000, :ttr => 1000)
-    # Options include `pri` (priority), `delay` (delay in secs), `ttr` (time to respond)
-    def initialize(klazz, id=nil, opts={})
-      @klazz, @id, @opts = klazz, id, opts
-    end
-
-    # Enqueue as job when a method is invoked
-    def method_missing(method, *args, &block)
-      ::Backburner::Worker.enqueue(@klazz, [@id, method, *args], @opts)
-    end
-  end
-
   module Performable
     def self.included(base)
       base.send(:include, InstanceMethods)
@@ -47,5 +35,6 @@ module Backburner
         end
       end # perform
     end # ClassMethods
+
   end # Performable
 end # Backburner
