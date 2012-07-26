@@ -49,7 +49,7 @@ Beanstalk supports the following features natively, out of the box, without any 
  * **Reliable** - Beanstalk’s reserve, work, delete cycle, with a timeout on a job, means bad clients basically can't lose a job.
  * **Scheduling** - Delay enqueuing jobs by a specified interval to schedule processing later.
  * **Fast** - Beanstalkd is **significantly** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend). Easily processes thousands of jobs a second.
- * **Priorities** - Specify a higher priority and jobs will jump ahead to be processed first.
+ * **Priorities** - Specify a higher priority and those jobs will jump ahead to be processed first accordingly.
  * **Persistence** - Jobs are stored in memory for speed (ala memcached), but also logged to disk for safe keeping.
  * **Federation** - Fault-tolerance and horizontal scalability is provided the same way as Memcache - through federation by the client.
  * **Buried jobs** - When a job causes an error, you can bury it which keeps it around for later debugging and inspection.
