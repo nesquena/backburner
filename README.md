@@ -19,7 +19,7 @@ of which one to use? And why use Backburner over other alternatives?
 The key to understanding the differences lies in understanding the different projects and protocols that underlie these popular queue
 libraries. Every job queue requires a queue store that jobs are put into and popped out of. In the case of Resque, jobs are processed
 through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through 
-ActiveRecord and a database such as PostgreSQL.
+**ActiveRecord** and a database such as PostgreSQL.
 
 Backburner is well tested and has a familiar, no-nonsense approach to handling job processing but that is of secondary importance.
 The data store chosen used to power a job queue tell you far more about the different queue solutions. 
