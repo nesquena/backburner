@@ -44,15 +44,15 @@ it requires zero setup (launch and forget, ala memcached), optional log based pe
 and a rich set of tools for job management that go well beyond a simple FIFO work queue.
 
 Beanstalk supports the following features natively, out of the box, without any questions asked:
-
- * Priorities - Specify a higher priority and jobs will jump ahead to be processed first.
- * Persistence - Although jobs are stored in memory for speed and simplicity (ala memcached), 
-   the state is easily persisted to disk so you won't lose jobs.
- * Federation - Fault-tolerance and horizontal scalability is provided the same way as Memcache - through federation by the client.
- * Buried jobs - When a job causes an error, you can bury it. This keeps it around for later debugging while keeping it separated from active jobs.
- * Reliable - Beanstalk’s reserve, work, delete cycle, with a timeout to dereserve the job, means it’s near impossible for a bad client lose a job.
+ 
  * Parallel Queues - Supports multiple 'tubes' (work queues), which are created and deleted on demand.
- * Really Fast - Beanstalkd is **much** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
+ * Reliable - Beanstalk’s reserve, work, delete cycle, with a timeout on a job, means bad clients basically can't lose a job.
+ * Scheduling - Delay enqueuing jobs by a specified interval to schedule processing later.
+ * Really Fast - Beanstalkd is **significantly** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend). Easily processes thousands of jobs a second.
+ * Priorities - Specify a higher priority and jobs will jump ahead to be processed first.
+ * Persistence - Jobs are stored in memory for speed (ala memcached), but also logged to disk for safe keeping.
+ * Federation - Fault-tolerance and horizontal scalability is provided the same way as Memcache - through federation by the client.
+ * Buried jobs - When a job causes an error, you can bury it which keeps it around for later debugging and inspection.
 
 Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support. 
 In the end, **beanstalk is the ideal job queue** while also being ridiculously easy to install and setup.
