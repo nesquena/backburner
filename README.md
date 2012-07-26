@@ -256,7 +256,7 @@ which watches processes and ensures their stability. A simple God recipe for Bac
 
 ## Acknowledgements
 
- * Nathan Esquenazi - Project maintainer
+ * [Nathan Esquenazi](https://github.com/nesquena) - Project maintainer
  * Kristen Tucker - Coming up with the gem name
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
