@@ -33,10 +33,20 @@ describe "Backburner module" do
     end
   end # enqueue
 
-  describe "for work! method" do
+  describe "for work method" do
     it "invokes worker start" do
       Backburner::Worker.expects(:start).with(["foo", "bar"])
       Backburner.work("foo", "bar")
+    end
+
+    it "invokes worker start with single arg" do
+      Backburner::Worker.expects(:start).with(["foo", "bar"])
+      Backburner.work(["foo", "bar"])
+    end
+
+    it "invokes worker start with no args" do
+      Backburner::Worker.expects(:start).with(nil)
+      Backburner.work
     end
   end # work!
 
