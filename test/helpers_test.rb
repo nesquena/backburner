@@ -43,4 +43,37 @@ describe "Backburner::Helpers module" do
       assert_match /Exception RuntimeError/, output
     end
   end # exception_message
+
+  describe "for tube_namespace" do
+    before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job")) }
+
+    it "accesses correct value" do
+      assert_equal "test.foo.job", tube_namespace
+    end
+  end # tube_namespace
+
+  describe "for expand_tube_name method" do
+    before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job.")) }
+
+    it "supports base strings" do
+      assert_equal "test.foo.job.email/send-news", expand_tube_name("email/send_news")
+    end # simple string
+
+    it "supports qualified strings" do
+      assert_equal "test.foo.job.email/send-news", expand_tube_name("test.foo.job.email/send_news")
+    end # qualified string
+
+    it "supports base symbols" do
+      assert_equal "test.foo.job.email/send-news", expand_tube_name(:"email/send_news")
+    end # symbols
+
+    it "supports queue names" do
+      test = stub(:queue => "email/send_news")
+      assert_equal "test.foo.job.email/send-news", expand_tube_name(test)
+    end # queue names
+
+    it "supports class names" do
+      assert_equal "test.foo.job.runtime-error", expand_tube_name(RuntimeError)
+    end # class names
+  end # expand_tube_name
 end

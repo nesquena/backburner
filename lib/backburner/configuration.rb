@@ -9,7 +9,7 @@ module Backburner
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
-      @tube_namespace    = "unique.jobs"
+      @tube_namespace    = "backburner.worker.queue"
       @default_priority  = 65536
       @respond_timeout   = 120
       @on_error          = nil

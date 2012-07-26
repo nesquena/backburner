@@ -21,7 +21,7 @@ module Backburner
       pri   = opts[:pri] || Backburner.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
-      connection.use job_queue_name(opts[:queue]  || job_class)
+      connection.use expand_tube_name(opts[:queue]  || job_class)
       data = { :class => job_class, :args => args }
       connection.put data.to_json, pri, delay, ttr
     rescue Beanstalk::NotConnected => e
@@ -67,7 +67,7 @@ module Backburner
     def prepare
       self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
-      self.tube_names.map! { |name| name =~ /^#{tube_namespace}/ ? name : [tube_namespace, name].join(".")  }
+      self.tube_names.map! { |name| expand_tube_name(name)  }
       log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
       self.tube_names.uniq.each { |name| self.connection.watch(name) }
       self.connection.list_tubes_watched.each do |server, tubes|
@@ -118,19 +118,6 @@ module Backburner
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
       existing_tubes  = self.connection.list_tubes.values.flatten.uniq.select { |tube| tube =~ /^#{tube_namespace}/ }
       known_queues + existing_tubes
-    end
-
-    # Returns the queue_name for a particular job
-    # job_queue_name(NewsletterSender, [5, 10]) => "newsletter-sender"
-    def self.job_queue_name(job_class)
-      job_name = if job_class.is_a?(String)
-        dasherize(job_class)
-      elsif job_class.respond_to?(:queue) # use queue name
-        job_class.queue
-      else # no queue name, use job_class
-        dasherize(job_class.name)
-      end
-      [tube_namespace, job_name].join(".")
     end
 
     # Returns a reference to the beanstalk connection

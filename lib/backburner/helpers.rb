@@ -77,5 +77,23 @@ module Backburner
     def tube_namespace
       Backburner.configuration.tube_namespace
     end
+
+    # Expands a tube to include the prefix
+    # expand_tube_name("foo") => <prefix>.foo
+    # expand_tube_name(FooJob) => <prefix>.foo-job
+    def expand_tube_name(tube)
+      prefix = tube_namespace
+      queue_name = if tube.is_a?(String)
+        tube
+      elsif tube.respond_to?(:queue) # use queue name
+        tube.queue
+      elsif tube.is_a?(Class) # no queue name, use job_class
+        tube.name
+      else # turn into a string
+        tube.to_s
+      end
+      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".")
+    end
+
   end
 end
