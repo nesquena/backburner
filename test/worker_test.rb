@@ -66,6 +66,21 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new(["foo", "bar"])
       assert_equal ["foo", "bar"], worker.tube_names
     end
+
+    it "supports single tube array arg" do
+      worker = Backburner::Worker.new([["foo", "bar"]])
+      assert_equal ["foo", "bar"], worker.tube_names
+    end
+
+    it "supports empty array arg" do
+      worker = Backburner::Worker.new([])
+      assert_equal nil, worker.tube_names
+    end
+
+    it "supports nil arg" do
+      worker = Backburner::Worker.new(nil)
+      assert_equal nil, worker.tube_names
+    end
   end # tube_names
 
   describe "for prepare method" do

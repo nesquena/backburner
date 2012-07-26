@@ -23,8 +23,6 @@ module Backburner
     # Begins working on jobs enqueued with optional tubes specified
     # Backburner.work('newsletter_sender', 'test_job')
     def work(*tubes)
-      tubes = tubes.first if tubes.size == 1 && tubes.first.is_a?(Array)
-      tubes = nil if tubes.empty?
       Backburner::Worker.start(tubes)
     end
 

@@ -45,7 +45,12 @@ module Backburner
 
     # Worker.new(['test.job'])
     def initialize(tube_names=nil)
-      @tube_names = Array(tube_names) if tube_names && Array(tube_names).size > 0
+      @tube_names = begin
+        tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
+        Array(tube_names) if tube_names && Array(tube_names).size > 0
+        tube_names = nil if tube_names && tube_names.empty?
+        tube_names
+      end
     end
 
     # Starts processing new jobs indefinitely

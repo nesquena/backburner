@@ -39,13 +39,8 @@ describe "Backburner module" do
       Backburner.work("foo", "bar")
     end
 
-    it "invokes worker start with single arg" do
-      Backburner::Worker.expects(:start).with(["foo", "bar"])
-      Backburner.work(["foo", "bar"])
-    end
-
     it "invokes worker start with no args" do
-      Backburner::Worker.expects(:start).with(nil)
+      Backburner::Worker.expects(:start).with([])
       Backburner.work
     end
   end # work!
