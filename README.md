@@ -22,8 +22,8 @@ through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs
 **ActiveRecord** and a database such as PostgreSQL.
 
 Backburner is well tested and has a familiar, no-nonsense approach to handling job processing but that is of secondary importance.
-The data store chosen used to power a job queue tell you far more about the different queue solutions. 
-Beanstalk is very likely the best solution for job queues available today in any number of aspects detailed below. 
+The work queue underlying these gems tells you infinitely more about the differences. 
+Beanstalk is arguably the best solution for job queues available today for many reasons. 
 The real question then is... "Why Beanstalk?".
 
 ## Why Beanstalk?
