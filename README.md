@@ -4,7 +4,7 @@ Backburner is a beanstalkd-powered job queue designed to be as simple and easy t
 You can create background jobs, place those on specialized queues and process them later.
 
 Processing background jobs reliably has never been easier. Backburner works with any ruby-based
-web framework but is particularly designed for use with Sinatra and [Padrino](http://padrinorb.com).
+web framework but is well-suited for use with [Sinatra](http://sinatrarb.com) and [Padrino](http://padrinorb.com).
 
 If you want to use beanstalk for job processing, consider using Backburner. Backburner is heavily inspired by Resque and DelayedJob.
 Backburner can be a persistent queue if the beanstalk persistence mode is enabled, supports priority, delays, and timeouts.
