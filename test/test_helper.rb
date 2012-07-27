@@ -18,7 +18,10 @@ module Kernel
   # Redirect standard out, standard error and the buffered logger for sprinkle to StringIO
   # capture_stdout { any_commands; you_want } => "all output from the commands"
   def capture_stdout
-    return yield if ENV['DEBUG'] # Skip if debug mode
+    if ENV['DEBUG'] # Skip if debug mode
+      yield
+      ""
+    end
 
     out = StringIO.new
     $stdout = out

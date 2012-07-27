@@ -1,11 +1,9 @@
+require 'backburner/job'
+
 module Backburner
   class Worker
     include Backburner::Helpers
     include Backburner::Logger
-
-    class JobNotFound < RuntimeError; end
-    class JobTimeout < RuntimeError; end
-    class JobQueueNotSet < RuntimeError; end
 
     # Backburner::Worker.known_queue_classes
     # List of known_queue_classes
@@ -91,23 +89,10 @@ module Backburner
     # @example
     #   @worker.work_one_job
     def work_one_job
-      job = self.connection.reserve
-      body = JSON.parse job.body
-      name, args = body["class"], body["args"]
-      self.class.log_job_begin(body)
-      handler = constantize(name)
-      raise(JobNotFound, name) unless handler
-
-      begin
-        Timeout::timeout(job.ttr - 1) do
-          handler.perform(*args)
-        end
-      rescue Timeout::Error
-        raise JobTimeout, "#{name} hit #{job.ttr-1}s timeout"
-      end
-
-      job.delete
-      self.class.log_job_end(name)
+      job = Backburner::Job.new(self.connection.reserve)
+      self.class.log_job_begin(job.body)
+      job.process
+      self.class.log_job_end(job.name)
     rescue Beanstalk::NotConnected => e
       failed_connection(e)
     rescue SystemExit
@@ -115,8 +100,8 @@ module Backburner
     rescue => e
       job.bury
       self.class.log_error self.class.exception_message(e)
-      self.class.log_job_end(name, 'failed') if @job_begun
-      handle_error(e, name, args)
+      self.class.log_job_end(job.name, 'failed') if @job_begun
+      handle_error(e, job.name, job.args)
     end
 
     protected

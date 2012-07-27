@@ -7,6 +7,11 @@ class TestJob
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 
+class TestFailJob
+  include Backburner::Queue
+  def self.perform(x, y); raise RuntimeError; end
+end
+
 class TestAsyncJob
   include Backburner::Performable
   def self.foo(x, y); $worker_test_count = x * y; end
@@ -147,7 +152,20 @@ describe "Backburner::Worker module" do
         worker.work_one_job
       end
       assert_equal 3, $worker_test_count
-    end
+    end # enqueue
+
+    it "should work an enqueued failing job" do
+      $worker_test_count = 0
+      Backburner::Worker.enqueue TestFailJob, [1, 2], :queue => "foo.bar.fail"
+      Backburner::Job.any_instance.expects(:bury).once
+      out = silenced(2) do
+        worker = Backburner::Worker.new('foo.bar.fail')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/Exception RuntimeError/, out)
+      assert_equal 0, $worker_test_count
+    end # fail
 
     it "should work for an async job" do
       $worker_test_count = 0
@@ -158,6 +176,6 @@ describe "Backburner::Worker module" do
         worker.work_one_job
       end
       assert_equal 15, $worker_test_count
-    end
+    end # async
   end # work_one_job
 end # Backburner::Worker
