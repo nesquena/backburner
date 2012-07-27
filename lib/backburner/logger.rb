@@ -1,6 +1,5 @@
 module Backburner
   module Logger
-
     # Loads in instance and class levels
     def self.included(base)
       base.extend self
@@ -23,6 +22,7 @@ module Backburner
     #
     # @example
     #   log("Working on task")
+    #
     def log(msg)
       puts msg
     end
@@ -31,6 +31,7 @@ module Backburner
     #
     # @example
     #   log_error("Task failed!")
+    #
     def log_error(msg)
       $stderr.puts msg
     end

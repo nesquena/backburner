@@ -60,8 +60,10 @@ module Backburner
 
     # Starts processing new jobs indefinitely
     # Primary way to consume and process jobs in specified tubes
+    #
     # @example
     #   @worker.start
+    #
     def start
       prepare
       loop { work_one_job }
@@ -88,8 +90,10 @@ module Backburner
     # Reserves one job within the specified queues
     # Pops the job off and serializes the job to JSON
     # Each job is performed by invoking `perform` on the job class.
+    #
     # @example
     #   @worker.work_one_job
+    #
     def work_one_job
       job = Backburner::Job.new(self.connection.reserve)
       self.class.log_job_begin(job.body)
