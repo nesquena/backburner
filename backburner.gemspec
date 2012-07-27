@@ -16,7 +16,6 @@ Gem::Specification.new do |s|
   s.version       = Backburner::VERSION
 
   s.add_runtime_dependency 'beanstalk-client', '~> 1.1'
-  s.add_runtime_dependency 'json_pure', '>= 1.7'
   s.add_runtime_dependency 'dante', '~> 0.1.5'
 
   s.add_development_dependency 'rake'
