@@ -34,6 +34,7 @@ describe "Backburner::Job module" do
         @task_body =  { :class => "NestedDemo::TestJobC", :args => [56] }
         @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
         @task.expects(:delete).once
+        @task.expects(:bury).never
       end
 
       it "should process task" do
@@ -48,11 +49,13 @@ describe "Backburner::Job module" do
         @task_body =  { :class => "NestedDemo::TestJobD", :args => [56] }
         @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
         @task.expects(:delete).never
+        @task.expects(:bury).once
       end
 
       it "should raise an exception" do
         @job = Backburner::Job.new(@task)
-        assert_raises(RuntimeError) { @job.process }
+        out = silenced(1) { @job.process }
+        assert_match /Exception RuntimeError/, out
       end # error invalid
     end # invalid
 
@@ -69,17 +72,4 @@ describe "Backburner::Job module" do
       end # error class
     end # invalid
   end # process
-
-  describe "for bury method" do
-    before do
-      @task_body =  { :class => "NestedDemo::TestJobC", :args => [56] }
-      @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
-      @task.expects(:bury).once
-    end
-
-    it "should call bury for task" do
-      @job = Backburner::Job.new(@task)
-      @job.bury
-    end # bury
-  end # bury
 end

@@ -5,6 +5,8 @@ require 'mocha'
 $:.unshift File.expand_path("../../lib")
 require 'backburner'
 
+Celluloid.logger = nil
+
 # Configure Backburner
 Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://localhost"

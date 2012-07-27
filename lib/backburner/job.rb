@@ -1,7 +1,11 @@
+require 'celluloid'
+
 module Backburner
   # A single backburner job which can be processed and removed by the worker
   class Job
+    include Celluloid
     include Backburner::Helpers
+    include Backburner::Logger
 
     # Raises when a job times out
     class JobTimeout < RuntimeError; end
@@ -29,13 +33,11 @@ module Backburner
     #   @task.process
     #
     def process
-      timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
+      handler = job_class
+      log_job_begin(body)
+      guard_job_for(task.ttr - 1) { handler.perform(*args) }
       task.delete
-    end
-
-    # Bury a job out of the active queue if that job fails
-    def bury
-      task.bury
+      log_job_end(name)
     end
 
     protected
@@ -47,22 +49,42 @@ module Backburner
     #
     def job_class
       handler = constantize(name) rescue nil
-      raise(JobNotFound, name) unless handler
+      raise JobNotFound, name unless handler
       handler
     end
 
-    # Timeout job after given time
+    # Guard job from exceptions and enforce timeout after given seconds
     #
     # @example
-    #   timeout_job_after(3) { do_something! }
+    #   guard_job_for(3) { do_something! }
     #
-    def timeout_job_after(secs, &block)
+    def guard_job_for(secs, &block)
       begin
         Timeout::timeout(secs) { yield }
       rescue Timeout::Error
         raise JobTimeout, "#{name} hit #{secs}s timeout"
+      rescue Beanstalk::NotConnected => e
+        failed_connection(e)
+      rescue SystemExit
+        raise
+      rescue => e
+        task.bury
+        log_error exception_message(e)
+        log_job_end(name, 'failed') if @job_begun
+        handle_error(e, name, args)
       end
     end
 
+    # Handles an error according to custom definition
+    # Used when processing a job that errors out
+    def handle_error(e, name, args)
+      if error_handler = Backburner.configuration.on_error
+        if error_handler.arity == 1
+          error_handler.call(e)
+        else
+          error_handler.call(e, name, args)
+        end
+      end
+    end
   end # Job
 end # Backburner

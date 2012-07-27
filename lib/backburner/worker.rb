@@ -57,10 +57,11 @@ module Backburner
       end
     end
 
-    # Starts processing new jobs indefinitely
-    # Primary way to consume and process jobs in specified tubes
+    # Starts processing new jobs indefinitely. Primary way to consume and process jobs in specified tubes
+    #
     # @example
     #   @worker.start
+    #
     def start
       prepare
       loop { work_one_job }
@@ -68,8 +69,10 @@ module Backburner
 
     # Setup beanstalk tube_names and watch all specified tubes for jobs.
     # Used to prepare job queues before processing jobs.
+    #
     # @example
     #   @worker.prepare
+    #
     def prepare
       self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
@@ -86,22 +89,13 @@ module Backburner
     # Reserves one job within the specified queues
     # Pops the job off and serializes the job to JSON
     # Each job is performed by invoking `perform` on the job class.
+    #
     # @example
     #   @worker.work_one_job
+    #
     def work_one_job
-      job = Backburner::Job.new(self.connection.reserve)
-      self.class.log_job_begin(job.body)
-      job.process
-      self.class.log_job_end(job.name)
-    rescue Beanstalk::NotConnected => e
-      failed_connection(e)
-    rescue SystemExit
-      raise
-    rescue => e
-      job.bury
-      self.class.log_error self.class.exception_message(e)
-      self.class.log_job_end(job.name, 'failed') if @job_begun
-      handle_error(e, job.name, job.args)
+      task = self.connection.reserve
+      Backburner::Job.new(task).process
     end
 
     protected
@@ -117,18 +111,6 @@ module Backburner
     # Returns a reference to the beanstalk connection
     def connection
       self.class.connection
-    end
-
-    # Handles an error according to custom definition
-    # Used when processing a job that errors out
-    def handle_error(e, name, args)
-      if error_handler = Backburner.configuration.on_error
-        if error_handler.arity == 1
-          error_handler.call(e)
-        else
-          error_handler.call(e, name, args)
-        end
-      end
     end
   end # Worker
 end # Backburner

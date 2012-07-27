@@ -157,7 +157,6 @@ describe "Backburner::Worker module" do
     it "should work an enqueued failing job" do
       $worker_test_count = 0
       Backburner::Worker.enqueue TestFailJob, [1, 2], :queue => "foo.bar.fail"
-      Backburner::Job.any_instance.expects(:bury).once
       out = silenced(2) do
         worker = Backburner::Worker.new('foo.bar.fail')
         worker.prepare
