@@ -21,10 +21,8 @@ module Backburner
     # @example
     #  Backburner::Job.new(payload)
     #
-    def initialize(task)
-      @task = task
-      @body = JSON.parse(task.body)
-      @name, @args = body["class"], body["args"]
+    def initialize(supervisor)
+      @supervisor = supervisor
     end
 
     # Processes a job and handles any failure, deleting the job once complete
@@ -32,12 +30,17 @@ module Backburner
     # @example
     #   @task.process
     #
-    def process
+    def process(task)
+      @task = task
+      @body = JSON.parse(task.body)
+      puts "Processing #{task.body}"
+      @name, @args = body["class"], body["args"]
       handler = job_class
       log_job_begin(body)
       guard_job_for(task.ttr - 1) { handler.perform(*args) }
       task.delete
       log_job_end(name)
+      @supervisor.processor_done(current_actor)
     end
 
     protected

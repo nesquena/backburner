@@ -2,6 +2,7 @@ require 'backburner/job'
 
 module Backburner
   class Worker
+    include Celluloid
     include Backburner::Helpers
     include Backburner::Logger
 
@@ -49,6 +50,7 @@ module Backburner
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
+      @processors = 10.times.map { Job.new_link(current_actor) }
       @tube_names = begin
         tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
         tube_names = Array(tube_names).compact if tube_names && Array(tube_names).compact.size > 0
@@ -64,7 +66,13 @@ module Backburner
     #
     def start
       prepare
-      loop { work_one_job }
+      @processors.each { dispatch }
+    rescue Interrupt
+      puts "QUITTING!"
+      @processors.each { |x| x.terminate if x.alive? }
+      @processors.clear
+      terminate
+      exit(0)
     end
 
     # Setup beanstalk tube_names and watch all specified tubes for jobs.
@@ -86,6 +94,15 @@ module Backburner
       failed_connection(e)
     end
 
+    def dispatch
+      work_one_job(@processors.pop)
+    end
+
+    def processor_done(processor)
+      @processors << processor
+      dispatch
+    end
+
     # Reserves one job within the specified queues
     # Pops the job off and serializes the job to JSON
     # Each job is performed by invoking `perform` on the job class.
@@ -93,9 +110,9 @@ module Backburner
     # @example
     #   @worker.work_one_job
     #
-    def work_one_job
+    def work_one_job(processor)
       task = self.connection.reserve
-      Backburner::Job.new(task).process
+      processor.process!(task)
     end
 
     protected
