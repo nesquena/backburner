@@ -80,7 +80,7 @@ module Backburner
       self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| expand_tube_name(name)  }
-      log "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
+      log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
       self.tube_names.uniq.each { |name| self.connection.watch(name) }
       self.connection.list_tubes_watched.each do |server, tubes|
         tubes.each { |tube| self.connection.ignore(tube) unless self.tube_names.include?(tube) }
