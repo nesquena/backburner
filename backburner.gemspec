@@ -15,9 +15,9 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.version       = Backburner::VERSION
 
-  s.add_runtime_dependency(%q<beanstalk-client>, [">= 0"])
-  s.add_runtime_dependency(%q<json_pure>, [">= 0"])
-  s.add_runtime_dependency(%q<dante>)
+  s.add_runtime_dependency 'beanstalk-client', '~> 1.1'
+  s.add_runtime_dependency 'json_pure', '>= 1.7'
+  s.add_runtime_dependency 'dante', '~> 0.1.5'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest'
