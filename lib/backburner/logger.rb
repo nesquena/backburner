@@ -19,17 +19,6 @@ module Backburner
       log "Finished #{name} in #{ms}ms #{failed ? ' (failed)' : ''}"
     end
 
-    # Prints message about failure when beastalk cannot be connected
-    #
-    # @example
-    #   failed_connection(ex)
-    def failed_connection(e)
-      log_error exception_message(e)
-      log_error "*** Failed connection to #{connection.url}"
-      log_error "*** Check that beanstalkd is running (or set a different beanstalk url)"
-      exit 1
-    end
-
     # Print a message to stdout
     #
     # @example

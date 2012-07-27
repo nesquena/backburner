@@ -15,6 +15,7 @@ module Backburner
     # Enqueues a job to be processed later by a worker
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
     #
+    # @raise [Beanstalk::NotConnected] If beanstalk fails to connect.
     # @example
     #   Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
     #
@@ -25,13 +26,13 @@ module Backburner
       connection.use expand_tube_name(opts[:queue]  || job_class)
       data = { :class => job_class.name, :args => args }
       connection.put data.to_json, pri, delay, ttr
-    rescue Beanstalk::NotConnected => e
-      failed_connection(e)
     end
 
     # Starts processing jobs in the specified tube_names
+    #
     # @example
     #   Backburner::Worker.start(["foo.tube.name"])
+    #
     def self.start(tube_names=nil)
       self.new(tube_names).start
     end
@@ -68,8 +69,11 @@ module Backburner
 
     # Setup beanstalk tube_names and watch all specified tubes for jobs.
     # Used to prepare job queues before processing jobs.
+    #
+    # @raise [Beanstalk::NotConnected] If beanstalk fails to connect.
     # @example
     #   @worker.prepare
+    #
     def prepare
       self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
       self.tube_names = Array(self.tube_names)
@@ -79,8 +83,6 @@ module Backburner
       self.connection.list_tubes_watched.each do |server, tubes|
         tubes.each { |tube| self.connection.ignore(tube) unless self.tube_names.include?(tube) }
       end
-    rescue Beanstalk::NotConnected => e
-      failed_connection(e)
     end
 
     # Reserves one job within the specified queues
@@ -93,10 +95,6 @@ module Backburner
       self.class.log_job_begin(job.body)
       job.process
       self.class.log_job_end(job.name)
-    rescue Beanstalk::NotConnected => e
-      failed_connection(e)
-    rescue SystemExit
-      raise
     rescue => e
       job.bury
       self.class.log_error self.class.exception_message(e)
