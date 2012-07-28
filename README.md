@@ -148,14 +148,15 @@ end
 
 # Async works for instance methods on a persisted model
 @user = User.first
-@user.async(:pri => 1000, :ttr => 100, :queue => "user.activate").activate(@device.id)
+@user.async(:ttr => 100, :queue => "activate").activate(@device.id)
 # ..as well as for class methods
 User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 ```
 
 This will automatically enqueue a job for that user record that will run `activate` with the specified argument.
+Note that you can set the queue name and queue priority at the class level and 
+you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
 The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
-Note you are able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
 
 ### Working Jobs
 
