@@ -236,9 +236,11 @@ If a job fails in beanstalk, the job is automatically buried and must be 'kicked
 
 Right now, all logging happens to standard out and can be piped to a file or any other output manually. More on logging coming later.
 
-### Front-end
+### Web Front-end
 
-To be completed is an admin dashboard that provides insight into beanstalk jobs via a simple Sinatra front-end. Coming soon.
+Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view) 
+by [denniskuczynski](http://github.com/denniskuczynski) which provides an excellent overview of the tubes and
+jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.
 
 ### Workers in Production
 
