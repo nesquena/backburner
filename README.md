@@ -105,7 +105,8 @@ Here's an example:
 ```ruby
 class NewsletterJob
   include Backburner::Queue
-  queue "newsletter"
+  queue "newsletter"  # defaults to 'newsletter-job'
+  queue_priority 1000 # most urgent priority is 0
 
   def self.perform(email, body)
     NewsletterMailer.deliver_text_to_email(email, body)
@@ -132,6 +133,8 @@ includes `Backburner::Performable`. Async enqueuing works for both instance and 
 ```ruby
 class User
   include Backburner::Performable
+  queue "newsletter"  # defaults to 'newsletter-job'
+  queue_priority 1000 # most urgent priority is 0
 
   def activate(device_id)
     @device = Device.find(device_id)

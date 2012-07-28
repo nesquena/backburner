@@ -20,7 +20,7 @@ module Backburner
     #   Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
     #
     def self.enqueue(job_class, args=[], opts={})
-      pri   = opts[:pri] || Backburner.configuration.default_priority
+      pri   = opts[:pri] || job_class.queue_priority || Backburner.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
       connection.use expand_tube_name(opts[:queue]  || job_class)

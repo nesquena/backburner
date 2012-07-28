@@ -25,4 +25,11 @@ describe "Backburner::Queue module" do
       assert_equal "nested/job", NestedDemo::TestJobB.queue
     end
   end # queue
+
+  describe "for queue_priority assignment method" do
+    it "should allow queue priority to be assigned" do
+      NestedDemo::TestJobB.queue_priority(1000)
+      assert_equal 1000, NestedDemo::TestJobB.queue_priority
+    end
+  end # queue
 end # Backburner::Queue

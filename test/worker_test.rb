@@ -4,6 +4,7 @@ $worker_test_count = 0
 
 class TestJob
   include Backburner::Queue
+  queue_priority 1000
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 
@@ -27,7 +28,7 @@ describe "Backburner::Worker module" do
       assert_equal "TestJob", body["class"]
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
-      assert_equal Backburner.configuration.default_priority, job.pri
+      assert_equal 1000, job.pri
     end # simple
 
     it "should support enqueuing job with custom queue" do

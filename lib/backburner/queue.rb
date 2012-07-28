@@ -11,12 +11,27 @@ module Backburner
       #
       # @example
       #   queue "some.task.name"
-      #   queue => "some.task.name"
+      #   @klass.queue # => "some.task.name"
+      #
       def queue(name=nil)
         if name
           @queue_name = name
         else # accessor
           @queue_name || dasherize(self.name)
+        end
+      end
+
+      # Returns or assigns queue priority for this job
+      #
+      # @example
+      #   queue_priority 120
+      #   @klass.queue_priority # => 120
+      #
+      def queue_priority(pri=nil)
+        if pri
+          @queue_priority = pri
+        else # accessor
+          @queue_priority
         end
       end
     end # ClassMethods
