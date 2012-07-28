@@ -48,7 +48,7 @@ Beanstalk supports the following features natively, out of the box, without any 
  * **Parallel Queues** - Supports multiple work queues created on demand.
  * **Reliable** - Beanstalk’s reserve, work, delete cycle ensures reliable processing.
  * **Scheduling** - Delay enqueuing jobs by a specified interval to schedule processing later.
- * **Fast** - Processes thousands of jobs per second. Beanstalkd is **much** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
+ * **Fast** - Processes thousands of jobs per second; **significantly** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
  * **Priorities** - Specify priority so important jobs can be processed quickly.
  * **Persistence** - Jobs are stored in memory for speed, but logged to disk for safe keeping.
  * **Federation** - Horizontal scalability provided through federation by the client.
