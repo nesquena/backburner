@@ -248,7 +248,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
 Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
 is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
 
-```
+```ruby
 # Rakefile
 require 'backburner/tasks'
 ```
