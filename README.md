@@ -248,13 +248,17 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
 Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
 is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
 
-    # Rakefile
-    require 'backburner/tasks'
+```
+# Rakefile
+require 'backburner/tasks'
+```
 
 and then you can start the rake task with:
 
-    $ rake backburner:work
-    $ QUEUES=newsletter-sender,push-message rake backburner:work
+```bash
+$ rake backburner:work
+$ QUEUES=newsletter-sender,push-message rake backburner:work
+```
 
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
 which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
