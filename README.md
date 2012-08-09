@@ -1,19 +1,20 @@
 # Backburner
 
-Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue which can handle a very high volume of jobs.
-You create background jobs and place those on multiple work queues to be processed later.
+Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue that can handle a very high volume of jobs.
+You create background jobs and place them on multiple work queues to be processed later.
 
-Processing background jobs reliably has never been easier then with beanstalkd and Backburner. This gem works with any ruby-based
-web framework but is especially suited for use with [Sinatra](http://sinatrarb.com), [Padrino](http://padrinorb.com) and Rails.
+Processing background jobs reliably has never been easier than with beanstalkd and Backburner. This gem works with any ruby-based
+web framework, but is especially suited for use with [Sinatra](http://sinatrarb.com), [Padrino](http://padrinorb.com) and Rails.
 
 If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
-Backburner can be a persistent queue if the beanstalk persistence mode is enabled, supports multiple queues, priorities, delays, and timeouts.
+Backburner can be a persistent queue when the beanstalk persistence mode is enabled.
+It supports multiple queues, priorities, delays, and timeouts.
 
 ## Why Backburner?
 
-Backburner is well tested and has a familiar, no-nonsense approach to job processing but that is of secondary importance.
-Let's face it; there are a lot of options for background job processing. [DelayedJob](https://github.com/collectiveidea/delayed_job),
+Backburner is well tested and has a familiar, no-nonsense approach to job processing, but that is of secondary importance.
+Let's face it, there are a lot of options for background job processing. [DelayedJob](https://github.com/collectiveidea/delayed_job),
 and [Resque](https://github.com/defunkt/resque) are the first that come to mind immediately. So, how do we make sense
 of which one to use? And why use Backburner over other alternatives?
 
@@ -22,7 +23,7 @@ libraries under the hood. Every job queue requires a queue store that jobs are p
 In the case of Resque, jobs are processed through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through
 **ActiveRecord** and a database such as PostgreSQL.
 
-The work queue underlying these gems tells you infinitely more about the differences then anything else.
+The work queue underlying these gems tells you infinitely more about the differences than anything else.
 Beanstalk is probably the best solution for job queues available today for many reasons.
 The real question then is... "Why Beanstalk?".
 
@@ -33,14 +34,14 @@ Illya has an excellent blog post
 Adam Wiggins posted [an excellent comparison](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend/).
 
 You will quickly see that **beanstalkd** is an underrated but incredible project that is extremely well-suited as a job queue.
-Significantly better suited for this task then Redis or a database. Beanstalk is a simple,
+Significantly better suited for this task than Redis or a database. Beanstalk is a simple,
 and a very fast work queue service rolled into a single binary - it is the memcached of work queues.
 Originally built to power the backend for the 'Causes' Facebook app, it is a mature and production ready open source project.
 [PostRank](http://www.postrank.com) uses beanstalk to reliably process millions of jobs a day.
 
 A single instance of Beanstalk is perfectly capable of handling thousands of jobs a second (or more, depending on your job size)
 because it is an in-memory, event-driven system. Powered by libevent under the hood,
-it requires zero setup (launch and forget, ala memcached), optional log based persistence, an easily parsed ASCII protocol,
+it requires zero setup (launch and forget, à la memcached), optional log based persistence, an easily parsed ASCII protocol,
 and a rich set of tools for job management that go well beyond a simple FIFO work queue.
 
 Beanstalk supports the following features natively, out of the box, without any questions asked:
@@ -48,7 +49,7 @@ Beanstalk supports the following features natively, out of the box, without any 
  * **Parallel Queues** - Supports multiple work queues created on demand.
  * **Reliable** - Beanstalk’s reserve, work, delete cycle ensures reliable processing.
  * **Scheduling** - Delay enqueuing jobs by a specified interval to schedule processing later.
- * **Fast** - Processes thousands of jobs per second; **significantly** [faster then alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
+ * **Fast** - Processes thousands of jobs per second; **significantly** [faster than alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
  * **Priorities** - Specify priority so important jobs can be processed quickly.
  * **Persistence** - Jobs are stored in memory for speed, but logged to disk for safe keeping.
  * **Federation** - Horizontal scalability provided through federation by the client.
@@ -197,8 +198,8 @@ This will daemonize the worker and store the pid and logs automatically.
 Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
 process **all** queues instead, then you can leave the queue list blank.
 
-When you execute a worker without queues specified, any queue for a known job queue class with `include Backburner::Queue` will be processed. To access the list of known
-queue classes, you can use:
+When you execute a worker without queues specified, any queue for a known job queue class with `include Backburner::Queue` will be processed.
+To access the list of known queue classes, you can use:
 
 ```ruby
 Backburner::Worker.known_queue_classes
