@@ -53,7 +53,7 @@ Beanstalk supports the following features natively, out of the box, without any 
  * **Priorities** - Specify priority so important jobs can be processed quickly.
  * **Persistence** - Jobs are stored in memory for speed, but logged to disk for safe keeping.
  * **Federation** - Horizontal scalability provided through federation by the client.
- * **Buried jobs** - Bury any job which causes an error for later debugging and inspection.
+ * **Error Handling** - Bury any job which causes an error for later debugging and inspection.
 
 Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
 In the end, **beanstalk is the ideal job queue** while also being ridiculously easy to install and setup.
@@ -155,8 +155,8 @@ User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 ```
 
 This will automatically enqueue a job for that user record that will run `activate` with the specified argument.
-Note that you can set the queue name and queue priority at the class level and 
-you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`. 
+Note that you can set the queue name and queue priority at the class level and
+you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
 The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
 
 ### Working Jobs
@@ -240,7 +240,7 @@ Right now, all logging happens to standard out and can be piped to a file or any
 
 ### Web Front-end
 
-Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view) 
+Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view)
 by [denniskuczynski](http://github.com/denniskuczynski) which provides an excellent overview of the tubes and
 jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.
 
