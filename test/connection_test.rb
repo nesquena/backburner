@@ -24,10 +24,10 @@ describe "Backburner::Connection class" do
     end
 
     it "should support array of connections" do
-      @connection = Backburner::Connection.new(['beanstalk://127.0.0.1:11301','beanstalk://localhost'])
+      @connection = Backburner::Connection.new(['beanstalk://127.0.0.1:11300','beanstalk://localhost'])
       connections = @connection.beanstalk.connections
       assert_equal 2, @connection.beanstalk.connections.size
-      assert_equal ['127.0.0.1:11301','localhost:11300'], connections.map(&:address)
+      assert_equal ['127.0.0.1:11300','localhost:11300'], connections.map(&:address)
     end
   end # initialize
 

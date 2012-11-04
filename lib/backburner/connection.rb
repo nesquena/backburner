@@ -6,6 +6,8 @@ module Backburner
 
     attr_accessor :url, :beanstalk
 
+    # Constructs a backburner connection
+    # `url` can be a string i.e 'localhost:3001' or an array of addresses.
     def initialize(url)
       @url = url
       connect!
