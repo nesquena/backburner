@@ -63,7 +63,7 @@ describe "Backburner::Worker module" do
   describe "for connection class method" do
     it "should return the beanstalk connection" do
       assert_equal "beanstalk://localhost", Backburner::Worker.connection.url
-      assert_kind_of Beanstalk::Pool, Backburner::Worker.connection.beanstalk
+      assert_kind_of Beaneater::Pool, Backburner::Worker.connection.beanstalk
     end
   end # connection
 
@@ -104,7 +104,7 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], Backburner::Worker.connection.list_tubes_watched.values.first
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], Backburner::Worker.connection.tubes.watched.map(&:name)
       assert_match /demo\.test\.foo/, out
     end # multiple
 
@@ -112,7 +112,7 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new("foo")
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
-      assert_same_elements ["demo.test.foo"], Backburner::Worker.connection.list_tubes_watched.values.first
+      assert_same_elements ["demo.test.foo"], Backburner::Worker.connection.tubes.watched.map(&:name)
       assert_match /demo\.test\.foo/, out
     end # single
 
@@ -121,7 +121,7 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], Backburner::Worker.connection.list_tubes_watched.values.first
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], Backburner::Worker.connection.tubes.watched.map(&:name)
       assert_match /demo\.test\.foo/, out
     end
 
@@ -130,7 +130,7 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.bar"], Backburner::Worker.connection.list_tubes_watched.values.first
+      assert_same_elements ["demo.test.bar"], Backburner::Worker.connection.tubes.watched.map(&:name)
       assert_match /demo\.test\.bar/, out
     end # all assign
 
@@ -138,7 +138,7 @@ describe "Backburner::Worker module" do
       worker = Backburner::Worker.new
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.test-job"
-      assert_contains Backburner::Worker.connection.list_tubes_watched.values.first, "demo.test.test-job"
+      assert_contains Backburner::Worker.connection.tubes.watched.map(&:name), "demo.test.test-job"
       assert_match /demo\.test\.test-job/, out
     end # all read
   end # prepare

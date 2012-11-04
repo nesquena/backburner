@@ -1,4 +1,4 @@
-require 'beanstalk-client'
+require 'beaneater'
 require 'json'
 require 'uri'
 require 'timeout'

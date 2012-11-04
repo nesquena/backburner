@@ -86,11 +86,8 @@ class MiniTest::Spec
   def pop_one_job(tube_name)
     connection = Backburner::Worker.connection
     tube_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
-    connection.watch(tube_name)
-    connection.list_tubes_watched.each do |server, tubes|
-      tubes.each { |tube| connection.ignore(tube) unless tube == tube_name }
-    end
-    silenced(3) { @res = connection.reserve }
-    return @res, JSON.parse(@res.body)
+    connection.tubes.watch!(tube_name)
+    silenced(3) { @res = connection.tubes.reserve }
+    return @res, @res.body
   end
 end # MiniTest::Spec

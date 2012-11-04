@@ -11,7 +11,7 @@ describe "Backburner::Connection class" do
     end
 
     it "should setup beanstalk connection" do
-      assert_kind_of Beanstalk::Pool, @connection.beanstalk
+      assert_kind_of Beaneater::Pool, @connection.beanstalk
     end
   end # initialize
 
@@ -29,7 +29,7 @@ describe "Backburner::Connection class" do
     end
 
     it "delegate methods to beanstalk connection" do
-      assert_equal "localhost:11300", @connection.list_tubes.keys.first
+      assert_equal "localhost", @connection.connections.first.host
     end
   end # delegator
 end # Connection
