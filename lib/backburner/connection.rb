@@ -31,8 +31,8 @@ module Backburner
     #   beanstalk_addresses => ["localhost:11300"]
     #
     def beanstalk_addresses
-      uris = self.url.split(/[\s,]+/)
-      uris.map {|uri| beanstalk_host_and_port(uri)}
+      uris = self.url.is_a?(Array) ? self.url : self.url.split(/[\s,]+/)
+      uris.map { |uri| beanstalk_host_and_port(uri) }
     end
 
     # Returns a host and port based on the uri_string given

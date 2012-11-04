@@ -83,13 +83,17 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 
 ```ruby
 Backburner.configure do |config|
-  config.beanstalk_url = "beanstalk://127.0.0.1"
+  config.beanstalk_url = ["beanstalk://127.0.0.1", "beanstalk://127.0.0.1:11301"]
   config.tube_namespace = "some.app.production"
   config.on_error = lambda { |e| puts e }
   config.default_priority = 65536
   config.respond_timeout = 120
 end
 ```
+
+The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
+The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
+The `on_error` is a callback that gets invoked with the error whenever a job fails
 
 ## Usage
 
