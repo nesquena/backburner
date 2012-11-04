@@ -15,10 +15,10 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.version       = Backburner::VERSION
 
-  s.add_runtime_dependency 'beanstalk-client', '~> 1.1'
+  # s.add_runtime_dependency 'beaneater', '~> 0.1.1'
   s.add_runtime_dependency 'dante', '~> 0.1.5'
 
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'minitest'
+  s.add_development_dependency 'minitest', '~> 4.1.0'
   s.add_development_dependency 'mocha'
 end
