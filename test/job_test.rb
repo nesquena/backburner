@@ -13,7 +13,7 @@ module NestedDemo
 end
 
 describe "Backburner::Job module" do
-  describe "for initialize method" do
+  describe "for initialize method with hash" do
     before do
       @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
       @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
@@ -26,7 +26,22 @@ describe "Backburner::Job module" do
       assert_equal @task_body["class"], @job.name
       assert_equal @task_body["args"], @job.args
     end
-  end # initialize
+  end # initialize with json
+
+  describe "for initialize method with json string" do
+    before do
+      @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
+      @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
+    end
+
+    it "should create job with correct task data" do
+      @job = Backburner::Job.new(@task)
+      assert_equal @task, @job.task
+      assert_equal ["class", "args"], @job.body.keys
+      assert_equal @task_body["class"], @job.name
+      assert_equal @task_body["args"], @job.args
+    end
+  end # initialize with json
 
   describe "for process method" do
     describe "with valid task" do

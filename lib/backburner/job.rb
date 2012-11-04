@@ -19,7 +19,7 @@ module Backburner
     #
     def initialize(task)
       @task = task
-      @body = task.body
+      @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
       @name, @args = body["class"], body["args"]
     end
 
