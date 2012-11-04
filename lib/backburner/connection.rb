@@ -22,7 +22,7 @@ module Backburner
 
     # Connects to a beanstalk queue
     def connect!
-      @beanstalk ||= Beanstalk::Pool.new(beanstalk_addresses)
+      @beanstalk ||= Beaneater::Pool.new(beanstalk_addresses)
     end
 
     # Returns the beanstalk queue addresses

@@ -19,7 +19,7 @@ module Backburner
     #
     def initialize(task)
       @task = task
-      @body = JSON.parse(task.body)
+      @body = task.body
       @name, @args = body["class"], body["args"]
     end
 
@@ -46,8 +46,8 @@ module Backburner
     #   job_class # => NewsletterSender
     #
     def job_class
-      handler = constantize(name) rescue nil
-      raise(JobNotFound, name) unless handler
+      handler = constantize(self.name) rescue nil
+      raise(JobNotFound, self.name) unless handler
       handler
     end
 

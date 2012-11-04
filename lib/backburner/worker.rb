@@ -15,7 +15,7 @@ module Backburner
     # Enqueues a job to be processed later by a worker
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
     #
-    # @raise [Beanstalk::NotConnected] If beanstalk fails to connect.
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect.
     # @example
     #   Backburner::Worker.enqueue NewsletterSender, [self.id, user.id], :ttr => 1000
     #
@@ -23,9 +23,9 @@ module Backburner
       pri   = opts[:pri] || job_class.queue_priority || Backburner.configuration.default_priority
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
-      connection.use expand_tube_name(opts[:queue]  || job_class)
+      tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
       data = { :class => job_class.name, :args => args }
-      connection.put data.to_json, pri, delay, ttr
+      tube.put data.to_json, :pri => pri, :delay => delay, :ttr => ttr
     end
 
     # Starts processing jobs in the specified tube_names
@@ -39,7 +39,7 @@ module Backburner
 
     # Returns the worker connection
     # @example
-    #   Backburner::Worker.connection # => <Beanstalk::Pool>
+    #   Backburner::Worker.connection # => <Beaneater::Pool>
     def self.connection
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
@@ -72,7 +72,7 @@ module Backburner
     # Setup beanstalk tube_names and watch all specified tubes for jobs.
     # Used to prepare job queues before processing jobs.
     #
-    # @raise [Beanstalk::NotConnected] If beanstalk fails to connect.
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect.
     # @example
     #   @worker.prepare
     #
@@ -81,10 +81,7 @@ module Backburner
       self.tube_names = Array(self.tube_names)
       self.tube_names.map! { |name| expand_tube_name(name)  }
       log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
-      self.tube_names.uniq.each { |name| self.connection.watch(name) }
-      self.connection.list_tubes_watched.each do |server, tubes|
-        tubes.each { |tube| self.connection.ignore(tube) unless self.tube_names.include?(tube) }
-      end
+      self.connection.tubes.watch!(*self.tube_names)
     end
 
     # Reserves one job within the specified queues
@@ -95,7 +92,7 @@ module Backburner
     #   @worker.work_one_job
     #
     def work_one_job
-      job = Backburner::Job.new(self.connection.reserve)
+      job = Backburner::Job.new(self.connection.tubes.reserve)
       self.class.log_job_begin(job.body)
       job.process
       self.class.log_job_end(job.name)
@@ -112,7 +109,7 @@ module Backburner
     # Filtered for tubes that match the known prefix
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection.list_tubes.values.flatten.uniq.select { |tube| tube =~ /^#{tube_namespace}/ }
+      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{tube_namespace}/ }
       known_queues + existing_tubes
     end
 
