@@ -51,7 +51,7 @@ module Backburner
       handler
     end
 
-    # Timeout job after given time
+    # Timeout job within specified block after given time.
     #
     # @example
     #   timeout_job_after(3) { do_something! }
