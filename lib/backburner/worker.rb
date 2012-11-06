@@ -98,7 +98,7 @@ module Backburner
       self.class.log_job_end(job.name)
     rescue => e
       self.class.log_error self.class.exception_message(e)
-      if job # bury failed job
+      if job # bury job and log
         job.bury
         self.class.log_job_end(job.name, 'failed') if @job_begun
         handle_error(e, job.name, job.args)

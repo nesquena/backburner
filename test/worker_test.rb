@@ -155,7 +155,7 @@ describe "Backburner::Worker module" do
       assert_equal 3, $worker_test_count
     end # enqueue
 
-    it "fail quietly if there's an argument error" do
+    it "should fail quietly if there's an argument error" do
       $worker_test_count = 0
       Backburner::Worker.enqueue TestJob, ["bam", "foo", "bar"], :queue => "foo.bar"
       out = silenced(2) do
@@ -165,7 +165,7 @@ describe "Backburner::Worker module" do
       end
       assert_match(/Exception ArgumentError/, out)
       assert_equal 0, $worker_test_count
-    end # enqueue
+    end # fail, argument
 
     it "should work an enqueued failing job" do
       $worker_test_count = 0
@@ -178,7 +178,19 @@ describe "Backburner::Worker module" do
       end
       assert_match(/Exception RuntimeError/, out)
       assert_equal 0, $worker_test_count
-    end # fail
+    end # fail, runtime error
+
+    it "should work an invalid job parsed" do
+      $worker_test_count = 0
+      Beaneater::Tubes.any_instance.expects(:reserve).returns(stub(:body => "{%$^}"))
+      out = silenced(2) do
+        worker = Backburner::Worker.new('foo.bar.fail')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/Exception JSON::ParserError/, out)
+      assert_equal 0, $worker_test_count
+    end # fail, runtime error
 
     it "should work for an async job" do
       $worker_test_count = 0
