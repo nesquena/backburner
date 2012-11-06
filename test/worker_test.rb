@@ -155,6 +155,18 @@ describe "Backburner::Worker module" do
       assert_equal 3, $worker_test_count
     end # enqueue
 
+    it "fail quietly if there's an argument error" do
+      $worker_test_count = 0
+      Backburner::Worker.enqueue TestJob, ["bam", "foo", "bar"], :queue => "foo.bar"
+      out = silenced(2) do
+        worker = Backburner::Worker.new('foo.bar')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/Exception ArgumentError/, out)
+      assert_equal 0, $worker_test_count
+    end # enqueue
+
     it "should work an enqueued failing job" do
       $worker_test_count = 0
       Backburner::Worker.enqueue TestFailJob, [1, 2], :queue => "foo.bar.fail"
