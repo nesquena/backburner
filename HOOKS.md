@@ -42,9 +42,9 @@ class SomeJob
     self.bury
   end
 
-	def self.perform(*args)
+  def self.perform(*args)
 	  # ...
-	end
+  end
 end
 ```
 
