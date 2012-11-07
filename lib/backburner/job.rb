@@ -40,23 +40,28 @@ module Backburner
     #   @task.process
     #
     def process
+      # TODO DontPerform should stop execution
+      job_class.invoke_hook_events(:before_perform, *args)
       timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
       task.delete
+      job_class.invoke_hook_events(:after_perform, *args)
+    rescue => e
+      job_class.invoke_hook_events(:on_failure, e, *args)
+      raise e
     end
+
+    protected
 
     # Returns the class for the job handler
     #
     # @example
     #   job_class # => NewsletterSender
     #
-    # TODO TEST ?
     def job_class
       handler = constantize(self.name) rescue nil
       raise(JobNotFound, self.name) unless handler
       handler
     end
-
-    protected
 
     # Timeout job within specified block after given time.
     #

@@ -97,18 +97,13 @@ module Backburner
     #
     def work_one_job
       job = Backburner::Job.new(self.connection.tubes.reserve)
-      job_class = job.job_class
       self.log_job_begin(job.name, job.args)
-      # TODO DontPerform should stop execution
-      job_class.invoke_hook_events(:before_perform, *job.args)
       job.process
-      job_class.invoke_hook_events(:after_perform, *job.args)
       self.log_job_end(job.name)
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
       self.log_error self.exception_message(e)
-      job_class.invoke_hook_events(:on_failure, e, *job.args)
       num_retries = job.stats.releases
       retry_status = "failed: attempt #{num_retries+1} of #{config.max_job_retries+1}"
       if num_retries < config.max_job_retries # retry again
