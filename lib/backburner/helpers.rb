@@ -68,13 +68,13 @@ module Backburner
       constant
     end
 
-    # Returns tube_namespace for backburner
+    # Returns configuration options for backburner
     #
     # @example
-    #   tube_namespace => "some.namespace"
+    #   config.max_job_retries => 3
     #
-    def tube_namespace
-      Backburner.configuration.tube_namespace
+    def config
+      Backburner.configuration
     end
 
     # Expands a tube to include the prefix
@@ -84,7 +84,7 @@ module Backburner
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
     def expand_tube_name(tube)
-      prefix = tube_namespace
+      prefix = config.tube_namespace
       queue_name = if tube.is_a?(String)
         tube
       elsif tube.respond_to?(:queue) # use queue name
@@ -94,7 +94,7 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".")
+      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '').gsub(/\.+/, '.')].join(".")
     end
 
   end
