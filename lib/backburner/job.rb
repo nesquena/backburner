@@ -7,6 +7,7 @@ module Backburner
     class JobTimeout < RuntimeError; end
     class JobNotFound < RuntimeError; end
     class JobFormatInvalid < RuntimeError; end
+    class DontPerform < RuntimeError; end
 
     attr_accessor :task, :body, :name, :args
 
@@ -40,10 +41,16 @@ module Backburner
     #   @task.process
     #
     def process
-      # TODO DontPerform should stop execution
-      job_class.invoke_hook_events(:before_perform, *args)
+      # TODO TEST hook with and without raising
+      begin
+        job_class.invoke_hook_events(:before_perform, *args)
+      rescue DontPerform
+        return false
+      end
+      # Execute the job
       timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
       task.delete
+      # Invoke after perform hook
       job_class.invoke_hook_events(:after_perform, *args)
     rescue => e
       job_class.invoke_hook_events(:on_failure, e, *args)
