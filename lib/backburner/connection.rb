@@ -13,7 +13,7 @@ module Backburner
       connect!
     end
 
-    # Sets the delegator object to the underlying beanstalk connection
+    # Sets the delegator object to the underlying beaneater pool
     # self.put(...)
     def __getobj__
       __setobj__(@beanstalk)
