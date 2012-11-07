@@ -2,6 +2,7 @@ module Backburner
   module Queue
     def self.included(base)
       base.send(:extend, Backburner::Helpers)
+      base.send(:extend, Backburner::Hooks)
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base
     end
@@ -35,5 +36,5 @@ module Backburner
         end
       end
     end # ClassMethods
-  end # Job
+  end # Queue
 end # Backburner

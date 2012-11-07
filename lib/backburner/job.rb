@@ -44,8 +44,6 @@ module Backburner
       task.delete
     end
 
-    protected
-
     # Returns the class for the job handler
     #
     # @example
@@ -56,6 +54,8 @@ module Backburner
       raise(JobNotFound, self.name) unless handler
       handler
     end
+
+    protected
 
     # Timeout job within specified block after given time.
     #

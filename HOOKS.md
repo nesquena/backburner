@@ -29,10 +29,6 @@ There are a variety of hooks available that are triggered during the lifecycle o
 * `after_perform`: Called with the job args after it performs. Uncaught
   exceptions will be treated like regular job exceptions.
 
-* `around_perform`: Called with the job args. It is expected to yield in order
-  to perform the job. It may handle exceptions thrown by `perform`, but any that are not caught will
-  be treated like regular job exceptions.
-
 * `on_failure`: Called with the exception and job args if any exception occurs
   while performing the job (or hooks).
 
@@ -40,11 +36,11 @@ Hooks are just methods prefixed with the hook type. For example:
 
 ```ruby
 class SomeJob
-  def before_perform_log_job(*args)
+  def self.before_perform_log_job(*args)
     Logger.info "About to perform #{self} with #{args.inspect}"
   end
 
-  def on_failure_bury(e, *args)
+  def self.on_failure_bury(e, *args)
     Logger.info "Performing #{self} caused an exception (#{e})"
     self.bury
   end
