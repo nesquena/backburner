@@ -1,7 +1,9 @@
-- Front-end in sinatra for viewing beanstalk jobs
-  - https://github.com/denniskuczynski/beanstalkd_view
+- Custom front-end in sinatra for viewing beanstalk jobs
+  - Refer to https://github.com/denniskuczynski/beanstalkd_view
 - Better error handling (failures, retries)
   - https://github.com/michaeldwan/stalker/commit/afd7e94d20991bcd96b65eda7c979d92d8746c3b
   - https://github.com/michaeldwan/stalker/blob/master/lib/stalker/worker.rb
 - Fork jobs to control memory
+  - https://github.com/michaeldwan/stalker/commit/386267690a7c03e11d1a8b7b6f08b7c9c7cd2c0d
+- Add hooks
   - https://github.com/michaeldwan/stalker/commit/386267690a7c03e11d1a8b7b6f08b7c9c7cd2c0d

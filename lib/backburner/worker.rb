@@ -96,7 +96,7 @@ module Backburner
       self.class.log_job_begin(job.body)
       job.process
       self.class.log_job_end(job.name)
-    rescue => e
+    rescue => e # Error occurred processing job
       self.class.log_error self.class.exception_message(e)
       if job # bury job and log
         job.bury
