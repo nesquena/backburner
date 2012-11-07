@@ -43,7 +43,7 @@ class SomeJob
   end
 
 	def self.perform(*args)
-	  ...
+	  # ...
 	end
 end
 ```
