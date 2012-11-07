@@ -1,6 +1,7 @@
 $:.unshift "lib"
 require 'backburner'
 
+$fail = 0
 class User
   include Backburner::Performable
 
@@ -48,7 +49,9 @@ class User
   end
 
   def self.foo
-    puts "This is the job running!!"
+    $fail += 1
+    raise "Fail!" if $fail == 1
+    puts "This is the job running successfully!!"
   end
 end
 
@@ -57,6 +60,8 @@ Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "demo.production"
   config.on_error = lambda { |e| puts "HEY!!! #{e.class}" }
+  config.max_job_retries = 1
+  config.retry_delay     = 0
 end
 
 # Enqueue tasks

@@ -16,14 +16,8 @@ There are a variety of hooks available that are triggered during the lifecycle o
 * `after_enqueue`: Called with the job args after a job is placed on the queue.
   Any exception raised propagates up to the code which queued the job.
 
-* `before_dequeue`: Called with the job args before a job is removed from the queue.
-  If the hook returns `false`, the job will not be removed from the queue.
-
-* `after_dequeue`: Called with the job args after a job was removed from the queue.
-  Any exception raised propagates up to the code which dequeued the job.
-
 * `before_perform`: Called with the job args before perform. If it raises
-  `Backburner::Job::DontPerform`, the job is aborted. Other exceptions
+  `Backburner::Job::DontPerform`, the job is released. Other exceptions
   are treated like regular job exceptions.
 
 * `after_perform`: Called with the job args after it performs. Uncaught

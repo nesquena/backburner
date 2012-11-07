@@ -6,9 +6,10 @@ module Backburner
     #   invoke_hook_events(:before_enqueue, 'some', 'args')
     #   invoke_hook_events(:after_perform, 5)
     #
+    # TODO TEST
     def invoke_hook_events(event, *args, &block)
-      events = (self.methods - Object.methods).sort.select { |m| m =~ /^#{event}/ }
-      events.each { |e| send(e, *args, &block) }
+      events = (self.methods - Object.methods).grep(/^#{event}/).sort
+      events.map { |e| send(e, *args, &block) }
     end
   end # Hooks
 end # Backburner
