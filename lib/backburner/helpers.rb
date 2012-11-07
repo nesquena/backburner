@@ -94,7 +94,7 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '').gsub(/\.+/, '.')].join(".")
+      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.')
     end
 
   end

@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## Version 0.1.2 (Unreleased)
+## Version 0.1.3 (Unreleased)
+
+## Version 0.1.2 (Nov 7th 2012)
 
  * Adds ability to specify a custom logger.
  * Adds job retry configuration and worker support.
