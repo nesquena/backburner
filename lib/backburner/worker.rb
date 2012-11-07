@@ -106,7 +106,6 @@ module Backburner
       self.log_job_end(job.name)
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
-      job_class.invoke_hook_events(:on_failure, e, *job.args)
     rescue => e # Error occurred processing job
       self.log_error self.exception_message(e)
       job_class.invoke_hook_events(:on_failure, e, *job.args)
