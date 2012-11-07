@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Version 0.1.3 (Unreleased)
+## Version 0.2.1 (Unreleased)
+
+## Version 0.2.0 (Nov 7th 2012)
+
+ * Add new plugin hooks feature (see HOOKS.md)
 
 ## Version 0.1.2 (Nov 7th 2012)
 
