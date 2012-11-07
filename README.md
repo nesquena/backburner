@@ -237,7 +237,7 @@ Backburner is highly extensible and can be tailored to your needs by using vario
 can be triggered across the job processing lifecycle. 
 Often using hooks is much easier then trying to monkey patch the externals. 
 
-Check out [HOOKS.md](HOOKS.md) for a detailed overview on using hooks.
+Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
 ### Failures
 
