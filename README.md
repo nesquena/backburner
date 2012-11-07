@@ -231,6 +231,13 @@ Backburner.default_queues << NewsletterJob.queue
 
 The `default_queues` stores the specific list of queues that should be processed by default by a worker.
 
+### Hooks
+
+Backburner is highly extensible and can be tailored to your needs by using the hooks. Often
+using hooks is much easier then trying to monkey patch the externals. 
+
+Check out [HOOKS.md](HOOKS.md) for a detailed overview.
+
 ### Failures
 
 When a job fails in backburner (usually because an exception was raised), the job will be released 
