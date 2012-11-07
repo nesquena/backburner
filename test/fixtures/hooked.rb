@@ -1,8 +1,8 @@
-$fail_count = 0
+$hooked_fail_count = 0
 class HookFailError < RuntimeError; end
 
 class HookedObjectBeforeEnqueueFail
-  extend Backburner::Hooks
+  include Backburner::Performable
 
   def self.before_enqueue_abe(*args)
     puts "!!before_enqueue_foo!! #{args.inspect}"
@@ -27,7 +27,7 @@ class HookedObjectAfterEnqueueFail
 end
 
 class HookedObjectBeforePerformFail
-  extend Backburner::Hooks
+  include Backburner::Performable
 
   def self.before_perform_abe(*args)
     puts "!!before_perform_foo!! #{args.inspect}"
@@ -35,6 +35,11 @@ class HookedObjectBeforePerformFail
 
   def self.before_perform_foo(*args)
     return false
+  end
+
+  def self.foo(x)
+    puts "Fail ran!!"
+    raise HookFailError, "HookedObjectJobFailure on foo!"
   end
 end
 
@@ -59,7 +64,7 @@ class HookedObjectJobFailure
 end
 
 class HookedObjectSuccess
-  extend Backburner::Hooks
+  include Backburner::Performable
 
   def self.before_enqueue_foo(*args)
     puts "!!before_enqueue_foo!! #{args.inspect}"
@@ -102,8 +107,8 @@ class HookedObjectSuccess
   end
 
   def self.foo(x)
-    $fail_count += 1
-    raise HookFailError, "Fail!" if $fail_count == 1
+    $hooked_fail_count += 1
+    raise HookFailError, "Fail!" if $hooked_fail_count == 1
     puts "This is the job running successfully!! #{x.inspect}"
   end
 end # HookedObjectSuccess

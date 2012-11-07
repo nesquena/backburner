@@ -1,32 +1,6 @@
 require File.expand_path('../test_helper', __FILE__)
-
-$worker_test_count = 0
-$worker_success = false
-
-class TestJob
-  include Backburner::Queue
-  queue_priority 1000
-  def self.perform(x, y); $worker_test_count += x + y; end
-end
-
-class TestFailJob
-  include Backburner::Queue
-  def self.perform(x, y); raise RuntimeError; end
-end
-
-class TestRetryJob
-  include Backburner::Queue
-  def self.perform(x, y)
-    $worker_test_count += 1
-    raise RuntimeError unless $worker_test_count > 2
-    $worker_success = true
-  end
-end
-
-class TestAsyncJob
-  include Backburner::Performable
-  def self.foo(x, y); $worker_test_count = x * y; end
-end
+require File.expand_path('../fixtures/test_jobs', __FILE__)
+require File.expand_path('../fixtures/hooked', __FILE__)
 
 describe "Backburner::Worker module" do
   before do
@@ -257,6 +231,79 @@ describe "Backburner::Worker module" do
       assert_equal 3, $worker_test_count
       assert_equal true, $worker_success
     end # retrying, succeeds
+
+    it "should support event hooks without retry" do
+      $hooked_fail_count = 0
+      clear_jobs!('foo.bar.events')
+      out = silenced(2) do
+        HookedObjectSuccess.async(:queue => 'foo.bar.events').foo(5)
+        worker = Backburner::Worker.new('foo.bar.events')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match /before_enqueue.*after_enqueue.*Working 1 queues/m, out
+      assert_match /!!before_enqueue_bar!! \[nil, :foo, 5\]/, out
+      assert_match /!!after_enqueue_bar!! \[nil, :foo, 5\]/, out
+      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
+      assert_match /!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out
+      assert_match /!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out
+      assert_match /!!on_failure_foo!!.*HookFailError/, out
+      assert_match /attempt 1 of 1, burying/, out
+    end # event hooks, no retry
+
+    it "should support event hooks with retry" do
+      $hooked_fail_count = 0
+      clear_jobs!('foo.bar.events.retry')
+      Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+      out = silenced(2) do
+        HookedObjectSuccess.async(:queue => 'foo.bar.events.retry').foo(5)
+        worker = Backburner::Worker.new('foo.bar.events.retry')
+        worker.prepare
+        2.times do
+          worker.work_one_job
+        end
+      end
+      assert_match /before_enqueue.*after_enqueue.*Working 1 queues/m, out
+      assert_match /!!before_enqueue_bar!! \[nil, :foo, 5\]/, out
+      assert_match /!!after_enqueue_bar!! \[nil, :foo, 5\]/, out
+      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
+      assert_match /!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out
+      assert_match /!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out
+      assert_match /!!on_failure_foo!!.*HookFailError/, out
+      assert_match /!!on_failure_foo!!.*retrying.*around_perform_bar.*around_perform_cat/m, out
+      assert_match /attempt 1 of 2, retrying/, out
+      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
+      assert_match /!!END around_perform_bar!! \[nil, "foo", 5\]/, out
+      assert_match /!!END around_perform_cat!! \[nil, "foo", 5\]/, out
+      assert_match /!!after_perform_foo!! \[nil, "foo", 5\]/, out
+      assert_match /Finished HookedObjectSuccess/, out
+    end # event hooks, with retry
+
+    it "should support event hooks with stopping enqueue" do
+      $hooked_fail_count = 0
+      clear_jobs!('foo.bar.events.retry2')
+      out = silenced(2) do
+        HookedObjectBeforeEnqueueFail.async(:queue => 'foo.bar.events.retry2').foo(5)
+      end
+      expanded_tube = [Backburner.configuration.tube_namespace, 'foo.bar.events.retry2'].join(".")
+      assert_nil Backburner::Worker.connection.tubes[expanded_tube].peek(:ready)
+    end # stopping enqueue
+
+    it "should support event hooks with stopping perform" do
+      $hooked_fail_count = 0
+      clear_jobs!('foo.bar.events.retry3')
+      expanded_tube = [Backburner.configuration.tube_namespace, 'foo.bar.events.retry3'].join(".")
+      out = silenced(2) do
+        HookedObjectBeforePerformFail.async(:queue => 'foo.bar.events.retry3').foo(10)
+        worker = Backburner::Worker.new('foo.bar.events.retry3')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match /!!before_perform_foo!! \[nil, "foo", 10\]/, out
+      assert_match /before_perform_foo.*Finished/m, out
+      refute_match(/Fail ran!!/, out)
+      refute_match(/HookFailError/, out)
+    end # stopping perform
 
     after do
       Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5 }

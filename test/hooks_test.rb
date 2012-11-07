@@ -3,7 +3,7 @@ require File.expand_path('../fixtures/hooked', __FILE__)
 
 describe "Backburner::Hooks module" do
   before do
-    $fail_count = 0
+    $hooked_fail_count = 0
   end
 
   describe "for invoke_hook_events method" do
