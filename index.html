@@ -41,8 +41,11 @@ web framework, but is especially suited for use with <a href="http://sinatrarb.c
 
 <p>If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
-Backburner can be a persistent queue when the beanstalk persistence mode is enabled.
-It supports multiple queues, priorities, delays, and timeouts.</p>
+Persistent queues are supported when beanstalkd persistence mode is enabled.</p>
+
+<p>Backburner supports multiple queues, job priorities, delays, and timeouts. In addition, 
+Backburner has robust support for retrying failed jobs, handling error cases,
+custom logging, and extensible plugin hooks.</p>
 
 <h2>Why Backburner?</h2>
 
@@ -95,7 +98,7 @@ and a rich set of tools for job management that go well beyond a simple FIFO wor
 <li>
 <strong>Federation</strong> - Horizontal scalability provided through federation by the client.</li>
 <li>
-<strong>Buried jobs</strong> - Bury any job which causes an error for later debugging and inspection.</li>
+<strong>Error Handling</strong> - Bury any job which causes an error for later debugging and inspection.</li>
 </ul><p>Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
 In the end, <strong>beanstalk is the ideal job queue</strong> while also being ridiculously easy to install and setup.</p>
 
@@ -127,15 +130,27 @@ Depending on your platform, this should be as simple as (for Ubuntu):</p>
 <p>Backburner is extremely simple to setup. Just configure basic settings for backburner:</p>
 
 <div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
-  <span class="n">config</span><span class="o">.</span><span class="n">beanstalk_url</span> <span class="o">=</span> <span class="s2">"beanstalk://127.0.0.1"</span>
-  <span class="n">config</span><span class="o">.</span><span class="n">tube_namespace</span> <span class="o">=</span> <span class="s2">"some.app.production"</span>
-  <span class="n">config</span><span class="o">.</span><span class="n">on_error</span> <span class="o">=</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="nb">puts</span> <span class="n">e</span> <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">beanstalk_url</span>    <span class="o">=</span> <span class="o">[</span><span class="s2">"beanstalk://127.0.0.1"</span><span class="p">,</span> <span class="s2">"..."</span><span class="o">]</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">tube_namespace</span>   <span class="o">=</span> <span class="s2">"some.app.production"</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">on_error</span>         <span class="o">=</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="nb">puts</span> <span class="n">e</span> <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">max_job_retries</span>  <span class="o">=</span> <span class="mi">3</span> <span class="c1"># default 0 retries</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">retry_delay</span>      <span class="o">=</span> <span class="mi">2</span> <span class="c1"># default 5 seconds</span>
   <span class="n">config</span><span class="o">.</span><span class="n">default_priority</span> <span class="o">=</span> <span class="mi">65536</span>
-  <span class="n">config</span><span class="o">.</span><span class="n">respond_timeout</span> <span class="o">=</span> <span class="mi">120</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">respond_timeout</span>  <span class="o">=</span> <span class="mi">120</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">logger</span>           <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">STDOUT</span><span class="p">)</span>
 <span class="k">end</span>
 </pre></div>
 
-<h2>Usage</h2>
+<p>The key options available are:</p>
+
+<ul>
+<li>The <code>beanstalk_url</code> supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.</li>
+<li>The <code>tube_namespace</code> is the prefix used for all tubes related to this backburner queue.</li>
+<li>The <code>on_error</code> is a callback that gets invoked with the error whenever any job in the system fails.</li>
+<li>The <code>max_job_retries</code> determines how many times to retry a job before burying</li>
+<li>The <code>retry_delay</code> determines the base time to wait (in secs) between retries</li>
+<li>The <code>logger</code> is the logger object written to when backburner wants to report info or errors.</li>
+</ul><h2>Usage</h2>
 
 <p>Backburner allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and
 process them asynchronously.</p>
@@ -196,8 +211,8 @@ includes <code>Backburner::Performable</code>. Async enqueuing works for both in
 </pre></div>
 
 <p>This will automatically enqueue a job for that user record that will run <code>activate</code> with the specified argument.
-Note that you can set the queue name and queue priority at the class level and 
-you are also able to pass <code>pri</code>, <code>ttr</code>, <code>delay</code> and <code>queue</code> directly as options into <code>async</code>. 
+Note that you can set the queue name and queue priority at the class level and
+you are also able to pass <code>pri</code>, <code>ttr</code>, <code>delay</code> and <code>queue</code> directly as options into <code>async</code>.
 The queue name used by default is the normalized class name (i.e <code>{namespace}.user</code>) if not otherwise specified.</p>
 
 <h3>Working Jobs</h3>
@@ -254,25 +269,55 @@ queues processed when none are specified. To do this, you can use the <code>defa
 
 <p>The <code>default_queues</code> stores the specific list of queues that should be processed by default by a worker.</p>
 
+<h3>Hooks</h3>
+
+<p>Backburner is highly extensible and can be tailored to your needs by using various hooks that
+can be triggered across the job processing lifecycle. 
+Often using hooks is much easier then trying to monkey patch the externals. </p>
+
+<p>Check out <a href="https://github.com/nesquena/backburner/blob/master/HOOKS.md">HOOKS.md</a> for a detailed overview on using hooks.</p>
+
 <h3>Failures</h3>
 
-<p>You can setup the error handler for jobs using configure:</p>
+<p>When a job fails in backburner (usually because an exception was raised), the job will be released 
+and retried again (with progressive delays in between) until the <code>max_job_retries</code> configuration is reached.</p>
+
+<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">max_job_retries</span>  <span class="o">=</span> <span class="mi">3</span> <span class="c1"># retry jobs 3 times</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">retry_delay</span>      <span class="o">=</span> <span class="mi">2</span> <span class="c1"># wait 2 seconds in between retries</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Note the default <code>max_job_retries</code> is 0, meaning that by default <strong>jobs are not retried</strong>.
+If continued retry attempts fail, the job will be buried and can be 'kicked' later for inspection.</p>
+
+<p>You can also setup a custom error handler for jobs using configure:</p>
 
 <div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
   <span class="n">config</span><span class="o">.</span><span class="n">on_error</span> <span class="o">=</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">ex</span><span class="o">|</span> <span class="no">Airbrake</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span> <span class="p">}</span>
 <span class="k">end</span>
 </pre></div>
 
-<p>Now all beanstalk queue errors will show up on airbrake.
-If a job fails in beanstalk, the job is automatically buried and must be 'kicked' later.</p>
+<p>Now all backburner queue errors will appear on airbrake for deeper inspection.</p>
 
 <h3>Logging</h3>
 
-<p>Right now, all logging happens to standard out and can be piped to a file or any other output manually. More on logging coming later.</p>
+<p>Logging in backburner is rather simple. When a job is run, the log records that. When a job
+fails, the log records that. When any exceptions occur during processing, the log records that.</p>
+
+<p>By default, the log will print to standard out. You can customize the log to output to any
+standard logger by controlling the configuration option:</p>
+
+<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">STDOUT</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Be sure to check logs whenever things do not seem to be processing.</p>
 
 <h3>Web Front-end</h3>
 
-<p>Be sure to check out the Sinatra-powered project <a href="https://github.com/denniskuczynski/beanstalkd_view">beanstalkd_view</a> 
+<p>Be sure to check out the Sinatra-powered project <a href="https://github.com/denniskuczynski/beanstalkd_view">beanstalkd_view</a>
 by <a href="http://github.com/denniskuczynski">denniskuczynski</a> which provides an excellent overview of the tubes and
 jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.</p>
 
