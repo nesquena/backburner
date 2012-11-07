@@ -8,8 +8,11 @@ web framework, but is especially suited for use with [Sinatra](http://sinatrarb.
 
 If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
-Backburner can be a persistent queue when the beanstalk persistence mode is enabled.
-It supports multiple queues, priorities, delays, and timeouts.
+Persistent queues are supported when beanstalkd persistence mode is enabled.
+
+Backburner supports multiple queues, job priorities, delays, and timeouts. In addition, 
+Backburner has robust support for retrying failed jobs, handling error cases,
+custom logging, and extensible plugin hooks.
 
 ## Why Backburner?
 
