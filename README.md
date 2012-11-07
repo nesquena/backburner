@@ -86,7 +86,7 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 
 ```ruby
 Backburner.configure do |config|
-  config.beanstalk_url    = ["beanstalk://127.0.0.1", "beanstalk://127.0.0.1:11301"]
+  config.beanstalk_url    = ["beanstalk://127.0.0.1", "..."]
   config.tube_namespace   = "some.app.production"
   config.on_error         = lambda { |e| puts e }
   config.max_job_retries  = 3 # default 0 retries
