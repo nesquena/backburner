@@ -3,6 +3,7 @@
 ## Version 0.1.2 (Unreleased)
 
  * Adds ability to specify a custom logger.
+ * Adds job retry configuration and worker support.
 
 ## Version 0.1.1 (Nov 6th 2012)
 

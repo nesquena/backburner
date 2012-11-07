@@ -1,6 +1,7 @@
 require File.expand_path('../test_helper', __FILE__)
 
 $worker_test_count = 0
+$worker_success = false
 
 class TestJob
   include Backburner::Queue
@@ -13,13 +14,24 @@ class TestFailJob
   def self.perform(x, y); raise RuntimeError; end
 end
 
+class TestRetryJob
+  include Backburner::Queue
+  def self.perform(x, y)
+    $worker_test_count += 1
+    raise RuntimeError unless $worker_test_count > 2
+    $worker_success = true
+  end
+end
+
 class TestAsyncJob
   include Backburner::Performable
   def self.foo(x, y); $worker_test_count = x * y; end
 end
 
 describe "Backburner::Worker module" do
-  before { Backburner.default_queues.clear }
+  before do
+    Backburner.default_queues.clear
+  end
 
   describe "for enqueue class method" do
     it "should support enqueuing job" do
@@ -144,8 +156,13 @@ describe "Backburner::Worker module" do
   end # prepare
 
   describe "for work_one_job method" do
-    it "should work an enqueued job" do
+    before do
       $worker_test_count = 0
+      $worker_success = false
+    end
+
+    it "should work an enqueued job" do
+      clear_jobs!("foo.bar")
       Backburner::Worker.enqueue TestJob, [1, 2], :queue => "foo.bar"
       silenced(2) do
         worker = Backburner::Worker.new('foo.bar')
@@ -156,7 +173,7 @@ describe "Backburner::Worker module" do
     end # enqueue
 
     it "should fail quietly if there's an argument error" do
-      $worker_test_count = 0
+      clear_jobs!("foo.bar")
       Backburner::Worker.enqueue TestJob, ["bam", "foo", "bar"], :queue => "foo.bar"
       out = silenced(2) do
         worker = Backburner::Worker.new('foo.bar')
@@ -168,11 +185,11 @@ describe "Backburner::Worker module" do
     end # fail, argument
 
     it "should work an enqueued failing job" do
-      $worker_test_count = 0
-      Backburner::Worker.enqueue TestFailJob, [1, 2], :queue => "foo.bar.fail"
+      clear_jobs!("foo.bar")
+      Backburner::Worker.enqueue TestFailJob, [1, 2], :queue => "foo.bar"
       Backburner::Job.any_instance.expects(:bury).once
       out = silenced(2) do
-        worker = Backburner::Worker.new('foo.bar.fail')
+        worker = Backburner::Worker.new('foo.bar')
         worker.prepare
         worker.work_one_job
       end
@@ -181,26 +198,68 @@ describe "Backburner::Worker module" do
     end # fail, runtime error
 
     it "should work an invalid job parsed" do
-      $worker_test_count = 0
-      Beaneater::Tubes.any_instance.expects(:reserve).returns(stub(:body => "{%$^}"))
+      Beaneater::Tubes.any_instance.expects(:reserve).returns(stub(:body => "{%$^}", :bury => true))
       out = silenced(2) do
-        worker = Backburner::Worker.new('foo.bar.fail')
+        worker = Backburner::Worker.new('foo.bar')
         worker.prepare
         worker.work_one_job
       end
-      assert_match(/Exception JSON::ParserError/, out)
+      assert_match(/Exception Backburner::Job::JobFormatInvalid/, out)
       assert_equal 0, $worker_test_count
     end # fail, runtime error
 
     it "should work for an async job" do
-      $worker_test_count = 0
-      TestAsyncJob.async(:queue => "bar.baz").foo(3, 5)
+      clear_jobs!('foo.bar')
+      TestAsyncJob.async(:queue => 'foo.bar').foo(3, 5)
       silenced(2) do
-        worker = Backburner::Worker.new('bar.baz')
+        worker = Backburner::Worker.new('foo.bar')
         worker.prepare
         worker.work_one_job
       end
       assert_equal 15, $worker_test_count
     end # async
+
+    it "should support retrying jobs and burying" do
+      clear_jobs!('foo.bar')
+      Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+      Backburner::Worker.enqueue TestRetryJob, ["bam", "foo"], :queue => 'foo.bar'
+      out = []
+      2.times do
+        out << silenced(2) do
+          worker = Backburner::Worker.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+      end
+      assert_match /attempt 1 of 2, retrying/, out.first
+      assert_match /Finished TestRetryJob/m, out.last
+      assert_match /attempt 2 of 2, burying/m, out.last
+      assert_equal 2, $worker_test_count
+      assert_equal false, $worker_success
+    end # retry, bury
+
+    it "should support retrying jobs and succeeds" do
+      clear_jobs!('foo.bar')
+      Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
+      Backburner::Worker.enqueue TestRetryJob, ["bam", "foo"], :queue => 'foo.bar'
+      out = []
+      3.times do
+        out << silenced(2) do
+          worker = Backburner::Worker.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+      end
+      assert_match /attempt 1 of 3, retrying/, out.first
+      assert_match /attempt 2 of 3, retrying/, out[1]
+      assert_match /Finished TestRetryJob/m, out.last
+      refute_match(/failed/, out.last)
+      assert_equal 3, $worker_test_count
+      assert_equal true, $worker_success
+    end # retrying, succeeds
+
+    after do
+      Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5 }
+    end
   end # work_one_job
 end # Backburner::Worker

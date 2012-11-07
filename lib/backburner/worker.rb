@@ -93,16 +93,24 @@ module Backburner
     #
     def work_one_job
       job = Backburner::Job.new(self.connection.tubes.reserve)
-      self.class.log_job_begin(job.body)
+      self.log_job_begin(job.name, job.args)
       job.process
-      self.class.log_job_end(job.name)
+      self.log_job_end(job.name)
+    rescue Backburner::Job::JobFormatInvalid => e
+      self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
-      self.class.log_error self.class.exception_message(e)
-      if job # bury job and log
+      self.log_error self.exception_message(e)
+      num_retries = job.stats.releases
+      retry_status = "failed: attempt #{num_retries+1} of #{config.max_job_retries+1}"
+      if num_retries < config.max_job_retries # retry again
+        delay = config.retry_delay + num_retries ** 3
+        job.release(:delay => delay)
+        self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
+      else # retries failed, bury
         job.bury
-        self.class.log_job_end(job.name, 'failed') if job_started_at
-        handle_error(e, job.name, job.args)
+        self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
       end
+      handle_error(e, job.name, job.args)
     end
 
     protected

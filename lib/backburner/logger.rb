@@ -8,21 +8,21 @@ module Backburner
     end
 
     # Print out when a job is about to begin
-    def log_job_begin(body)
-      log_info [ "Working", body ].join(' ')
+    def log_job_begin(name, args)
+      log_info "Work job #{name} with #{args.inspect}"
       @job_started_at = Time.now
+    end
+
+    # Print out when a job completed
+    def log_job_end(name, message = nil)
+      ellapsed = Time.now - job_started_at
+      ms = (ellapsed.to_f * 1000).to_i
+      log_info("Finished #{name} in #{ms}ms #{message}")
     end
 
     # Returns true if the job logging started
     def job_started_at
       @job_started_at
-    end
-
-    # Print out when a job completed
-    def log_job_end(name, failed=false)
-      ellapsed = Time.now - job_started_at
-      ms = (ellapsed.to_f * 1000).to_i
-      log_info "Finished #{name} in #{ms}ms #{failed ? ' (failed)' : ''}"
     end
 
     # Print a message to stdout
