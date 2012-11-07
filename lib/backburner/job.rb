@@ -49,6 +49,7 @@ module Backburner
     # @example
     #   job_class # => NewsletterSender
     #
+    # TODO TEST ?
     def job_class
       handler = constantize(self.name) rescue nil
       raise(JobNotFound, self.name) unless handler
