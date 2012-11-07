@@ -1,11 +1,12 @@
 module Backburner
   # A single backburner job which can be processed and removed by the worker
-  class Job
+  class Job < SimpleDelegator
     include Backburner::Helpers
 
     # Raises when a job times out
     class JobTimeout < RuntimeError; end
     class JobNotFound < RuntimeError; end
+    class JobFormatInvalid < RuntimeError; end
 
     attr_accessor :task, :body, :name, :args
 
@@ -21,6 +22,16 @@ module Backburner
       @task = task
       @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
       @name, @args = body["class"], body["args"]
+    rescue => ex # Job was not valid format
+      self.bury
+      raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
+    end
+
+    # Sets the delegator object to the underlying beaneater job
+    # self.bury
+    def __getobj__
+      __setobj__(@task)
+      super
     end
 
     # Processes a job and handles any failure, deleting the job once complete
@@ -31,11 +42,6 @@ module Backburner
     def process
       timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
       task.delete
-    end
-
-    # Bury a job out of the active queue if that job fails
-    def bury
-      task.bury
     end
 
     protected

@@ -13,35 +13,50 @@ module NestedDemo
 end
 
 describe "Backburner::Job module" do
-  describe "for initialize method with hash" do
-    before do
-      @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
-      @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
-    end
+  describe "for initialize" do
+    describe "with hash" do
+      before do
+        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
+        @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
+      end
 
-    it "should create job with correct task data" do
-      @job = Backburner::Job.new(@task)
-      assert_equal @task, @job.task
-      assert_equal ["class", "args"], @job.body.keys
-      assert_equal @task_body["class"], @job.name
-      assert_equal @task_body["args"], @job.args
-    end
-  end # initialize with json
+      it "should create job with correct task data" do
+        @job = Backburner::Job.new(@task)
+        assert_equal @task, @job.task
+        assert_equal ["class", "args"], @job.body.keys
+        assert_equal @task_body["class"], @job.name
+        assert_equal @task_body["args"], @job.args
+      end
+    end # with hash
 
-  describe "for initialize method with json string" do
-    before do
-      @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
-      @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
-    end
+    describe "with json string" do
+      before do
+        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
+        @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
+      end
 
-    it "should create job with correct task data" do
-      @job = Backburner::Job.new(@task)
-      assert_equal @task, @job.task
-      assert_equal ["class", "args"], @job.body.keys
-      assert_equal @task_body["class"], @job.name
-      assert_equal @task_body["args"], @job.args
-    end
-  end # initialize with json
+      it "should create job with correct task data" do
+        @job = Backburner::Job.new(@task)
+        assert_equal @task, @job.task
+        assert_equal ["class", "args"], @job.body.keys
+        assert_equal @task_body["class"], @job.name
+        assert_equal @task_body["args"], @job.args
+      end
+    end # with json
+
+    describe "with invalid string" do
+      before do
+        @task_body =  "^%$*&^*"
+        @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
+      end
+
+      it "should raise a job format exception" do
+        assert_raises(Backburner::Job::JobFormatInvalid) {
+          @job = Backburner::Job.new(@task)
+        }
+      end
+    end # invalid
+  end # initialize
 
   describe "for process method" do
     describe "with valid task" do
