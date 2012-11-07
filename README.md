@@ -97,6 +97,8 @@ Backburner.configure do |config|
 end
 ```
 
+The key options available are:
+
  * The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
  * The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
  * The `on_error` is a callback that gets invoked with the error whenever any job in the system fails.
