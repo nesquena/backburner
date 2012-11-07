@@ -41,20 +41,16 @@ module Backburner
     #
     def process
       # Invoke before hook and stop if false
-      # TODO TEST this stops when false
       res = job_class.invoke_hook_events(:before_perform, *args)
       return false unless res
       # Execute the job
-      # TODO TEST around hooks
       job_class.around_hook_events(:around_perform, *args) do
         timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook
-      # TODO TEST after hooks
       job_class.invoke_hook_events(:after_perform, *args)
     rescue => e
-      # TODO TEST on_failure hooks
       job_class.invoke_hook_events(:on_failure, e, *args)
       raise e
     end

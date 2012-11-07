@@ -24,12 +24,10 @@ module Backburner
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
       tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
-      # TODO TEST stop enqueue if any hooks return false
       res = job_class.invoke_hook_events(:before_enqueue, *args)
       return false unless res # stop if hook is false
       data = { :class => job_class.name, :args => args }
       tube.put data.to_json, :pri => pri, :delay => delay, :ttr => ttr
-      # TODO TEST after_enqueue
       job_class.invoke_hook_events(:after_enqueue, *args)
       return true
     end
