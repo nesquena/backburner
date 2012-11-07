@@ -1,0 +1,109 @@
+$fail_count = 0
+class HookFailError < RuntimeError; end
+
+class HookedObjectBeforeEnqueueFail
+  extend Backburner::Hooks
+
+  def self.before_enqueue_abe(*args)
+    puts "!!before_enqueue_foo!! #{args.inspect}"
+  end
+
+  def self.before_enqueue_bar(*args)
+    return false
+  end
+end
+
+
+class HookedObjectAfterEnqueueFail
+  extend Backburner::Hooks
+
+  def self.after_enqueue_abe(*args)
+    puts "!!after_enqueue_foo!! #{args.inspect}"
+  end
+
+  def self.after_enqueue_bar(*args)
+    raise HookFailError, "Fail HookedObjectAfterEnqueueFail"
+  end
+end
+
+class HookedObjectBeforePerformFail
+  extend Backburner::Hooks
+
+  def self.before_perform_abe(*args)
+    puts "!!before_perform_foo!! #{args.inspect}"
+  end
+
+  def self.before_perform_foo(*args)
+    return false
+  end
+end
+
+class HookedObjectAfterPerformFail
+  extend Backburner::Hooks
+
+  def self.after_perform_abe(*args)
+    puts "!!after_perform_foo!! #{args.inspect}"
+  end
+
+  def self.after_perform_bar(*args)
+    raise HookFailError, "Fail HookedObjectAfterEnqueueFail"
+  end
+end
+
+class HookedObjectJobFailure
+  extend Backburner::Hooks
+
+  def self.foo(x)
+    raise HookFailError, "HookedObjectJobFailure on foo!"
+  end
+end
+
+class HookedObjectSuccess
+  extend Backburner::Hooks
+
+  def self.before_enqueue_foo(*args)
+    puts "!!before_enqueue_foo!! #{args.inspect}"
+  end
+
+  def self.before_enqueue_bar(*args)
+    puts "!!before_enqueue_bar!! #{args.inspect}"
+  end
+
+  def self.after_enqueue_foo(*args)
+    puts "!!after_enqueue_foo!! #{args.inspect}"
+  end
+
+  def self.after_enqueue_bar(*args)
+    puts "!!after_enqueue_bar!! #{args.inspect}"
+  end
+
+  def self.before_perform_foo(*args)
+    puts "!!before_perform_foo!! #{args.inspect}"
+  end
+
+  def self.after_perform_foo(*args)
+    puts "!!after_perform_foo!! #{args.inspect}"
+  end
+
+  def self.around_perform_bar(*args)
+    puts "!!BEGIN around_perform_bar!! #{args.inspect}"
+    yield
+    puts "!!END around_perform_bar!! #{args.inspect}"
+  end
+
+  def self.around_perform_cat(*args)
+    puts "!!BEGIN around_perform_cat!! #{args.inspect}"
+    yield
+    puts "!!END around_perform_cat!! #{args.inspect}"
+  end
+
+  def self.on_failure_foo(ex, *args)
+    puts "!!on_failure_foo!! #{ex.inspect} #{args.inspect}"
+  end
+
+  def self.foo(x)
+    $fail_count += 1
+    raise HookFailError, "Fail!" if $fail_count == 1
+    puts "This is the job running successfully!! #{x.inspect}"
+  end
+end # HookedObjectSuccess

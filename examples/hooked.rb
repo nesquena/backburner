@@ -17,18 +17,6 @@ class User
     puts "[after_enqueue] Finished enqueuing #{self} with #{args.inspect}"
   end
 
-  # Called with the job args before a job is removed from the queue.
-  # If the hook returns `false`, the job will not be removed from the queue.
-  def self.before_dequeue_foo(*args)
-    puts "[before_dequeue] Just about to dequeue #{self} with #{args.inspect}"
-  end
-
-  # Called with the job args after a job was removed from the queue.
-  # Any exception raised propagates up to the code which dequeued the job.
-  def self.after_dequeue_foo(*args)
-    puts "[after_dequeue] Finished dequeuing #{self} with #{args.inspect}"
-  end
-
   # Called with the job args before perform. If it raises
   #  `Backburner::Job::DontPerform`, the job is aborted. Other exceptions
   #  are treated like regular job exceptions.

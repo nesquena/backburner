@@ -6,7 +6,6 @@ module Backburner
     #   invoke_hook_events(:before_enqueue, 'some', 'args')
     #   invoke_hook_events(:after_perform, 5)
     #
-    # TODO TEST invoke hook
     def invoke_hook_events(event, *args)
       res = find_hook_events(event).map { |e| send(e, *args) }
       return false if res.any? { |result| result == false }
@@ -22,14 +21,14 @@ module Backburner
     # @example
     #   around_hook_events(:around_perform) { job.perform }
     #
-    # TEST around hook
     def around_hook_events(event, *args, &block)
+      raise "Please pass a block to hook events!" unless block_given?
       around_hooks = find_hook_events(event).reverse
       aggregate_filter = Proc.new { |&blk| blk.call }
       around_hooks.each do |ah|
         prior_around_filter = aggregate_filter
         aggregate_filter = Proc.new do |&blk|
-          method(ah).call do
+          method(ah).call(*args) do
             prior_around_filter.call(&blk)
           end
         end
