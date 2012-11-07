@@ -83,20 +83,20 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 
 ```ruby
 Backburner.configure do |config|
-  config.beanstalk_url = ["beanstalk://127.0.0.1", "beanstalk://127.0.0.1:11301"]
-  config.tube_namespace = "some.app.production"
-  config.on_error = lambda { |e| puts e }
+  config.beanstalk_url    = ["beanstalk://127.0.0.1", "beanstalk://127.0.0.1:11301"]
+  config.tube_namespace   = "some.app.production"
+  config.on_error         = lambda { |e| puts e }
   config.max_job_retries  = 3 # default 0 retries
   config.retry_delay      = 2 # default 5 seconds
   config.default_priority = 65536
   config.respond_timeout  = 120
-  config.logger = Logger.new(STDOUT)
+  config.logger           = Logger.new(STDOUT)
 end
 ```
 
  * The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
  * The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
- * The `on_error` is a callback that gets invoked with the error whenever a job fails.
+ * The `on_error` is a callback that gets invoked with the error whenever any job in the system fails.
  * The `max_job_retries` determines how many times to retry a job before burying
  * The `retry_delay` determines the base time to wait (in secs) between retries
  * The `logger` is the logger object written to when backburner wants to report info or errors.
@@ -233,10 +233,11 @@ The `default_queues` stores the specific list of queues that should be processed
 
 ### Hooks
 
-Backburner is highly extensible and can be tailored to your needs by using the hooks. Often
-using hooks is much easier then trying to monkey patch the externals. 
+Backburner is highly extensible and can be tailored to your needs by using various hooks that
+can be triggered across the job processing lifecycle. 
+Often using hooks is much easier then trying to monkey patch the externals. 
 
-Check out [HOOKS.md](HOOKS.md) for a detailed overview.
+Check out [HOOKS.md](HOOKS.md) for a detailed overview on using hooks.
 
 ### Failures
 

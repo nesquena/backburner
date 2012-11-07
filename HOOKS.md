@@ -1,12 +1,12 @@
 # Backburner Hooks
 
 You can customize Backburner or write plugins using its hook API. 
-In many cases you can use a hook rather than mess with Backburner's internals.
+In many cases you can use a hook rather than mess around with Backburner's internals.
 
 ## Job Hooks 
 
-Hooks are inspired by [Resque](https://github.com/defunkt/resque/blob/master/docs/HOOKS.md), so
-if you are familiar with their hook API, now you can use the same ones with beanstalkd and backburner!
+Hooks are transparently adapted from [Resque](https://github.com/defunkt/resque/blob/master/docs/HOOKS.md), so
+if you are familiar with their hook API, now you can use nearly the same ones with beanstalkd and backburner!
 
 There are a variety of hooks available that are triggered during the lifecycle of a job:
 
@@ -47,6 +47,8 @@ class SomeJob
 	end
 end
 ```
+
+You can also setup modules to create compose-able and reusable hooks for your jobs.
 
 ## Worker Hooks
 
