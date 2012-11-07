@@ -23,6 +23,10 @@ There are a variety of hooks available that are triggered during the lifecycle o
 * `after_perform`: Called with the job args after it performs. Uncaught
   exceptions will be treated like regular job exceptions.
 
+* `around_perform`: Called with the job args. It is expected to yield in order
+	to perform the job (but is not required to do so). It may handle exceptions
+	thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
+
 * `on_failure`: Called with the exception and job args if any exception occurs
   while performing the job (or hooks).
 

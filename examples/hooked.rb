@@ -42,6 +42,33 @@ class User
     puts "[after_perform] Just finished performing #{self} with #{args.inspect}"
   end
 
+  # Called with the job args. It is expected to yield in order
+  #   to perform the job (but is not required to do so). It may handle exceptions
+  #   thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
+  def self.around_perform_bar(*args)
+    puts "[around_perform_bar before] About to perform #{self} with #{args.inspect}"
+    yield
+    puts "[around_perform_bar after] Just after performing #{self} with #{args.inspect}"
+  end
+
+  # Called with the job args. It is expected to yield in order
+  #   to perform the job (but is not required to do so). It may handle exceptions
+  #   thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
+  def self.around_perform_cat(*args)
+    puts "[around_perform_cat before] About to perform #{self} with #{args.inspect}"
+    yield
+    puts "[around_perform_cat after] Just after performing #{self} with #{args.inspect}"
+  end
+
+  # Called with the job args. It is expected to yield in order
+  #   to perform the job (but is not required to do so). It may handle exceptions
+  #   thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
+  def self.around_perform_foo(*args)
+    puts "[around_perform_foo before] About to perform #{self} with #{args.inspect}"
+    yield
+    puts "[around_perform_foo after] Just after performing #{self} with #{args.inspect}"
+  end
+
   # Called with the exception and job args if any exception occurs
   #  while performing the job (or hooks).
   def self.on_failure_foo(ex, *args)
