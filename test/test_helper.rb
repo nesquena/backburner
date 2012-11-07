@@ -90,4 +90,12 @@ class MiniTest::Spec
     silenced(3) { @res = connection.tubes.reserve }
     return @res, @res.body
   end
+
+  # clear_jobs!('foo')
+  def clear_jobs!(*tube_names)
+    tube_names.each do |tube_name|
+      expanded_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
+      Backburner::Worker.connection.tubes.find(expanded_name).clear
+    end
+  end
 end # MiniTest::Spec

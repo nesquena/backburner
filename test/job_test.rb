@@ -85,7 +85,7 @@ describe "Backburner::Job module" do
     end # invalid
   end # process
 
-  describe "for bury method" do
+  describe "for simple delegation method" do
     before do
       @task_body =  { "class" => "NestedDemo::TestJobC", "args" => [56] }
       @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
@@ -96,5 +96,5 @@ describe "Backburner::Job module" do
       @job = Backburner::Job.new(@task)
       @job.bury
     end # bury
-  end # bury
+  end # simple delegation
 end
