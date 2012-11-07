@@ -88,12 +88,14 @@ Backburner.configure do |config|
   config.on_error = lambda { |e| puts e }
   config.default_priority = 65536
   config.respond_timeout = 120
+  config.logger = Logger.new(STDOUT)
 end
 ```
 
-The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
-The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
-The `on_error` is a callback that gets invoked with the error whenever a job fails
+ * The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
+ * The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
+ * The `on_error` is a callback that gets invoked with the error whenever a job fails.
+ * The `logger` is the logger object written to when backburner wants to report info or errors.
 
 ## Usage
 

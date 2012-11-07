@@ -6,6 +6,7 @@ module Backburner
     attr_accessor :respond_timeout    # default job timeout
     attr_accessor :on_error           # error handler
     attr_accessor :default_queues     # default queues
+    attr_accessor :logger             # logger
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -14,6 +15,7 @@ module Backburner
       @respond_timeout   = 120
       @on_error          = nil
       @default_queues    = []
+      @logger            = nil
     end
   end # Configuration
 end # Backburner

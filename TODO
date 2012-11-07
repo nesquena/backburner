@@ -1,7 +1,5 @@
 - Front-end in sinatra for viewing beanstalk jobs
   - https://github.com/denniskuczynski/beanstalkd_view
-- Better logging
-  - https://github.com/dpree/stalker/commit/70e94b7b445e08166bf2288dd1b7853396b26a86
 - Better error handling (failures, retries)
   - https://github.com/michaeldwan/stalker/commit/afd7e94d20991bcd96b65eda7c979d92d8746c3b
   - https://github.com/michaeldwan/stalker/blob/master/lib/stalker/worker.rb
