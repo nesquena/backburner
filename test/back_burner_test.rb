@@ -21,7 +21,7 @@ describe "Backburner module" do
       Backburner.enqueue TestBackburnerJob, 5, 6
       Backburner.enqueue TestBackburnerJob, 15, 10
       silenced(2) do
-        worker = Backburner::Worker.new('test.jobber')
+        worker = Backburner::Workers::Simple.new('test.jobber')
         worker.prepare
         2.times { worker.work_one_job }
       end

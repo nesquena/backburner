@@ -10,6 +10,7 @@ require 'backburner/connection'
 require 'backburner/hooks'
 require 'backburner/performable'
 require 'backburner/worker'
+require 'backburner/workers/simple'
 require 'backburner/queue'
 
 module Backburner

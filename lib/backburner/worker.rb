@@ -1,6 +1,10 @@
 require 'backburner/job'
 
 module Backburner
+  #
+  # @abstract Subclass and override {#process_tube_names}, {#prepare} and {#start} to implement
+  #   a custom Worker class.
+  #
   class Worker
     include Backburner::Helpers
     include Backburner::Logger
@@ -32,7 +36,7 @@ module Backburner
       return true
     end
 
-    # Starts processing jobs in the specified tube_names
+    # Starts processing jobs with the specified tube_names.
     #
     # @example
     #   Backburner::Worker.start(["foo.tube.name"])
@@ -51,41 +55,49 @@ module Backburner
     # List of tube names to be watched and processed
     attr_accessor :tube_names
 
+    # Constructs a new worker for processing jobs within specified tubes.
+    #
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
-      @tube_names = begin
-        tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
-        tube_names = Array(tube_names).compact if tube_names && Array(tube_names).compact.size > 0
-        tube_names = nil if tube_names && tube_names.compact.empty?
-        tube_names
-      end
+      @tube_names = self.process_tube_names(tube_names)
     end
 
-    # Starts processing new jobs indefinitely
-    # Primary way to consume and process jobs in specified tubes
+    # Starts processing ready jobs indefinitely.
+    # Primary way to consume and process jobs in specified tubes.
     #
     # @example
     #   @worker.start
     #
     def start
-      prepare
-      loop { work_one_job }
+      raise NotImplementedError
     end
 
-    # Setup beanstalk tube_names and watch all specified tubes for jobs.
-    # Used to prepare job queues before processing jobs.
+    # Used to prepare the job queues before job processing is initiated.
     #
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect.
     # @example
     #   @worker.prepare
     #
+    # @abstract Define this in your worker subclass
+    # to be run once before processing. Recommended to watch tubes
+    # or print a message to the logs with 'log_info'
+    #
     def prepare
-      self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
-      self.tube_names = Array(self.tube_names)
-      self.tube_names.map! { |name| expand_tube_name(name)  }
-      log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
-      self.connection.tubes.watch!(*self.tube_names)
+      raise NotImplementedError
+    end
+
+    # Processes tube_names given tube_names array
+    # Should return normalized tube_names as an array of strings
+    #
+    # @example
+    #   process_tube_names([['foo'], ['bar']])
+    #   => ['foo', 'bar', 'baz']
+    #
+    # @note This method can be overridden in inherited workers
+    # to add more complex tube name processing.
+    def process_tube_names(tube_names)
+      compact_tube_names(tube_names)
     end
 
     # Reserves one job within the specified queues
@@ -142,6 +154,15 @@ module Backburner
           error_handler.call(e, name, args)
         end
       end
+    end
+
+    # Normalizes tube names given array of tube_names
+    # Compacts nil items, flattens arrays, sets tubes to nil if no valid names
+    def compact_tube_names(tube_names)
+      tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
+      tube_names = Array(tube_names).compact if tube_names && Array(tube_names).compact.size > 0
+      tube_names = nil if tube_names && tube_names.compact.empty?
+      tube_names
     end
   end # Worker
 end # Backburner
