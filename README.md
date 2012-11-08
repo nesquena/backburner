@@ -93,6 +93,7 @@ Backburner.configure do |config|
   config.retry_delay      = 2 # default 5 seconds
   config.default_priority = 65536
   config.respond_timeout  = 120
+  config.default_worker   = Backburner::Workers::Simple
   config.logger           = Logger.new(STDOUT)
 end
 ```
@@ -102,6 +103,7 @@ The key options available are:
  * The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
  * The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
  * The `on_error` is a callback that gets invoked with the error whenever any job in the system fails.
+ * The `default_worker` is the processing worker that will be used if no other worker is specified.
  * The `max_job_retries` determines how many times to retry a job before burying
  * The `retry_delay` determines the base time to wait (in secs) between retries
  * The `logger` is the logger object written to when backburner wants to report info or errors.
