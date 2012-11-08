@@ -9,6 +9,7 @@ module Backburner
     attr_accessor :retry_delay        # retry delay in seconds
     attr_accessor :default_queues     # default queues
     attr_accessor :logger             # logger
+    attr_accessor :default_worker     # default worker class
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -20,6 +21,7 @@ module Backburner
       @retry_delay       = 5
       @default_queues    = []
       @logger            = nil
+      @default_worker    = Backburner::Workers::Simple
     end
   end # Configuration
 end # Backburner

@@ -29,9 +29,12 @@ module Backburner
     #
     # @example
     #   Backburner.work('newsletter_sender', 'test_job')
+    #   Backburner.work('newsletter_sender', 'test_job', :worker => NotSimpleWorker)
     #
     def work(*tubes)
-      Backburner::Worker.start(tubes)
+      options = tubes.last.is_a?(Hash) ? tubes.pop : {}
+      worker_class = options[:worker] || configuration.default_worker
+      worker_class.start(tubes)
     end
 
     # Yields a configuration block

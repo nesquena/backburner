@@ -13,6 +13,10 @@ class TestBackburnerJob
   end
 end
 
+class TestWorker < Backburner::Worker
+
+end
+
 describe "Backburner module" do
   before { Backburner.default_queues.clear }
 
@@ -34,13 +38,24 @@ describe "Backburner module" do
   end # enqueue
 
   describe "for work method" do
-    it "invokes worker start" do
-      Backburner::Worker.expects(:start).with(["foo", "bar"])
+    it "invokes worker simple start" do
+      Backburner::Workers::Simple.expects(:start).with(["foo", "bar"])
       Backburner.work("foo", "bar")
     end
 
+    it "invokes other worker if specified in configuration" do
+      Backburner.configure { |config| config.default_worker = TestWorker }
+      TestWorker.expects(:start).with(["foo", "bar"])
+      Backburner.work("foo", "bar")
+    end
+
+    it "invokes other worker if specified in work method as options" do
+      TestWorker.expects(:start).with(["foo", "bar"])
+      Backburner.work("foo", "bar", :worker => TestWorker)
+    end
+
     it "invokes worker start with no args" do
-      Backburner::Worker.expects(:start).with([])
+      Backburner::Workers::Simple.expects(:start).with([])
       Backburner.work
     end
   end # work!
@@ -57,5 +72,9 @@ describe "Backburner module" do
       Backburner.default_queues << "bar"
       assert_same_elements ["foo", "bar"], Backburner.default_queues
     end
+  end
+
+  after do
+    Backburner.configure { |config| config.default_worker = Backburner::Workers::Simple }
   end
 end # Backburner
