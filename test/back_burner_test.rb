@@ -13,9 +13,7 @@ class TestBackburnerJob
   end
 end
 
-class TestWorker < Backburner::Worker
-
-end
+class TestWorker < Backburner::Worker; end
 
 describe "Backburner module" do
   before { Backburner.default_queues.clear }

@@ -190,6 +190,12 @@ This will process jobs in all queues but you can also restrict processing to spe
 Backburner.work('newsletter_sender')
 ```
 
+You can use a threaded or forking worker explicitly by specifying the worker with:
+
+```ruby
+Backburner.work('newsletter_sender', :worker => Backburner::Workers::Threaded)
+```
+
 The Backburner worker also exists as a rake task:
 
 ```ruby
