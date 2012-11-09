@@ -291,6 +291,40 @@ The queue name used by default is the normalized class name (i.e <code>{namespac
 
 <p>This will daemonize the worker and store the pid and logs automatically.</p>
 
+<h3>Persistence</h3>
+
+<p>Jobs are persisted to queues as JSON objects. Let's take our <code>User</code>
+example from above. We'll run the following code to create a job:</p>
+
+<div class="highlight"><pre><span class="no">User</span><span class="o">.</span><span class="n">async</span><span class="o">.</span><span class="n">reset_password</span><span class="p">(</span><span class="vi">@user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</pre></div>
+
+<p>The following JSON will be stored in the <code>{namespace}.user</code> queue:</p>
+
+<div class="highlight"><pre><span class="p">{</span>
+    <span class="s1">'class'</span><span class="o">:</span> <span class="s1">'User'</span><span class="p">,</span>
+    <span class="s1">'args'</span><span class="o">:</span> <span class="p">[</span><span class="nx">nil</span><span class="p">,</span> <span class="s1">'reset_password'</span><span class="p">,</span> <span class="mi">123</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The first argument is the 'id' of the object in the case of an instance method being async'ed. For example:</p>
+
+<div class="highlight"><pre><span class="vi">@device</span> <span class="o">=</span> <span class="no">Device</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">987</span><span class="p">)</span>
+<span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">246</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">async</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span><span class="vi">@device</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</pre></div>
+
+<p>would be stored as:</p>
+
+<div class="highlight"><pre><span class="p">{</span>
+    <span class="s1">'class'</span><span class="o">:</span> <span class="s1">'User'</span><span class="p">,</span>
+    <span class="s1">'args'</span><span class="o">:</span> <span class="p">[</span><span class="mi">246</span><span class="p">,</span> <span class="s1">'activate'</span><span class="p">,</span> <span class="mi">987</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Since all jobs are persisted in JSON, your jobs must only accept arguments that can be encoded into that format.
+This is why our examples use object IDs instead of passing around objects.</p>
+
 <h3>Processing Strategies</h3>
 
 <p>In Backburner, there are actually multiple different strategies for processing jobs
@@ -348,14 +382,6 @@ queues processed when none are specified. To do this, you can use the <code>defa
 
 <p>The <code>default_queues</code> stores the specific list of queues that should be processed by default by a worker.</p>
 
-<h3>Hooks</h3>
-
-<p>Backburner is highly extensible and can be tailored to your needs by using various hooks that
-can be triggered across the job processing lifecycle. 
-Often using hooks is much easier then trying to monkey patch the externals. </p>
-
-<p>Check out <a href="https://github.com/nesquena/backburner/blob/master/HOOKS.md">HOOKS.md</a> for a detailed overview on using hooks.</p>
-
 <h3>Failures</h3>
 
 <p>When a job fails in backburner (usually because an exception was raised), the job will be released 
@@ -394,11 +420,13 @@ standard logger by controlling the configuration option:</p>
 
 <p>Be sure to check logs whenever things do not seem to be processing.</p>
 
-<h3>Web Front-end</h3>
+<h3>Hooks</h3>
 
-<p>Be sure to check out the Sinatra-powered project <a href="https://github.com/denniskuczynski/beanstalkd_view">beanstalkd_view</a>
-by <a href="http://github.com/denniskuczynski">denniskuczynski</a> which provides an excellent overview of the tubes and
-jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.</p>
+<p>Backburner is highly extensible and can be tailored to your needs by using various hooks that
+can be triggered across the job processing lifecycle. 
+Often using hooks is much easier then trying to monkey patch the externals. </p>
+
+<p>Check out <a href="https://github.com/nesquena/backburner/blob/master/HOOKS.md">HOOKS.md</a> for a detailed overview on using hooks.</p>
 
 <h3>Workers in Production</h3>
 
@@ -418,6 +446,12 @@ is installed, your best bet is to use the built-in rake task that comes with Bac
 <p>The best way to deploy these rake tasks is using a monitoring library. We suggest <a href="https://github.com/mojombo/god/">God</a>
 which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
 <a href="https://github.com/nesquena/backburner/blob/master/examples/god.rb">examples/god</a>.</p>
+
+<h3>Web Front-end</h3>
+
+<p>Be sure to check out the Sinatra-powered project <a href="https://github.com/denniskuczynski/beanstalkd_view">beanstalkd_view</a>
+by <a href="http://github.com/denniskuczynski">denniskuczynski</a> which provides an excellent overview of the tubes and
+jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.</p>
 
 <h2>Acknowledgements</h2>
 
