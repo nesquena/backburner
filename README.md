@@ -190,12 +190,6 @@ This will process jobs in all queues but you can also restrict processing to spe
 Backburner.work('newsletter_sender')
 ```
 
-You can use a threaded or forking worker explicitly by specifying the worker with:
-
-```ruby
-Backburner.work('newsletter_sender', :worker => Backburner::Workers::Threaded)
-```
-
 The Backburner worker also exists as a rake task:
 
 ```ruby
@@ -215,6 +209,35 @@ bundle exec backburner newsletter-sender,push-message -d -P /var/run/backburner.
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
+
+### Processing Strategies
+
+In Backburner, there are actually multiple different strategies for processing jobs
+which are reflected by multiple workers.
+Custom workers can be [defined fairly easily](https://github.com/nesquena/backburner/wiki/Defining-Workers).
+By default, Backburner comes with the following workers built-in:
+
+| Worker | Description                                                                 |
+| ------- | -------------------------------                                            |
+| `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
+
+You can select the default worker for processing with:
+
+```ruby
+Backburner.configure do |config|
+  config.default_worker = Backburner::Workers::Simple
+end
+```
+
+or determine the worker on the fly when invoking `work`:
+
+```ruby
+Backburner.work('newsletter_sender', :worker => Backburner::Workers::Threaded)
+```
+
+or when more official workers are supported, through alternate rake tasks.
+Additional workers such as `threaded`, `forking` and `threads_on_fork` will hopefully be
+developed in the future. If you are interested in helping, please let us know.
 
 ### Default Queues
 
