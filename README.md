@@ -47,16 +47,18 @@ because it is an in-memory, event-driven system. Powered by libevent under the h
 it requires zero setup (launch and forget, à la memcached), optional log based persistence, an easily parsed ASCII protocol,
 and a rich set of tools for job management that go well beyond a simple FIFO work queue.
 
-Beanstalk supports the following features natively, out of the box, without any questions asked:
+Beanstalkd supports the following features out of the box:
 
- * **Parallel Queues** - Supports multiple work queues created on demand.
- * **Reliable** - Beanstalk’s reserve, work, delete cycle ensures reliable processing.
- * **Scheduling** - Delay enqueuing jobs by a specified interval to schedule processing later.
- * **Fast** - Processes thousands of jobs per second; **significantly** [faster than alternatives](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend).
- * **Priorities** - Specify priority so important jobs can be processed quickly.
- * **Persistence** - Jobs are stored in memory for speed, but logged to disk for safe keeping.
- * **Federation** - Horizontal scalability provided through federation by the client.
- * **Error Handling** - Bury any job which causes an error for later debugging and inspection.
+| Feature | Description                     |
+| ------- | ------------------------------- |
+| **Parallelized**    | Supports multiple work queues created on demand. |
+| **Reliable**        | Beanstalk’s reserve, work, delete cycle ensures reliable processing. |
+| **Scheduling**      | Delay enqueuing jobs by a specified interval to schedule processing later |
+| **Fast**            | Processes thousands of jobs per second without breaking a sweat. |
+| **Priorities**      | Specify priority so important jobs can be processed quickly. |
+| **Persistence**     | Jobs are stored in memory for speed, but logged to disk for safe keeping. |
+| **Federation**      | Horizontal scalability provided through federation by the client. |
+| **Error Handling**  | Bury any job which causes an error for later debugging and inspection.|
 
 Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
 In the end, **beanstalk is the ideal job queue** while also being ridiculously easy to install and setup.
@@ -100,13 +102,15 @@ end
 
 The key options available are:
 
- * The `beanstalk_url` supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.
- * The `tube_namespace` is the prefix used for all tubes related to this backburner queue.
- * The `on_error` is a callback that gets invoked with the error whenever any job in the system fails.
- * The `default_worker` is the processing worker that will be used if no other worker is specified.
- * The `max_job_retries` determines how many times to retry a job before burying
- * The `retry_delay` determines the base time to wait (in secs) between retries
- * The `logger` is the logger object written to when backburner wants to report info or errors.
+| Option  | Description                                                              		  |
+| ------- | -------------------------------                                           	  |
+| `beanstalk_url`  | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
+| `tube_namespace` | Prefix used for all tubes related to this backburner queue.          |
+| `on_error`       | Lambda invoked with the error whenever any job in the system fails.  |
+| `default_worker` | Worker class that will be used if no other worker is specified.      |
+| `max_job_retries`| Integer defines how many times to retry a job before burying.        |
+| `retry_delay`    | Integer defines the base time to wait (in secs) between job retries. |
+| `logger`         | Logger recorded to when backburner wants to report info or errors.   |
 
 ## Usage
 
