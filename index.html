@@ -80,26 +80,46 @@ because it is an in-memory, event-driven system. Powered by libevent under the h
 it requires zero setup (launch and forget, à la memcached), optional log based persistence, an easily parsed ASCII protocol,
 and a rich set of tools for job management that go well beyond a simple FIFO work queue.</p>
 
-<p>Beanstalk supports the following features natively, out of the box, without any questions asked:</p>
+<p>Beanstalkd supports the following features out of the box:</p>
 
-<ul>
-<li>
-<strong>Parallel Queues</strong> - Supports multiple work queues created on demand.</li>
-<li>
-<strong>Reliable</strong> - Beanstalk’s reserve, work, delete cycle ensures reliable processing.</li>
-<li>
-<strong>Scheduling</strong> - Delay enqueuing jobs by a specified interval to schedule processing later.</li>
-<li>
-<strong>Fast</strong> - Processes thousands of jobs per second; <strong>significantly</strong> <a href="http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend">faster than alternatives</a>.</li>
-<li>
-<strong>Priorities</strong> - Specify priority so important jobs can be processed quickly.</li>
-<li>
-<strong>Persistence</strong> - Jobs are stored in memory for speed, but logged to disk for safe keeping.</li>
-<li>
-<strong>Federation</strong> - Horizontal scalability provided through federation by the client.</li>
-<li>
-<strong>Error Handling</strong> - Bury any job which causes an error for later debugging and inspection.</li>
-</ul><p>Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
+<table>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><strong>Parallelized</strong></td>
+<td>Supports multiple work queues created on demand.</td>
+</tr>
+<tr>
+<td><strong>Reliable</strong></td>
+<td>Beanstalk’s reserve, work, delete cycle ensures reliable processing.</td>
+</tr>
+<tr>
+<td><strong>Scheduling</strong></td>
+<td>Delay enqueuing jobs by a specified interval to schedule processing later</td>
+</tr>
+<tr>
+<td><strong>Fast</strong></td>
+<td>Processes thousands of jobs per second without breaking a sweat.</td>
+</tr>
+<tr>
+<td><strong>Priorities</strong></td>
+<td>Specify priority so important jobs can be processed quickly.</td>
+</tr>
+<tr>
+<td><strong>Persistence</strong></td>
+<td>Jobs are stored in memory for speed, but logged to disk for safe keeping.</td>
+</tr>
+<tr>
+<td><strong>Federation</strong></td>
+<td>Horizontal scalability provided through federation by the client.</td>
+</tr>
+<tr>
+<td><strong>Error Handling</strong></td>
+<td>Bury any job which causes an error for later debugging and inspection.</td>
+</tr>
+</table><p>Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
 In the end, <strong>beanstalk is the ideal job queue</strong> while also being ridiculously easy to install and setup.</p>
 
 <h2>Installation</h2>
@@ -137,20 +157,47 @@ Depending on your platform, this should be as simple as (for Ubuntu):</p>
   <span class="n">config</span><span class="o">.</span><span class="n">retry_delay</span>      <span class="o">=</span> <span class="mi">2</span> <span class="c1"># default 5 seconds</span>
   <span class="n">config</span><span class="o">.</span><span class="n">default_priority</span> <span class="o">=</span> <span class="mi">65536</span>
   <span class="n">config</span><span class="o">.</span><span class="n">respond_timeout</span>  <span class="o">=</span> <span class="mi">120</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">default_worker</span>   <span class="o">=</span> <span class="no">Backburner</span><span class="o">::</span><span class="no">Workers</span><span class="o">::</span><span class="no">Simple</span>
   <span class="n">config</span><span class="o">.</span><span class="n">logger</span>           <span class="o">=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">STDOUT</span><span class="p">)</span>
 <span class="k">end</span>
 </pre></div>
 
 <p>The key options available are:</p>
 
-<ul>
-<li>The <code>beanstalk_url</code> supports a string such as 'beanstalk://127.0.0.1' or an array of addresses.</li>
-<li>The <code>tube_namespace</code> is the prefix used for all tubes related to this backburner queue.</li>
-<li>The <code>on_error</code> is a callback that gets invoked with the error whenever any job in the system fails.</li>
-<li>The <code>max_job_retries</code> determines how many times to retry a job before burying</li>
-<li>The <code>retry_delay</code> determines the base time to wait (in secs) between retries</li>
-<li>The <code>logger</code> is the logger object written to when backburner wants to report info or errors.</li>
-</ul><h2>Usage</h2>
+<table>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>beanstalk_url</code></td>
+<td>Address such as 'beanstalk://127.0.0.1' or an array of addresses.</td>
+</tr>
+<tr>
+<td><code>tube_namespace</code></td>
+<td>Prefix used for all tubes related to this backburner queue.</td>
+</tr>
+<tr>
+<td><code>on_error</code></td>
+<td>Lambda invoked with the error whenever any job in the system fails.</td>
+</tr>
+<tr>
+<td><code>default_worker</code></td>
+<td>Worker class that will be used if no other worker is specified.</td>
+</tr>
+<tr>
+<td><code>max_job_retries</code></td>
+<td>Integer defines how many times to retry a job before burying.</td>
+</tr>
+<tr>
+<td><code>retry_delay</code></td>
+<td>Integer defines the base time to wait (in secs) between job retries.</td>
+</tr>
+<tr>
+<td><code>logger</code></td>
+<td>Logger recorded to when backburner wants to report info or errors.</td>
+</tr>
+</table><h2>Usage</h2>
 
 <p>Backburner allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and
 process them asynchronously.</p>
@@ -243,6 +290,38 @@ The queue name used by default is the normalized class name (i.e <code>{namespac
 </code></pre>
 
 <p>This will daemonize the worker and store the pid and logs automatically.</p>
+
+<h3>Processing Strategies</h3>
+
+<p>In Backburner, there are actually multiple different strategies for processing jobs
+which are reflected by multiple workers.
+Custom workers can be <a href="https://github.com/nesquena/backburner/wiki/Defining-Workers">defined fairly easily</a>.
+By default, Backburner comes with the following workers built-in:</p>
+
+<table>
+<tr>
+<th>Worker</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>Backburner::Workers::Simple</code></td>
+<td>Single threaded, no forking worker. Simplest option.</td>
+</tr>
+</table><p>You can select the default worker for processing with:</p>
+
+<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">default_worker</span> <span class="o">=</span> <span class="no">Backburner</span><span class="o">::</span><span class="no">Workers</span><span class="o">::</span><span class="no">Simple</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>or determine the worker on the fly when invoking <code>work</code>:</p>
+
+<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">work</span><span class="p">(</span><span class="s1">'newsletter_sender'</span><span class="p">,</span> <span class="ss">:worker</span> <span class="o">=&gt;</span> <span class="no">Backburner</span><span class="o">::</span><span class="no">Workers</span><span class="o">::</span><span class="no">Threaded</span><span class="p">)</span>
+</pre></div>
+
+<p>or when more official workers are supported, through alternate rake tasks.
+Additional workers such as <code>threaded</code>, <code>forking</code> and <code>threads_on_fork</code> will hopefully be
+developed in the future. If you are interested in helping, please let us know.</p>
 
 <h3>Default Queues</h3>
 
