@@ -54,6 +54,11 @@ describe "Backburner::Worker module" do
   end # connection
 
   describe "for tube_names accessor" do
+    before do
+      Backburner.default_queues << "baz"
+      Backburner.default_queues << "bam"
+    end
+
     it "supports retrieving tubes" do
       worker = Backburner::Worker.new(["foo", "bar"])
       assert_equal ["foo", "bar"], worker.tube_names
@@ -64,9 +69,9 @@ describe "Backburner::Worker module" do
       assert_equal ["foo", "bar"], worker.tube_names
     end
 
-    it "supports empty nil array arg" do
+    it "supports empty nil array arg with default values" do
       worker = Backburner::Worker.new([nil])
-      assert_equal nil, worker.tube_names
+      assert_equal ['baz', 'bam'], worker.tube_names
     end
 
     it "supports single tube arg" do
@@ -74,14 +79,14 @@ describe "Backburner::Worker module" do
       assert_equal ["foo"], worker.tube_names
     end
 
-    it "supports empty array arg" do
+    it "supports empty array arg with default values" do
       worker = Backburner::Worker.new([])
-      assert_equal nil, worker.tube_names
+      assert_equal ['baz', 'bam'], worker.tube_names
     end
 
-    it "supports nil arg" do
+    it "supports nil arg with default values" do
       worker = Backburner::Worker.new(nil)
-      assert_equal nil, worker.tube_names
+      assert_equal ['baz', 'bam'], worker.tube_names
     end
   end # tube_names
 end # Backburner::Worker

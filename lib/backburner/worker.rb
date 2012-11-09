@@ -16,7 +16,7 @@ module Backburner
       def known_queue_classes; @known_queue_classes ||= []; end
     end
 
-    # Enqueues a job to be processed later by a worker
+    # Enqueues a job to be processed later by a worker.
     # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
     #
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect.
@@ -45,7 +45,7 @@ module Backburner
       self.new(tube_names).start
     end
 
-    # Returns the worker connection
+    # Returns the worker connection.
     # @example
     #   Backburner::Worker.connection # => <Beaneater::Pool>
     def self.connection
@@ -87,8 +87,9 @@ module Backburner
       raise NotImplementedError
     end
 
-    # Processes tube_names given tube_names array
-    # Should return normalized tube_names as an array of strings
+    # Processes tube_names given tube_names array.
+    # Should return normalized tube_names as an array of strings.
+    # Loads default tubes when no tubes given.
     #
     # @example
     #   process_tube_names([['foo'], ['bar']])
@@ -97,11 +98,13 @@ module Backburner
     # @note This method can be overridden in inherited workers
     # to add more complex tube name processing.
     def process_tube_names(tube_names)
-      compact_tube_names(tube_names)
+      tubes = compact_tube_names(tube_names)
+      tubes ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
+      Array(tubes)
     end
 
-    # Reserves one job within the specified queues
-    # Pops the job off and serializes the job to JSON
+    # Reserves one job within the specified queues.
+    # Pops the job off and serializes the job to JSON.
     # Each job is performed by invoking `perform` on the job class.
     #
     # @example

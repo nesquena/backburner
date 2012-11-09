@@ -9,8 +9,6 @@ module Backburner
       #   @worker.prepare
       #
       def prepare
-        self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
-        self.tube_names = Array(self.tube_names)
         self.tube_names.map! { |name| expand_tube_name(name)  }
         log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
         self.connection.tubes.watch!(*self.tube_names)
