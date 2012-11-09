@@ -89,7 +89,6 @@ module Backburner
 
     # Processes tube_names given tube_names array.
     # Should return normalized tube_names as an array of strings.
-    # Loads default tubes when no tubes given.
     #
     # @example
     #   process_tube_names([['foo'], ['bar']])
@@ -98,9 +97,7 @@ module Backburner
     # @note This method can be overridden in inherited workers
     # to add more complex tube name processing.
     def process_tube_names(tube_names)
-      tubes = compact_tube_names(tube_names)
-      tubes ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
-      Array(tubes)
+      compact_tube_names(tube_names)
     end
 
     # Reserves one job within the specified queues.
@@ -161,11 +158,13 @@ module Backburner
 
     # Normalizes tube names given array of tube_names
     # Compacts nil items, flattens arrays, sets tubes to nil if no valid names
+    # Loads default tubes when no tubes given.
     def compact_tube_names(tube_names)
       tube_names = tube_names.first if tube_names && tube_names.size == 1 && tube_names.first.is_a?(Array)
       tube_names = Array(tube_names).compact if tube_names && Array(tube_names).compact.size > 0
       tube_names = nil if tube_names && tube_names.compact.empty?
-      tube_names
+      tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
+      Array(tube_names)
     end
   end # Worker
 end # Backburner
