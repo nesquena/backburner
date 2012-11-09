@@ -214,6 +214,44 @@ bundle exec backburner newsletter-sender,push-message -d -P /var/run/backburner.
 
 This will daemonize the worker and store the pid and logs automatically.
 
+### Persistence
+
+Jobs are persisted to queues as JSON objects. Let's take our `User`
+example from above. We'll run the following code to create a job:
+
+``` ruby
+User.async.reset_password(@user.id)
+```
+
+The following JSON will be stored in the `{namespace}.user` queue:
+
+``` javascript
+{
+    'class': 'User',
+    'args': [nil, 'reset_password', 123]
+}
+```
+
+The first argument is the 'id' of the object in the case of an instance method being async'ed. For example:
+
+```ruby
+@device = Device.find(987)
+@user = User.find(246)
+@user.async.activate(@device.id)
+```
+
+would be stored as:
+
+``` javascript
+{
+    'class': 'User',
+    'args': [246, 'activate', 987]
+}
+```
+
+Since all jobs are persisted in JSON, your jobs must only accept arguments that can be encoded into that format.
+This is why our examples use object IDs instead of passing around objects.
+
 ### Processing Strategies
 
 In Backburner, there are actually multiple different strategies for processing jobs
@@ -271,14 +309,6 @@ Backburner.default_queues << NewsletterJob.queue
 
 The `default_queues` stores the specific list of queues that should be processed by default by a worker.
 
-### Hooks
-
-Backburner is highly extensible and can be tailored to your needs by using various hooks that
-can be triggered across the job processing lifecycle. 
-Often using hooks is much easier then trying to monkey patch the externals. 
-
-Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
-
 ### Failures
 
 When a job fails in backburner (usually because an exception was raised), the job will be released 
@@ -320,11 +350,13 @@ end
 
 Be sure to check logs whenever things do not seem to be processing.
 
-### Web Front-end
+### Hooks
 
-Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view)
-by [denniskuczynski](http://github.com/denniskuczynski) which provides an excellent overview of the tubes and
-jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.
+Backburner is highly extensible and can be tailored to your needs by using various hooks that
+can be triggered across the job processing lifecycle. 
+Often using hooks is much easier then trying to monkey patch the externals. 
+
+Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
 ### Workers in Production
 
@@ -346,6 +378,12 @@ $ QUEUES=newsletter-sender,push-message rake backburner:work
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
 which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
 [examples/god](https://github.com/nesquena/backburner/blob/master/examples/god.rb).
+
+### Web Front-end
+
+Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view)
+by [denniskuczynski](http://github.com/denniskuczynski) which provides an excellent overview of the tubes and
+jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.
 
 ## Acknowledgements
 
