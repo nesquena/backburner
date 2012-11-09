@@ -11,6 +11,7 @@ require 'backburner/hooks'
 require 'backburner/performable'
 require 'backburner/worker'
 require 'backburner/workers/simple'
+require 'backburner/workers/threads_on_fork'
 require 'backburner/queue'
 
 module Backburner
