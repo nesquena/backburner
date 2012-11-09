@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## Version 0.2.1 (Unreleased)
+## Version 0.2.5
+
+ * Add support for multiple worker processing strategies through subclassing.
 
 ## Version 0.2.0 (Nov 7th 2012)
 
