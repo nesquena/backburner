@@ -6,6 +6,35 @@ module Backburner
         attr_accessor :shutdown
         attr_accessor :threads_number
         attr_accessor :garbage_after
+        attr_accessor :is_child
+
+        def child_pids
+          return [] if is_child
+          @child_pids ||= []
+          tmp_ids = []
+          for id in @child_pids
+            next if id.to_i == Process.pid
+            begin
+              Process.kill(0, id)
+              tmp_ids << id
+            rescue Errno::ESRCH => e
+            end
+          end
+          @child_pids = tmp_ids if @child_pids != tmp_ids
+          @child_pids
+        end
+
+        def stop_forks
+          for id in child_pids||[]
+            Process.kill("SIGTERM", id)
+          end
+        end
+
+        def kill_forks
+          for id in child_pids||[]
+            Process.kill("SIGKILL", id)
+          end
+        end
       end
 
       # Custom initializer just to set @tubes_data
@@ -68,6 +97,7 @@ module Backburner
       # Any other code is an error
       def fork_and_watch(name)
         process_id = fork_tube(name)
+
         create_thread(process_id, name) do |pid, tube_name|
           _, status = wait_for_process(pid)
 
@@ -142,13 +172,36 @@ module Backburner
 
       # Wait for a specific process. Easy to test
       def wait_for_process(pid)
-        Process.wait2(pid)
+        out = Process.wait2(pid)
+        self.class.child_pids.delete(pid)
+        out
       end
 
-      def fork_it(&block)
-        fork(&block)
+      def fork_it(&blk)
+        pid = fork do
+          self.class.is_child = true
+          blk.call
+        end
+        self.class.child_pids << pid
+        pid
       end
 
+    end
+  end
+end
+
+at_exit do
+  return if Backburner::Workers::ThreadsOnFork.is_child
+  ids = Backburner::Workers::ThreadsOnFork.child_pids
+  if ids.length > 0
+    Backburner::Workers::ThreadsOnFork.shutdown = true
+    puts "[ThreadsOnFork workers] Stoping forks: #{ids.join(", ")}"
+    Backburner::Workers::ThreadsOnFork.stop_forks
+    sleep 1
+    ids = Backburner::Workers::ThreadsOnFork.child_pids
+    if ids.length > 0
+      puts "[ThreadsOnFork workers] Killing remaining forks: #{ids.join(", ")}"
+      Backburner::Workers::ThreadsOnFork.kill_forks
     end
   end
 end
