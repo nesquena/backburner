@@ -1,4 +1,5 @@
 require File.expand_path('../test_helper', __FILE__)
+require File.expand_path('../fixtures/test_jobs', __FILE__)
 
 describe "Backburner::Workers::ThreadsOnFork module" do
 
@@ -6,8 +7,15 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     Backburner.default_queues.clear
     @worker_class = Backburner::Workers::ThreadsOnFork
     @worker_class.shutdown = false
+    @worker_class.is_child = false
     @worker_class.threads_number = 1
     @worker_class.garbage_after = 1
+  end
+
+  after do
+    if @worker_class.instance_variable_get("@child_pids").length > 0
+      raise "Why is there forks alive?"
+    end
   end
 
   describe "for process_tube_names method" do
@@ -213,6 +221,83 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         assert_equal worker.instance_variable_get("@threads_number"), 40
         assert_equal worker.instance_variable_get("@garbage_after"), 50
         assert_equal Backburner.configuration.max_job_retries, 60
+      end
+
+    end
+
+    describe "cleanup on parent" do
+
+      it "child_pids should return a list of alive children pids" do
+        worker = @worker_class.new(%W(foo))
+        Kernel.expects(:fork).once.returns(12345)
+        Process.expects(:kill).with(0, 12345).once
+        Process.expects(:pid).once.returns(12346)
+        assert_equal [], @worker_class.child_pids
+        worker.fork_it {}
+        child_pids = @worker_class.child_pids
+        assert_equal [12345], child_pids
+        child_pids.clear
+      end
+
+      it "child_pids should return an empty array if is_child" do
+        Process.expects(:pid).never
+        @worker_class.is_child = true
+        @worker_class.child_pids << 12345
+        assert_equal [], @worker_class.child_pids
+      end
+
+      it "stop_forks should send a SIGTERM for every child" do
+        Process.expects(:pid).returns(12346).at_least(1)
+        Process.expects(:kill).with(0, 12345).at_least(1)
+        Process.expects(:kill).with(0, 12347).at_least(1)
+        Process.expects(:kill).with("SIGTERM", 12345)
+        Process.expects(:kill).with("SIGTERM", 12347)
+        @worker_class.child_pids << 12345
+        @worker_class.child_pids << 12347
+        assert_equal [12345, 12347], @worker_class.child_pids
+        @worker_class.stop_forks
+        @worker_class.child_pids.clear
+      end
+
+      it "kill_forks should send a SIGKILL for every child" do
+        Process.expects(:pid).returns(12346).at_least(1)
+        Process.expects(:kill).with(0, 12345).at_least(1)
+        Process.expects(:kill).with(0, 12347).at_least(1)
+        Process.expects(:kill).with("SIGKILL", 12345)
+        Process.expects(:kill).with("SIGKILL", 12347)
+        @worker_class.child_pids << 12345
+        @worker_class.child_pids << 12347
+        assert_equal [12345, 12347], @worker_class.child_pids
+        @worker_class.kill_forks
+        @worker_class.child_pids.clear
+      end
+
+      it "finish_forks should call stop_forks, kill_forks and Process.waitall" do
+        Process.expects(:pid).returns(12346).at_least(1)
+        Process.expects(:kill).with(0, 12345).at_least(1)
+        Process.expects(:kill).with(0, 12347).at_least(1)
+        Process.expects(:kill).with("SIGTERM", 12345)
+        Process.expects(:kill).with("SIGTERM", 12347)
+        Process.expects(:kill).with("SIGKILL", 12345)
+        Process.expects(:kill).with("SIGKILL", 12347)
+        Kernel.expects(:sleep).with(1)
+        Process.expects(:waitall)
+        @worker_class.child_pids << 12345
+        @worker_class.child_pids << 12347
+        assert_equal [12345, 12347], @worker_class.child_pids
+        silenced do
+          @worker_class.finish_forks
+        end
+        @worker_class.child_pids.clear
+      end
+
+      it "finish_forks should not do anything if is_child" do
+        @worker_class.expects(:stop_forks).never
+        @worker_class.is_child = true
+        @worker_class.child_pids << 12345
+        silenced do
+          @worker_class.finish_forks
+        end
       end
 
     end

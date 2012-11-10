@@ -29,7 +29,7 @@ module Backburner
         # This is the same of a normal exit
         # We are simply asking the children to exit
         def stop_forks
-          for id in child_pids||[]
+          for id in child_pids
             Process.kill("SIGTERM", id)
           end
         end
@@ -38,7 +38,7 @@ module Backburner
         # This is the same of assassinate
         # We are KILLING those folks that don't obey us
         def kill_forks
-          for id in child_pids||[]
+          for id in child_pids
             Process.kill("SIGKILL", id)
           end
         end
@@ -49,11 +49,12 @@ module Backburner
           if ids.length > 0
             puts "[ThreadsOnFork workers] Stoping forks: #{ids.join(", ")}"
             stop_forks
-            sleep 1
+            Kernel.sleep 1
             ids = child_pids
             if ids.length > 0
               puts "[ThreadsOnFork workers] Killing remaining forks: #{ids.join(", ")}"
               kill_forks
+              Process.waitall
             end
           end
         end
@@ -200,7 +201,7 @@ module Backburner
       end
 
       def fork_it(&blk)
-        pid = fork do
+        pid = Kernel.fork do
           self.class.is_child = true
           blk.call
         end
