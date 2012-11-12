@@ -30,7 +30,10 @@ module Backburner
         # We are simply asking the children to exit
         def stop_forks
           for id in child_pids
-            Process.kill("SIGTERM", id)
+            begin
+              Process.kill("SIGTERM", id)
+            rescue Errno::ESRCH
+            end
           end
         end
 
@@ -39,7 +42,10 @@ module Backburner
         # We are KILLING those folks that don't obey us
         def kill_forks
           for id in child_pids
-            Process.kill("SIGKILL", id)
+            begin
+              Process.kill("SIGKILL", id)
+            rescue Errno::ESRCH
+            end
           end
         end
 
@@ -119,16 +125,16 @@ module Backburner
       # The exit code '99' means that the fork exited because of the garbage limit
       # Any other code is an error
       def fork_and_watch(name)
-        process_id = fork_tube(name)
+        create_thread(name) do |tube_name|
+          until self.class.shutdown
+            pid = fork_tube(tube_name)
+            _, status = wait_for_process(pid)
 
-        create_thread(process_id, name) do |pid, tube_name|
-          _, status = wait_for_process(pid)
-
-          # 99 = garbaged
-          if status.exitstatus != 99
-            log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}.")
+            # 99 = garbaged
+            if status.exitstatus != 99
+              log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}.")
+            end
           end
-          fork_and_watch(tube_name) unless self.class.shutdown
         end
       end
 
@@ -146,7 +152,7 @@ module Backburner
       # If we limit the number of threads to 1 it will just run in a loop without
       # creating any extra thread.
       def fork_inner(name)
-        connection.tubes.watch!(name)
+        watch_tube(name)
 
         if @tubes_data[name]
           config.max_job_retries = @tubes_data[name][:retries] if @tubes_data[name][:retries]
@@ -181,6 +187,10 @@ module Backburner
         end
       end
 
+      def watch_tube(name)
+        connection.tubes.watch!(name)
+      end
+
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to
       # parent process
       # We will use exitcode 99 that means the fork reached the garbage number
@@ -203,10 +213,16 @@ module Backburner
       def fork_it(&blk)
         pid = Kernel.fork do
           self.class.is_child = true
+          $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
+          @connection = Connection.new(Backburner.configuration.beanstalk_url)
           blk.call
         end
         self.class.child_pids << pid
         pid
+      end
+
+      def connection
+        @connection || super
       end
 
     end

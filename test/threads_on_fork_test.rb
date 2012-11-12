@@ -10,11 +10,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     @worker_class.is_child = false
     @worker_class.threads_number = 1
     @worker_class.garbage_after = 1
+    @ignore_forks = false
   end
 
   after do
-    if @worker_class.instance_variable_get("@child_pids").length > 0
-      raise "Why is there forks alive?"
+    unless @ignore_forks
+      if @worker_class.instance_variable_get("@child_pids").length > 0
+        raise "Why is there forks alive?"
+      end
     end
   end
 
@@ -93,10 +96,9 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       silenced { worker.start(false) }
     end
 
-    it "fork_and_watch should make a fork and create a thread to watch" do
+    it "fork_and_watch should create a thread to fork and watch" do
       worker = @worker_class.new(%(foo))
-      worker.expects(:fork_tube).with("demo.test.foo").once.returns(1234)
-      worker.expects(:create_thread).once.with(1234, "demo.test.foo")
+      worker.expects(:create_thread).once.with("demo.test.foo")
       silenced { worker.start(false) }
     end
 
@@ -104,11 +106,16 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       process_exit = stub('process_exit')
       process_exit.expects(:exitstatus).returns(99)
       worker = @worker_class.new(%(foo))
-      worker.expects(:fork_it).returns(12)
       worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
-      @worker_class.shutdown = true
+
+      wc = @worker_class
       # TODO: Is there a best way do do this?
+      worker.define_singleton_method :fork_it do
+        wc.shutdown = true
+        12
+      end
       def worker.create_thread(*args, &block); block.call(*args) end
+
       out = silenced(2) { worker.start(false) }
       refute_match /Catastrophic failure/, out
     end
@@ -117,10 +124,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       process_exit = stub('process_exit')
       process_exit.expects(:exitstatus).twice.returns(0)
       worker = @worker_class.new(%(foo))
-      worker.expects(:fork_it).returns(12)
       worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
-      @worker_class.shutdown = true
+
+      wc = @worker_class
       # TODO: Is there a best way do do this?
+      worker.define_singleton_method :fork_it do
+        wc.shutdown = true
+        12
+      end
       def worker.create_thread(*args, &block); block.call(*args) end
       out = silenced(2) { worker.start(false) }
       assert_match /Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out
@@ -299,6 +310,84 @@ describe "Backburner::Workers::ThreadsOnFork module" do
           @worker_class.finish_forks
         end
       end
+
+    end
+
+    describe "pratical tests" do
+
+      before do
+        $worker_test_count = 0
+        $worker_success = false
+        $worker_raise   = false
+        clear_jobs!('response')
+        clear_jobs!('foo.bar')
+        @worker_class.threads_number = 1
+        @worker_class.garbage_after  = 10
+        silenced do
+          @worker = @worker_class.new('foo.bar')
+          @worker.start(false)
+          @response_worker = @worker_class.new('response')
+          @response_worker.watch_tube('demo.test.response')
+        end
+        @ignore_forks = true
+      end
+
+      after do
+        clear_jobs!('response')
+        clear_jobs!('foo.bar')
+        @worker_class.shutdown = true
+        silenced do
+          @worker_class.stop_forks
+          Timeout::timeout(1) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          @worker_class.kill_forks
+          Timeout::timeout(1) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+        end
+      end
+
+      it "should work an enqueued job" do
+        @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar"
+        silenced(2) do
+          @response_worker.work_one_job
+        end
+        assert_equal 3, $worker_test_count
+      end # enqueue
+
+      it "should fail quietly if there's an argument error" do
+        @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar"
+        silenced(2) do
+          @response_worker.work_one_job
+        end
+        assert_equal 0, $worker_test_count
+        assert_equal true, $worker_raise
+      end # fail, argument
+
+      it "should work for an async job" do
+        TestAsyncJobFork.async(:queue => 'foo.bar').foo(3, 5)
+        silenced(2) do
+          @response_worker.work_one_job
+        end
+        assert_equal 15, $worker_test_count
+      end # async
+
+      it "should support retrying jobs and burying" do
+        Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+        @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
+        silenced(2) do
+          2.times { @response_worker.work_one_job }
+        end
+        assert_equal 2, $worker_test_count
+        assert_equal false, $worker_success
+      end # retry, bury
+
+      it "should support retrying jobs and succeeds" do
+        Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
+        @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
+        silenced(2) do
+          3.times { @response_worker.work_one_job }
+        end
+        assert_equal 3, $worker_test_count
+        assert_equal true, $worker_success
+      end # retrying, succeeds
 
     end
 
