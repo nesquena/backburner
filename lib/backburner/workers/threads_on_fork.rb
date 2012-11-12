@@ -214,8 +214,8 @@ module Backburner
 end
 
 at_exit do
-  Backburner::Workers::ThreadsOnFork.finish_forks
-  if Backburner::Workers::ThreadsOnFork.is_child
+  unless Backburner::Workers::ThreadsOnFork.is_child
     Backburner::Workers::ThreadsOnFork.shutdown = true
   end
+  Backburner::Workers::ThreadsOnFork.finish_forks
 end
