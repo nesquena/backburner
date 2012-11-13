@@ -262,6 +262,7 @@ By default, Backburner comes with the following workers built-in:
 | Worker | Description                                                                 |
 | ------- | -------------------------------                                            |
 | `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
+| `Backburner::Workers::ThreadsOnFork` | Forking worker that utilizes threads for concurrent processing. |
 
 You can select the default worker for processing with:
 
@@ -274,12 +275,17 @@ end
 or determine the worker on the fly when invoking `work`:
 
 ```ruby
-Backburner.work('newsletter_sender', :worker => Backburner::Workers::Threaded)
+Backburner.work('newsletter_sender', :worker => Backburner::Workers::ThreadsOnFork)
 ```
 
-or when more official workers are supported, through alternate rake tasks.
-Additional workers such as `threaded`, `forking` and `threads_on_fork` will hopefully be
-developed in the future. If you are interested in helping, please let us know.
+or through related rake tasks such as:
+
+```
+$ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
+```
+
+Additional workers such as individual `threaded` and `forking` strategies will hopefully be contributed in the future.
+If you are interested in helping out, please let us know.
 
 ### Default Queues
 
