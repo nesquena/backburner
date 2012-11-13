@@ -53,7 +53,7 @@ module Backburner
           return if is_child
           ids = child_pids
           if ids.length > 0
-            puts "[ThreadsOnFork workers] Stoping forks: #{ids.join(", ")}"
+            puts "[ThreadsOnFork workers] Stopping forks: #{ids.join(", ")}"
             stop_forks
             Kernel.sleep 1
             ids = child_pids
@@ -187,6 +187,7 @@ module Backburner
         end
       end
 
+      # Shortcut for watching a tube on beanstalk connection
       def watch_tube(name)
         connection.tubes.watch!(name)
       end
@@ -210,6 +211,7 @@ module Backburner
         out
       end
 
+      # Forks the specified block and adds the process to the child process pool
       def fork_it(&blk)
         pid = Kernel.fork do
           self.class.is_child = true

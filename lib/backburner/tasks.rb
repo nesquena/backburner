@@ -3,9 +3,28 @@
 
 namespace :backburner do
   # QUEUE=foo,bar,baz rake backburner:work
-  desc "Start an backburner worker"
+  desc "Start backburner worker using default worker"
   task :work => :environment do
     queues = (ENV["QUEUE"] ? ENV["QUEUE"].split(',') : nil) rescue nil
     Backburner.work queues
   end
+
+  namespace :simple do
+    # QUEUE=foo,bar,baz rake backburner:simple:work
+    desc "Starts backburner worker using simple processing"
+    task :work => :environment do
+      queues = (ENV["QUEUE"] ? ENV["QUEUE"].split(',') : nil) rescue nil
+      Backburner.work queues, :worker => Backburner::Workers::Simple
+    end
+  end # simple
+
+  namespace :threads_on_fork do
+    # QUEUE=twitter:10:5000:5,parse_page,send_mail,verify_bithday THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
+    # twitter tube will have 10 threads, garbage after 5k executions and retry 5 times.
+    desc "Starts backburner worker using threads_on_fork processing"
+    task :work => :environment do
+      queues = (ENV["QUEUE"] ? ENV["QUEUE"].split(',') : nil) rescue nil
+      Backburner.work queues, :worker => Backburner::Workers::ThreadsOnFork
+    end
+  end # threads_on_fork
 end

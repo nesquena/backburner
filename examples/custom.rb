@@ -21,5 +21,5 @@ end
 Backburner.enqueue TestJob, 5, 3
 Backburner.enqueue TestJob, 10, 6
 
-# Work tasks
-Backburner.work("test-job")
+# Work tasks using threaded worker
+Backburner.work("test-job", :worker => Backburner::Workers::ThreadsOnFork)
