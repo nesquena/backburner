@@ -14,6 +14,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
   end
 
   after do
+    Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5; config.logger = nil }
     unless @ignore_forks
       if @worker_class.instance_variable_get("@child_pids").length > 0
         raise "Why is there forks alive?"
@@ -82,8 +83,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     it "should properly retrieve all tubes" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
-      assert_contains worker.tube_names, "demo.test.test-job"
-      assert_match /demo\.test\.test-job/, out
+      assert_contains worker.tube_names, "demo.test.test-job-fork"
+      assert_match /demo\.test\.test-job-fork/, out
     end # all read
   end # prepare
 
@@ -324,12 +325,10 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         $worker_success = false
         $worker_raise   = false
         clear_jobs!('response')
-        clear_jobs!('foo.bar')
+        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5')
         @worker_class.threads_number = 1
         @worker_class.garbage_after  = 10
         silenced do
-          @worker = @worker_class.new('foo.bar')
-          @worker.start(false)
           @response_worker = @worker_class.new('response')
           @response_worker.watch_tube('demo.test.response')
         end
@@ -338,64 +337,77 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
       after do
         @file.close
-        Backburner.configure { |config| config.logger = nil }
         clear_jobs!('response')
-        clear_jobs!('foo.bar')
+        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5')
         @worker_class.shutdown = true
         silenced do
           @worker_class.stop_forks
-          Timeout::timeout(1) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
           @worker_class.kill_forks
-          Timeout::timeout(1) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
         end
       end
 
-      it "should work an enqueued job" do
-        @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar"
-        silenced(2) do
-          true until File.read(@log_path) =~ /Finished TestJobFork/m
-          @response_worker.work_one_job
-        end
-        assert_equal 3, $worker_test_count
-      end # enqueue
+     it "should work an enqueued job" do
+       @worker = @worker_class.new('foo.bar.1')
+       @worker.start(false)
+       @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar.1"
+       silenced(2) do
+         true until File.read(@log_path) =~ /Finished TestJobFork/m
+         @response_worker.work_one_job
+       end
+       assert_equal 3, $worker_test_count
+     end # enqueue
 
-       it "should work for an async job" do
-         TestAsyncJobFork.async(:queue => 'foo.bar').foo(3, 5)
-         silenced(2) do
-           true until File.read(@log_path) =~ /Finished TestAsyncJobFork/m
-           @response_worker.work_one_job
-         end
-         assert_equal 15, $worker_test_count
-       end # async
+     it "should work for an async job" do
+       @worker = @worker_class.new('foo.bar.2')
+       @worker.start(false)
+       TestAsyncJobFork.async(:queue => 'foo.bar.2').foo(3, 5)
+       silenced(2) do
+         true until File.read(@log_path) =~ /Finished TestAsyncJobFork/m
+         @response_worker.work_one_job
+       end
+       assert_equal 15, $worker_test_count
+     end # async
 
-      # it "should fail quietly if there's an argument error" do
-      #   @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar"
-      #   silenced(2) do
-      #     @response_worker.work_one_job
-      #   end
-      #   assert_equal 0, $worker_test_count
-      #   assert_equal true, $worker_raise
-      # end # fail, argument
-      #
-      # it "should support retrying jobs and burying" do
-      #   Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
-      #   @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
-      #   silenced(2) do
-      #     2.times { @response_worker.work_one_job }
-      #   end
-      #   assert_equal 2, $worker_test_count
-      #   assert_equal false, $worker_success
-      # end # retry, bury
-      #
-      # it "should support retrying jobs and succeeds" do
-      #   Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
-      #   @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
-      #   silenced(2) do
-      #     3.times { @response_worker.work_one_job }
-      #   end
-      #   assert_equal 3, $worker_test_count
-      #   assert_equal true, $worker_success
-      # end # retrying, succeeds
+     it "should fail quietly if there's an argument error" do
+       @worker = @worker_class.new('foo.bar.3')
+       @worker.start(false)
+       @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar.3"
+       silenced(5) do
+         true until File.read(@log_path) =~ /Finished TestJobFork/m
+       end
+       assert_match(/Exception ArgumentError/, File.read(@log_path))
+       assert_equal 0, $worker_test_count
+     end # fail, argument
+
+     it "should support retrying jobs and burying" do
+       Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
+       @worker = @worker_class.new('foo.bar.4')
+       @worker.start(false)
+       @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.4'
+       silenced(2) do
+         true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
+         2.times { @response_worker.work_one_job }
+       end
+       assert_equal 2, $worker_test_count
+       assert_equal false, $worker_success
+     end # retry, bury
+
+     # TODO FIX??
+     # it "should support retrying jobs and succeeds" do
+     #   Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
+     #   @worker.start(false)
+     #   @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
+     #   sleep 5
+     #   puts  File.read(@log_path)
+     #   silenced(2) do
+     #     true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
+     #     3.times { @response_worker.work_one_job }
+     #   end
+     #   assert_equal 3, $worker_test_count
+     #   assert_equal true, $worker_success
+     # end # retrying, succeeds
 
     end # practical tests
 
