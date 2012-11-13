@@ -88,7 +88,7 @@ class MiniTest::Spec
     tube_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
     connection.tubes.watch!(tube_name)
     silenced(3) { @res = connection.tubes.reserve }
-    return @res, @res.body
+    return @res, JSON.parse(@res.body)
   end
 
   # clear_jobs!('foo')
