@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Version 0.2.6 (Unreleased)
+## Version 0.2.7 (Unreleased)
+
+## Version 0.2.6 (Nov 12 2012)
+
+ * Upgrade to beaneater 0.2.0
 
 ## Version 0.2.5 (Nov 9 2012)
 
