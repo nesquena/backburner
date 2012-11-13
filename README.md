@@ -278,12 +278,14 @@ or determine the worker on the fly when invoking `work`:
 Backburner.work('newsletter_sender', :worker => Backburner::Workers::ThreadsOnFork)
 ```
 
-or through related rake tasks such as:
+or through associated rake tasks with:
 
 ```
 $ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
 ```
 
+For more information on the threads_on_fork worker, check out the
+[Thread](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker).
 Additional workers such as individual `threaded` and `forking` strategies will hopefully be contributed in the future.
 If you are interested in helping out, please let us know.
 
@@ -397,6 +399,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
  * Kristen Tucker - Coming up with the gem name
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
+ * [Renan T. Fernandes](https://github.com/ShadowBelmolve) - Added threads_on_fork worker
 
 ## Contributing
 
