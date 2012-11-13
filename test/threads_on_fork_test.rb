@@ -348,66 +348,64 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         end
       end
 
-     it "should work an enqueued job" do
-       @worker = @worker_class.new('foo.bar.1')
-       @worker.start(false)
-       @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar.1"
-       silenced(2) do
-         true until File.read(@log_path) =~ /Finished TestJobFork/m
-         @response_worker.work_one_job
-       end
-       assert_equal 3, $worker_test_count
-     end # enqueue
+      it "should work an enqueued job" do
+        @worker = @worker_class.new('foo.bar.1')
+        @worker.start(false)
+        @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar.1"
+        silenced(2) do
+          true until File.read(@log_path) =~ /Completed TestJobFork/m
+          @response_worker.work_one_job
+        end
+        assert_equal 3, $worker_test_count
+      end # enqueue
 
-     it "should work for an async job" do
-       @worker = @worker_class.new('foo.bar.2')
-       @worker.start(false)
-       TestAsyncJobFork.async(:queue => 'foo.bar.2').foo(3, 5)
-       silenced(2) do
-         true until File.read(@log_path) =~ /Finished TestAsyncJobFork/m
-         @response_worker.work_one_job
-       end
-       assert_equal 15, $worker_test_count
-     end # async
+      it "should work for an async job" do
+        @worker = @worker_class.new('foo.bar.2')
+        @worker.start(false)
+        TestAsyncJobFork.async(:queue => 'foo.bar.2').foo(3, 5)
+        silenced(2) do
+          true until File.read(@log_path) =~ /Completed TestAsyncJobFork/m
+          @response_worker.work_one_job
+        end
+        assert_equal 15, $worker_test_count
+      end # async
 
-     it "should fail quietly if there's an argument error" do
-       @worker = @worker_class.new('foo.bar.3')
-       @worker.start(false)
-       @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar.3"
-       silenced(5) do
-         true until File.read(@log_path) =~ /Finished TestJobFork/m
-       end
-       assert_match(/Exception ArgumentError/, File.read(@log_path))
-       assert_equal 0, $worker_test_count
-     end # fail, argument
+      it "should fail quietly if there's an argument error" do
+        @worker = @worker_class.new('foo.bar.3')
+        @worker.start(false)
+        @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar.3"
+        silenced(5) do
+          true until File.read(@log_path) =~ /Finished TestJobFork/m
+        end
+        assert_match(/Exception ArgumentError/, File.read(@log_path))
+        assert_equal 0, $worker_test_count
+      end # fail, argument
 
-     it "should support retrying jobs and burying" do
-       Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
-       @worker = @worker_class.new('foo.bar.4')
-       @worker.start(false)
-       @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.4'
-       silenced(2) do
-         true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
-         2.times { @response_worker.work_one_job }
-       end
-       assert_equal 2, $worker_test_count
-       assert_equal false, $worker_success
-     end # retry, bury
+      it "should support retrying jobs and burying" do
+        Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+        @worker = @worker_class.new('foo.bar.4')
+        @worker.start(false)
+        @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.4'
+        silenced(2) do
+          true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
+          2.times { @response_worker.work_one_job }
+        end
+        assert_equal 2, $worker_test_count
+        assert_equal false, $worker_success
+      end # retry, bury
 
-     # TODO FIX??
-     # it "should support retrying jobs and succeeds" do
-     #   Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
-     #   @worker.start(false)
-     #   @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar'
-     #   sleep 5
-     #   puts  File.read(@log_path)
-     #   silenced(2) do
-     #     true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
-     #     3.times { @response_worker.work_one_job }
-     #   end
-     #   assert_equal 3, $worker_test_count
-     #   assert_equal true, $worker_success
-     # end # retrying, succeeds
+      it "should support retrying jobs and succeeds" do
+        Backburner.configure { |config| config.max_job_retries = 2; config.retry_delay = 0 }
+        @worker = @worker_class.new('foo.bar.5')
+        @worker.start(false)
+        @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.5'
+        silenced(2) do
+          true until File.read(@log_path) =~ /Completed TestRetryJobFork/m
+          3.times { @response_worker.work_one_job }
+        end
+        assert_equal 3, $worker_test_count
+        assert_equal true, $worker_success
+      end # retrying, succeeds
 
     end # practical tests
 

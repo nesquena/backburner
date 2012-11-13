@@ -3,9 +3,9 @@ class ResponseJob
   queue_priority 1000
   def self.perform(data)
     $worker_test_count += data['worker_test_count'].to_i if data['worker_test_count']
-    $worker_success = true if data['worker_success']
+    $worker_success = data['worker_success'] if data['worker_success']
     $worker_test_count = data['worker_test_count_set'].to_i if data['worker_test_count_set']
-    $worker_raise = true if data['worker_raise']
+    $worker_raise = data['worker_raise'] if data['worker_raise']
   end
 end
 
@@ -32,14 +32,19 @@ class TestRetryJobFork
   include Backburner::Queue
   def self.perform(x, y)
     $worker_test_count += 1
-    Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
-        :worker_test_count => 1
-    }], :queue => 'response'
 
-    raise RuntimeError unless $worker_test_count > 2
-    Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
-        :worker_success => true
-    }], :queue => 'response'
+    if $worker_test_count <= 2
+      Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
+          :worker_test_count => 1
+      }], :queue => 'response'
+
+      raise RuntimeError
+    else # succeeds
+      Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
+          :worker_test_count => 1,
+          :worker_success => true
+      }], :queue => 'response'
+    end
   end
 end
 
