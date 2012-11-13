@@ -285,7 +285,7 @@ $ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:t
 ```
 
 For more information on the threads_on_fork worker, check out the
-[Thread](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker).
+[ThreadsOnFork Worker](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker) documentation.
 Additional workers such as individual `threaded` and `forking` strategies will hopefully be contributed in the future.
 If you are interested in helping out, please let us know.
 
