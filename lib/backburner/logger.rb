@@ -14,10 +14,12 @@ module Backburner
     end
 
     # Print out when a job completed
+    # If message is nil, job is considered complete
     def log_job_end(name, message = nil)
       ellapsed = Time.now - job_started_at
       ms = (ellapsed.to_f * 1000).to_i
-      log_info("Finished #{name} in #{ms}ms #{message}")
+      action_word = message ? 'Finished' : 'Completed'
+      log_info("#{action_word} #{name} in #{ms}ms #{message}")
     end
 
     # Returns true if the job logging started

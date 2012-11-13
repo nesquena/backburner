@@ -149,7 +149,7 @@ describe "Backburner::Workers::Basic module" do
       end
       assert_match /attempt 1 of 3, retrying/, out.first
       assert_match /attempt 2 of 3, retrying/, out[1]
-      assert_match /Finished TestRetryJob/m, out.last
+      assert_match /Completed TestRetryJob/m, out.last
       refute_match(/failed/, out.last)
       assert_equal 3, $worker_test_count
       assert_equal true, $worker_success
@@ -223,7 +223,7 @@ describe "Backburner::Workers::Basic module" do
         worker.work_one_job
       end
       assert_match /!!before_perform_foo!! \[nil, "foo", 10\]/, out
-      assert_match /before_perform_foo.*Finished/m, out
+      assert_match /before_perform_foo.*Completed/m, out
       refute_match(/Fail ran!!/, out)
       refute_match(/HookFailError/, out)
     end # stopping perform
