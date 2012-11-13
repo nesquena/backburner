@@ -24,6 +24,10 @@ namespace :backburner do
     desc "Starts backburner worker using threads_on_fork processing"
     task :work => :environment do
       queues = (ENV["QUEUE"] ? ENV["QUEUE"].split(',') : nil) rescue nil
+      threads = ENV['THREADS'].to_i
+      garbage = ENV['GARBAGE'].to_i
+      Backburner::Workers::ThreadsOnFork.threads_number = threads if threads > 0
+      Backburner::Workers::ThreadsOnFork.garbage_after  = garbage if garbage > 0
       Backburner.work queues, :worker => Backburner::Workers::ThreadsOnFork
     end
   end # threads_on_fork
