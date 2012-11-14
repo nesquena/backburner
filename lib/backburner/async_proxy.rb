@@ -11,7 +11,7 @@ module Backburner
     # Options include `pri` (priority), `delay` (delay in secs), `ttr` (time to respond)
     #
     # @example
-    #   AsyncProxy(User, 10, :pri => 1000, :ttr => 1000)
+    #   AsyncProxy.new(User, 10, :pri => 1000, :ttr => 1000)
     #
     def initialize(klazz, id=nil, opts={})
       @klazz, @id, @opts = klazz, id, opts
