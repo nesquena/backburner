@@ -1,6 +1,6 @@
-require File.expand_path('../test_helper', __FILE__)
-require File.expand_path('../fixtures/test_jobs', __FILE__)
-require File.expand_path('../fixtures/hooked', __FILE__)
+require File.expand_path('../../test_helper', __FILE__)
+require File.expand_path('../../fixtures/test_jobs', __FILE__)
+require File.expand_path('../../fixtures/hooked', __FILE__)
 
 describe "Backburner::Workers::Basic module" do
   before do

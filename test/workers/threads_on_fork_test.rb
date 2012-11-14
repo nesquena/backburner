@@ -1,5 +1,5 @@
-require File.expand_path('../test_helper', __FILE__)
-require File.expand_path('../fixtures/test_fork_jobs', __FILE__)
+require File.expand_path('../../test_helper', __FILE__)
+require File.expand_path('../../fixtures/test_fork_jobs', __FILE__)
 
 describe "Backburner::Workers::ThreadsOnFork module" do
 
