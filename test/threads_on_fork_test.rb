@@ -317,10 +317,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     describe "practical tests" do
 
       before do
-        @file = Tempfile.new('foo', '/tmp')
-        @log_path = @file.path
-        @logger = Logger.new(@log_path)
-        Backburner.configure { |config| config.logger = @logger }
+        @templogger = Templogger.new('/tmp')
+        Backburner.configure { |config| config.logger = @templogger.logger }
         $worker_test_count = 0
         $worker_success = false
         $worker_raise   = false
@@ -336,7 +334,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       end
 
       after do
-        @file.close
+        @templogger.close
         clear_jobs!('response')
         clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5')
         @worker_class.shutdown = true
@@ -353,7 +351,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar.1"
         silenced(2) do
-          true until File.read(@log_path) =~ /Completed TestJobFork/m
+          @templogger.wait_for_match(/Completed TestJobFork/m)
           @response_worker.work_one_job
         end
         assert_equal 3, $worker_test_count
@@ -364,7 +362,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         TestAsyncJobFork.async(:queue => 'foo.bar.2').foo(3, 5)
         silenced(2) do
-          true until File.read(@log_path) =~ /Completed TestAsyncJobFork/m
+          @templogger.wait_for_match(/Completed TestAsyncJobFork/m)
           @response_worker.work_one_job
         end
         assert_equal 15, $worker_test_count
@@ -375,9 +373,9 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar.3"
         silenced(5) do
-          sleep 0.1 until File.read(@log_path) =~ /Finished TestJobFork/m
+          @templogger.wait_for_match(/Finished TestJobFork.*attempt 1 of 1/m)
         end
-        assert_match(/Exception ArgumentError/, File.read(@log_path))
+        assert_match(/Exception ArgumentError/, @templogger.body)
         assert_equal 0, $worker_test_count
       end # fail, argument
 
@@ -387,7 +385,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.4'
         silenced(2) do
-          sleep 0.1 until File.read(@log_path) =~ /Finished TestRetryJobFork/m
+          @templogger.wait_for_match(/Finished TestRetryJobFork.*attempt 2 of 2/m)
           2.times { @response_worker.work_one_job }
         end
         assert_equal 2, $worker_test_count
@@ -400,7 +398,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.5'
         silenced(2) do
-          sleep 0.1 until File.read(@log_path) =~ /Completed TestRetryJobFork/m
+          @templogger.wait_for_match(/Completed TestRetryJobFork/m)
           3.times { @response_worker.work_one_job }
         end
         assert_equal 3, $worker_test_count
