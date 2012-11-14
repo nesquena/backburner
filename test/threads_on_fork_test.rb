@@ -375,7 +375,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestJobFork, ["bam", "foo", "bar"], :queue => "foo.bar.3"
         silenced(5) do
-          true until File.read(@log_path) =~ /Finished TestJobFork/m
+          sleep 0.1 until File.read(@log_path) =~ /Finished TestJobFork/m
         end
         assert_match(/Exception ArgumentError/, File.read(@log_path))
         assert_equal 0, $worker_test_count
@@ -387,7 +387,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.4'
         silenced(2) do
-          true until File.read(@log_path) =~ /Finished TestRetryJobFork/m
+          sleep 0.1 until File.read(@log_path) =~ /Finished TestRetryJobFork/m
           2.times { @response_worker.work_one_job }
         end
         assert_equal 2, $worker_test_count
@@ -400,7 +400,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.5'
         silenced(2) do
-          true until File.read(@log_path) =~ /Completed TestRetryJobFork/m
+          sleep 0.1 until File.read(@log_path) =~ /Completed TestRetryJobFork/m
           3.times { @response_worker.work_one_job }
         end
         assert_equal 3, $worker_test_count
