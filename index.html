@@ -341,6 +341,10 @@ By default, Backburner comes with the following workers built-in:</p>
 <td><code>Backburner::Workers::Simple</code></td>
 <td>Single threaded, no forking worker. Simplest option.</td>
 </tr>
+<tr>
+<td><code>Backburner::Workers::ThreadsOnFork</code></td>
+<td>Forking worker that utilizes threads for concurrent processing.</td>
+</tr>
 </table><p>You can select the default worker for processing with:</p>
 
 <div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
@@ -350,12 +354,18 @@ By default, Backburner comes with the following workers built-in:</p>
 
 <p>or determine the worker on the fly when invoking <code>work</code>:</p>
 
-<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">work</span><span class="p">(</span><span class="s1">'newsletter_sender'</span><span class="p">,</span> <span class="ss">:worker</span> <span class="o">=&gt;</span> <span class="no">Backburner</span><span class="o">::</span><span class="no">Workers</span><span class="o">::</span><span class="no">Threaded</span><span class="p">)</span>
+<div class="highlight"><pre><span class="no">Backburner</span><span class="o">.</span><span class="n">work</span><span class="p">(</span><span class="s1">'newsletter_sender'</span><span class="p">,</span> <span class="ss">:worker</span> <span class="o">=&gt;</span> <span class="no">Backburner</span><span class="o">::</span><span class="no">Workers</span><span class="o">::</span><span class="no">ThreadsOnFork</span><span class="p">)</span>
 </pre></div>
 
-<p>or when more official workers are supported, through alternate rake tasks.
-Additional workers such as <code>threaded</code>, <code>forking</code> and <code>threads_on_fork</code> will hopefully be
-developed in the future. If you are interested in helping, please let us know.</p>
+<p>or through associated rake tasks with:</p>
+
+<pre><code>$ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
+</code></pre>
+
+<p>For more information on the threads_on_fork worker, check out the
+<a href="https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker">ThreadsOnFork Worker</a> documentation.
+Additional workers such as individual <code>threaded</code> and <code>forking</code> strategies will hopefully be contributed in the future.
+If you are interested in helping out, please let us know.</p>
 
 <h3>Default Queues</h3>
 
@@ -463,6 +473,8 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
 <a href="https://github.com/timothy1ee">Tim Lee</a>, <a href="https://github.com/joshbuddy">Josh Hull</a>, <a href="https://github.com/Nico-Taing">Nico Taing</a> - Helping me work through the idea</li>
 <li>
 <a href="http://gomiso.com">Miso</a> - Open-source friendly place to work</li>
+<li>
+<a href="https://github.com/ShadowBelmolve">Renan T. Fernandes</a> - Added threads_on_fork worker</li>
 </ul><h2>Contributing</h2>
 
 <ol>
@@ -506,7 +518,17 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
       </footer>
     </div>
 
-    
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-36274806-2");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
 
   </body>
 </html>
