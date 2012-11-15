@@ -26,5 +26,6 @@ end
   Backburner.enqueue TestJob, i
 end
 
-# Work tasks using threaded worker
-Backburner.work("test-job", :worker => Backburner::Workers::ThreadsOnFork)
+# Work tasks using threads_on_fork worker
+# twitter tube will have 10 threads, garbage after 1000 executions and retry jobs 1 times.
+Backburner.work("test-job:10:100:1", :worker => Backburner::Workers::ThreadsOnFork)
