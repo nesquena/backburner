@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## Version 0.2.7 (Unreleased)
+## Version 0.3.1 (Unreleased)
+
+## Version 0.3.0 (Nov 14 2012)
+
+ * Major update with support for a 'threads_on_fork' processing strategy (Thanks @ShadowBelmolve)
+ * Different workers have different rake tasks (Thanks @ShadowBelmolve)
+ * Added processing strategy specific examples i.e stress.rb and adds new unit tests. (Thanks @ShadowBelmolve)
 
 ## Version 0.2.6 (Nov 12 2012)
 
