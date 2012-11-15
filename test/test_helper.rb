@@ -4,7 +4,7 @@ require 'minitest/autorun'
 require 'mocha'
 $:.unshift File.expand_path("../../lib")
 require 'backburner'
-require 'helpers/templogger'
+require File.expand_path('../helpers/templogger', __FILE__)
 
 # Configure Backburner
 Backburner.configure do |config|
