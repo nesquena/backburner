@@ -102,8 +102,8 @@ describe "Backburner::Workers::Forking module" do
       @worker = @worker_class.new('bar.foo.1')
       @worker_class.enqueue TestJobForking, [1, 2], :queue => "bar.foo.1"
       @worker.prepare
-      @worker.fork_one_job
       silenced(2) do
+        @worker.fork_one_job
         @templogger.wait_for_match(/Completed TestJobFork/m)
         @response_worker.prepare
         @response_worker.work_one_job
@@ -115,8 +115,8 @@ describe "Backburner::Workers::Forking module" do
       @worker = @worker_class.new('bar.foo.2')
       TestAsyncJobForking.async(:queue => 'bar.foo.2').foo(3, 5)
       @worker.prepare
-      @worker.fork_one_job
-      silenced(2) do
+      silenced(4) do
+        @worker.fork_one_job
         @templogger.wait_for_match(/Completed TestAsyncJobFork/m)
         @response_worker.prepare
         @response_worker.work_one_job
@@ -129,8 +129,8 @@ describe "Backburner::Workers::Forking module" do
       @worker = @worker_class.new('bar.foo.3')
       @worker_class.enqueue TestJobForking, ["bam", "foo", "bar"], :queue => "bar.foo.3"
       @worker.prepare
-      @worker.fork_one_job
       silenced(5) do
+        @worker.fork_one_job
         @templogger.wait_for_match(/Finished TestJobFork.*attempt 1 of 1/m)
       end
       assert_match(/Exception ArgumentError/, @templogger.body)
@@ -142,11 +142,11 @@ describe "Backburner::Workers::Forking module" do
       @worker = @worker_class.new('bar.foo.4')
       @worker_class.enqueue TestRetryJobForking, ["bam", "foo"], :queue => 'bar.foo.4'
       @worker.prepare
-      2.times do
-        $worker_test_count += 1
-        @worker.fork_one_job
-      end
-      silenced(2) do
+      silenced(4) do
+        2.times do
+          $worker_test_count += 1
+          @worker.fork_one_job
+        end
         @templogger.wait_for_match(/Finished TestRetryJobFork.*attempt 2 of 2/m)
         @response_worker.prepare
         2.times { @response_worker.work_one_job }
@@ -160,11 +160,11 @@ describe "Backburner::Workers::Forking module" do
       @worker = @worker_class.new('bar.foo.5')
       @worker_class.enqueue TestRetryJobForking, ["bam", "foo"], :queue => 'bar.foo.5'
       @worker.prepare
-      3.times do
-        $worker_test_count += 1
-        @worker.fork_one_job
-      end
-      silenced(2) do
+      silenced(4) do
+        3.times do
+          $worker_test_count += 1
+          @worker.fork_one_job
+        end
         @templogger.wait_for_match(/Completed TestRetryJobFork/m)
         @response_worker.prepare
         3.times { @response_worker.work_one_job }
