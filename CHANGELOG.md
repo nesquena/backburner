@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Version 0.3.1 (Unreleased)
+# Version 0.3.2 (Unreleased)
+
+## Version 0.3.1 (Dec 28 2012)
+
+ * Adds basic forking processing strategy and rake tasks (Thanks @danielfarrell)
 
 ## Version 0.3.0 (Nov 14 2012)
 
