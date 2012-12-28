@@ -8,6 +8,50 @@ describe "Backburner::Workers::Forking module" do
     @worker_class = Backburner::Workers::Forking
   end
 
+  describe "for prepare method" do
+    it "should watch specified tubes" do
+      worker = @worker_class.new(["foo", "bar"])
+      out = capture_stdout { worker.prepare }
+      assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_match /demo\.test\.foo/, out
+    end # multiple
+
+    it "should watch single tube" do
+      worker = @worker_class.new("foo")
+      out = capture_stdout { worker.prepare }
+      assert_equal ["demo.test.foo"], worker.tube_names
+      assert_same_elements ["demo.test.foo"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_match /demo\.test\.foo/, out
+    end # single
+
+    it "should respect default_queues settings" do
+      Backburner.default_queues.concat(["foo", "bar"])
+      worker = @worker_class.new
+      out = capture_stdout { worker.prepare }
+      assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_match /demo\.test\.foo/, out
+    end
+
+    it "should assign based on all tubes" do
+      @worker_class.any_instance.expects(:all_existing_queues).once.returns("bar")
+      worker = @worker_class.new
+      out = capture_stdout { worker.prepare }
+      assert_equal ["demo.test.bar"], worker.tube_names
+      assert_same_elements ["demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_match /demo\.test\.bar/, out
+    end # all assign
+
+    it "should properly retrieve all tubes" do
+      worker = @worker_class.new
+      out = capture_stdout { worker.prepare }
+      assert_contains worker.tube_names, "demo.test.test-job"
+      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.test-job"
+      assert_match /demo\.test\.test-job/, out
+    end # all read
+  end # prepare
+
   describe "for fork_one_job method" do
 
     it "should fork, reconnect, work job, and exit" do
