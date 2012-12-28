@@ -50,6 +50,10 @@ describe "Backburner::Workers::ThreadsOnFork module" do
   end
 
   describe "for prepare method" do
+    before do
+      Backburner.configure { |config| config.logger = false }
+    end
+
     it "should watch specified tubes" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
