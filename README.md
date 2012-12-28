@@ -254,21 +254,22 @@ This is why our examples use object IDs instead of passing around objects.
 
 ### Processing Strategies
 
-In Backburner, there are actually multiple different strategies for processing jobs
-which are reflected by multiple workers.
+In Backburner, there are several different strategies for processing jobs
+which are reflected by multiple worker subclasses.
 Custom workers can be [defined fairly easily](https://github.com/nesquena/backburner/wiki/Defining-Workers).
 By default, Backburner comes with the following workers built-in:
 
 | Worker | Description                                                                 |
 | ------- | -------------------------------                                            |
 | `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
+| `Backburner::Workers::Forking` | Basic forking worker that manages crashes and memory bloat. |
 | `Backburner::Workers::ThreadsOnFork` | Forking worker that utilizes threads for concurrent processing. |
 
 You can select the default worker for processing with:
 
 ```ruby
 Backburner.configure do |config|
-  config.default_worker = Backburner::Workers::Simple
+  config.default_worker = Backburner::Workers::Forking
 end
 ```
 
@@ -400,6 +401,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
  * [Renan T. Fernandes](https://github.com/ShadowBelmolve) - Added threads_on_fork worker
+ * [Daniel Farrell](https://github.com/danielfarrell) - Added forking worker
 
 ## Contributing
 
