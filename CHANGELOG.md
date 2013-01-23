@@ -1,6 +1,10 @@
 # CHANGELOG
 
-# Version 0.3.2 (Unreleased)
+## Version 0.3.3 (Unreleased)
+
+## Version 0.3.2 (Jan 23 2013)
+
+ * Bump version of beaneater to 0.3.0 (better socket handling)
 
 ## Version 0.3.1 (Dec 28 2012)
 
