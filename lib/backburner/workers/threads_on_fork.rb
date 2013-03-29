@@ -216,7 +216,9 @@ module Backburner
         pid = Kernel.fork do
           self.class.is_child = true
           $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
-          @connection = Connection.new(Backburner.configuration.beanstalk_url)
+          connection_klass = Backburner.configuration.connection_type
+          @connection = connection_klass.new(Backburner.configuration.beanstalk_url, 
+                                             :auth => Backburner.configuration.auth)
           blk.call
         end
         self.class.child_pids << pid

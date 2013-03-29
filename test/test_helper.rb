@@ -100,3 +100,14 @@ class MiniTest::Spec
     end
   end
 end # MiniTest::Spec
+
+def replace_method(klass, action, replacement = Proc.new(){})
+  method = klass.instance_method(action)
+  klass.send(:define_method, action, replacement)
+  begin
+    yield
+  ensure
+    klass.send(:remove_method, action)
+    klass.send(:define_method, action, method)
+  end
+end

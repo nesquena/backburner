@@ -29,7 +29,10 @@ module Backburner
       # Waits for a job, works the job, and exits
       def fork_one_job
         pid = Process.fork do
-          @connection = Connection.new(Backburner.configuration.beanstalk_url)
+          connection_klass = Backburner.configuration.connection_type
+          @connection = connection_klass.new(Backburner.configuration.beanstalk_url, 
+                                             :auth => Backburner.configuration.auth)
+          @connection
           work_one_job
           coolest_exit
         end
