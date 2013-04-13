@@ -411,7 +411,7 @@ Backburner.configure do |config|
 end
 ```
 
-That's all! Now all beanstalk workers will run through IronMQ.
+Now all beanstalk workers will run their connections through IronMQ.
 
 ## Acknowledgements
 
