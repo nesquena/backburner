@@ -10,7 +10,7 @@ If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
 Persistent queues are supported when beanstalkd persistence mode is enabled.
 
-Backburner supports multiple queues, job priorities, delays, and timeouts. In addition, 
+Backburner supports multiple queues, job priorities, delays, and timeouts. In addition,
 Backburner has robust support for retrying failed jobs, handling error cases,
 custom logging, and extensible plugin hooks.
 
@@ -91,26 +91,28 @@ Backburner.configure do |config|
   config.beanstalk_url    = ["beanstalk://127.0.0.1", "..."]
   config.tube_namespace   = "some.app.production"
   config.on_error         = lambda { |e| puts e }
-  config.max_job_retries  = 3 # default 0 retries
-  config.retry_delay      = 2 # default 5 seconds
-  config.default_priority = 65536
-  config.respond_timeout  = 120
-  config.default_worker   = Backburner::Workers::Simple
-  config.logger           = Logger.new(STDOUT)
+  # config.max_job_retries  = 3 # default 0 retries
+  # config.retry_delay      = 2 # default 5 seconds
+  # config.default_priority = 65536
+  # config.respond_timeout  = 120
+  # config.default_worker   = Backburner::Workers::Simple
+  # config.logger           = Logger.new(STDOUT)
+  # config.connection_proc  = lambda { |url, opts| Connection.new(url, opts) }
 end
 ```
 
 The key options available are:
 
-| Option  | Description                                                              		  |
-| ------- | -------------------------------                                           	  |
-| `beanstalk_url`  | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
-| `tube_namespace` | Prefix used for all tubes related to this backburner queue.          |
-| `on_error`       | Lambda invoked with the error whenever any job in the system fails.  |
-| `default_worker` | Worker class that will be used if no other worker is specified.      |
-| `max_job_retries`| Integer defines how many times to retry a job before burying.        |
-| `retry_delay`    | Integer defines the base time to wait (in secs) between job retries. |
-| `logger`         | Logger recorded to when backburner wants to report info or errors.   |
+| Option  | Description                                                                    |
+| ------- | -------------------------------                                                |
+| `beanstalk_url`   | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
+| `tube_namespace`  | Prefix used for all tubes related to this backburner queue.          |
+| `on_error`        | Lambda invoked with the error whenever any job in the system fails.  |
+| `default_worker`  | Worker class that will be used if no other worker is specified.      |
+| `max_job_retries` | Integer defines how many times to retry a job before burying.        |
+| `retry_delay`     | Integer defines the base time to wait (in secs) between job retries. |
+| `logger`          | Logger recorded to when backburner wants to report info or errors.   |
+| `connection_proc` | Lambda defining how to declare a beanstalkd connection instance  .   |
 
 ## Usage
 
@@ -320,7 +322,7 @@ The `default_queues` stores the specific list of queues that should be processed
 
 ### Failures
 
-When a job fails in backburner (usually because an exception was raised), the job will be released 
+When a job fails in backburner (usually because an exception was raised), the job will be released
 and retried again (with progressive delays in between) until the `max_job_retries` configuration is reached.
 
 ```ruby
@@ -362,8 +364,8 @@ Be sure to check logs whenever things do not seem to be processing.
 ### Hooks
 
 Backburner is highly extensible and can be tailored to your needs by using various hooks that
-can be triggered across the job processing lifecycle. 
-Often using hooks is much easier then trying to monkey patch the externals. 
+can be triggered across the job processing lifecycle.
+Often using hooks is much easier then trying to monkey patch the externals.
 
 Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
@@ -394,6 +396,23 @@ Be sure to check out the Sinatra-powered project [beanstalkd_view](https://githu
 by [denniskuczynski](http://github.com/denniskuczynski) which provides an excellent overview of the tubes and
 jobs processed by your beanstalk workers. An excellent addition to your Backburner setup.
 
+### IronMQ Support
+
+As of Backburner 0.4.0, the project now has baked in support for [IronMQ](http://www.iron.io/mq) which means that beanstalkd and backburner
+can now be used on Heroku as well. Thanks to [@kenkeiter](https://github.com/kenkeiter) for submitting the pull request for this. To enable IronMQ support,
+simply add the following configuration:
+
+```ruby
+Backburner.configure do |config|
+  config.connection_proc = lambda { |url, opts|
+    auth = { :project_id => 'some_project_id', :token => 'some_token_id' }
+    Backburner::IronMQConnection.new("beanstalk://mq-aws-us-east-1.iron.io", :auth => auth)
+  }
+end
+```
+
+That's all! Now all beanstalk workers will run through IronMQ.
+
 ## Acknowledgements
 
  * [Nathan Esquenazi](https://github.com/nesquena) - Project maintainer
@@ -402,6 +421,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
  * [Miso](http://gomiso.com) - Open-source friendly place to work
  * [Renan T. Fernandes](https://github.com/ShadowBelmolve) - Added threads_on_fork worker
  * [Daniel Farrell](https://github.com/danielfarrell) - Added forking worker
+ * [Kenneth Keiter](https://github.com/kenkeiter) - Added IronMQ Support
 
 ## Contributing
 

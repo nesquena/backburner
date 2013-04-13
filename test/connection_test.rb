@@ -49,3 +49,23 @@ describe "Backburner::Connection class" do
     end
   end # delegator
 end # Connection
+
+describe "Backburner::IronMQConnection class" do
+
+  it "should authenticate to the IronMQ server" do
+    begin
+      auth = {:project_id => 'unknown_project_id', :token => 'unknown_token'}
+      Backburner.configuration.connection_proc = lambda { |url, opts| Backburner::IronMQConnection.new("beanstalk://localhost", :auth => auth) }
+      transmitted_msgs = []
+      msg_handler = Proc.new{|outbound_str| transmitted_msgs << outbound_str }
+      replace_method(Beaneater::Pool, :transmit_to_all, msg_handler) do
+        @connection = Backburner.configuration.establish_connection
+      end
+      assert_equal transmitted_msgs[0], "put 0 0 0 38\r\n"
+      assert_equal transmitted_msgs[1], "oauth unknown_token unknown_project_id"
+    ensure # revert
+      Backburner.configuration.connection_proc = lambda { |url, opts| Backburner::Connection.new(url, opts) }
+    end
+  end
+
+end # IronMQConnection
