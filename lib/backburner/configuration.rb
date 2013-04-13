@@ -10,6 +10,8 @@ module Backburner
     attr_accessor :default_queues     # default queues
     attr_accessor :logger             # logger
     attr_accessor :default_worker     # default worker class
+    attr_accessor :connection_type    # connection type class
+    attr_accessor :auth               # authentication info
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -22,6 +24,8 @@ module Backburner
       @default_queues    = []
       @logger            = nil
       @default_worker    = Backburner::Workers::Simple
+      @connection_type   = Backburner::Connection
+      @auth              = nil
     end
   end # Configuration
 end # Backburner

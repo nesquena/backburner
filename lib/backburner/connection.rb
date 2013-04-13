@@ -8,8 +8,9 @@ module Backburner
 
     # Constructs a backburner connection
     # `url` can be a string i.e 'localhost:3001' or an array of addresses.
-    def initialize(url)
+    def initialize(url, opts = {})
       @url = url
+      @opts = opts
       connect!
     end
 
@@ -48,4 +49,25 @@ module Backburner
       "#{uri.host}:#{uri.port || 11300}"
     end
   end # Connection
+
+  class IronMQConnection < Connection
+
+    protected
+
+    def connect!
+      unless @beanstalk
+        @beanstalk = Beaneater::Pool.new(beanstalk_addresses)
+        authenticate! if @opts[:auth]
+      end
+      @beanstalk
+    end
+
+    def authenticate!
+      auth = "oauth #{@opts[:auth][:token]} #{@opts[:auth][:project_id]}"
+      @beanstalk.transmit_to_all("put 0 0 0 #{auth.length}\r\n")
+      @beanstalk.transmit_to_all(auth)
+    end
+
+  end # IronMQConnection
+
 end # Backburner
