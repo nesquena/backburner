@@ -71,9 +71,9 @@ module Backburner
     # Returns configuration options for backburner
     #
     # @example
-    #   config.max_job_retries => 3
+    #   queue_config.max_job_retries => 3
     #
-    def config
+    def queue_config
       Backburner.configuration
     end
 
@@ -84,7 +84,7 @@ module Backburner
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
     def expand_tube_name(tube)
-      prefix = config.tube_namespace
+      prefix = queue_config.tube_namespace
       queue_name = if tube.is_a?(String)
         tube
       elsif tube.respond_to?(:queue) # use queue name

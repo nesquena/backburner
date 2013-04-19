@@ -117,9 +117,9 @@ module Backburner
     rescue => e # Error occurred processing job
       self.log_error self.exception_message(e)
       num_retries = job.stats.releases
-      retry_status = "failed: attempt #{num_retries+1} of #{config.max_job_retries+1}"
-      if num_retries < config.max_job_retries # retry again
-        delay = config.retry_delay + num_retries ** 3
+      retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
+      if num_retries < queue_config.max_job_retries # retry again
+        delay = queue_config.retry_delay + num_retries ** 3
         job.release(:delay => delay)
         self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
       else # retries failed, bury
@@ -135,7 +135,7 @@ module Backburner
     # Filtered for tubes that match the known prefix
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{config.tube_namespace}/ }
+      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
       known_queues + existing_tubes
     end
 

@@ -44,11 +44,11 @@ describe "Backburner::Helpers module" do
     end
   end # exception_message
 
-  describe "for config" do
+  describe "for queue_config" do
     before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job")) }
 
     it "accesses correct value for namespace" do
-      assert_equal "test.foo.job", config.tube_namespace
+      assert_equal "test.foo.job", queue_config.tube_namespace
     end
   end # config
 

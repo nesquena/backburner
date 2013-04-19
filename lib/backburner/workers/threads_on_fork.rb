@@ -147,7 +147,7 @@ module Backburner
 
       # Here we are already on the forked child
       # We will watch just the selected tube and change the configuration of
-      # config.max_job_retries if needed
+      # queue_config.max_job_retries if needed
       #
       # If we limit the number of threads to 1 it will just run in a loop without
       # creating any extra thread.
@@ -155,7 +155,7 @@ module Backburner
         watch_tube(name)
 
         if @tubes_data[name]
-          config.max_job_retries = @tubes_data[name][:retries] if @tubes_data[name][:retries]
+          queue_config.max_job_retries = @tubes_data[name][:retries] if @tubes_data[name][:retries]
         else
           @tubes_data[name] = {}
         end
