@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Version 0.3.3 (Unreleased)
+## Version 0.3.4 (Unreleased)
+
+## Version 0.3.3 (April 19 2013)
+
+ * Fix naming conflict rename 'config' to 'queue_config'
 
 ## Version 0.3.2 (Jan 23 2013)
 
