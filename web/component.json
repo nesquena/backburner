@@ -1,0 +1,13 @@
+{
+  "name": "backburner-web",
+  "version": "0.0.1",
+  "dependencies": {
+    "jquery": "1.9.1",
+    "marionette": "v1.0.2",
+    "nvd3": "latest",
+    "bootstrap": "v2.3.1",
+    "underscore": "1.4.4",
+    "spin.js": "~1.3.0",
+    "handlebars": "1.0.0-rc.3"
+  }
+}
