@@ -162,8 +162,8 @@ Backburner.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...'
 ```
 
 `Backburner.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters
-to that object's `perform` method. The queue name used by default is the catch-all (i.e `{namespace}.backburner-jobs`)
-if not otherwise specified.
+to that object's `perform` method. The queue name used by default is `{namespace}.backburner-jobs`
+unless otherwise specified.
 
 ### Simple Async Jobs ###
 
@@ -200,7 +200,7 @@ The queue name used by default is `{namespace}.backburner-jobs` if not otherwise
 
 ### Working Jobs
 
-Backburner workers are processes that run forever handling jobs that get reserved. Starting a worker in ruby code is simple:
+Backburner workers are processes that run forever handling jobs that are reserved from the queue. Starting a worker in ruby code is simple:
 
 ```ruby
 Backburner.work
@@ -209,7 +209,7 @@ Backburner.work
 This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
-Backburner.work('newsletter_sender')
+Backburner.work('newsletter-sender')
 ```
 
 The Backburner worker also exists as a rake task:
@@ -294,7 +294,7 @@ end
 or determine the worker on the fly when invoking `work`:
 
 ```ruby
-Backburner.work('newsletter_sender', :worker => Backburner::Workers::ThreadsOnFork)
+Backburner.work('newsletter-sender', :worker => Backburner::Workers::ThreadsOnFork)
 ```
 
 or through associated rake tasks with:
