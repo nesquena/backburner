@@ -30,7 +30,7 @@ module Backburner
         if pri
           @queue_priority = pri
         else # accessor
-          @queue_priority || Backburner.configuration.default_priority
+          @queue_priority
         end
       end
     end # ClassMethods
