@@ -5,7 +5,7 @@ class AsyncUser; end
 describe "Backburner::AsyncProxy class" do
   before do
     Backburner.default_queues.clear
-    clear_jobs!(Backburner.configuration.general_queue)
+    clear_jobs!(Backburner.configuration.primary_queue)
   end
 
   describe "for method_missing enqueue" do

@@ -53,7 +53,7 @@ describe "Backburner::Helpers module" do
   end # config
 
   describe "for expand_tube_name method" do
-    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.foo.job.", :general_queue => "backburner-jobs"))  }
+    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.foo.job.", :primary_queue => "backburner-jobs"))  }
 
     it "supports base strings" do
       assert_equal "test.foo.job.email/send-news", expand_tube_name("email/send_news")
