@@ -46,8 +46,8 @@ describe "Backburner::Workers::Forking module" do
     it "should properly retrieve all tubes" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
-      assert_contains worker.tube_names, "demo.test.test-job"
-      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.test-job"
+      assert_contains worker.tube_names, "demo.test.backburner-jobs"
+      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
       assert_match /demo\.test\.test-job/, out
     end # all read
   end # prepare

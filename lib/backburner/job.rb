@@ -22,6 +22,7 @@ module Backburner
       @task = task
       @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
       @name, @args = body["class"], body["args"]
+      @hooks = Backburner::Hooks
     rescue => ex # Job was not valid format
       self.bury
       raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
@@ -41,17 +42,17 @@ module Backburner
     #
     def process
       # Invoke before hook and stop if false
-      res = job_class.invoke_hook_events(:before_perform, *args)
+      res = @hooks.invoke_hook_events(job_class, :before_perform, *args)
       return false unless res
       # Execute the job
-      job_class.around_hook_events(:around_perform, *args) do
+      @hooks.around_hook_events(job_class, :around_perform, *args) do
         timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook
-      job_class.invoke_hook_events(:after_perform, *args)
+      @hooks.invoke_hook_events(job_class, :after_perform, *args)
     rescue => e
-      job_class.invoke_hook_events(:on_failure, e, *args)
+      @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
       raise e
     end
 

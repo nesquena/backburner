@@ -1,8 +1,6 @@
 module Backburner
   module Queue
     def self.included(base)
-      base.send(:extend, Backburner::Helpers)
-      base.send(:extend, Backburner::Hooks)
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base
     end
@@ -18,7 +16,7 @@ module Backburner
         if name
           @queue_name = name
         else # accessor
-          @queue_name || dasherize(self.name)
+          @queue_name || "backburner-jobs"
         end
       end
 

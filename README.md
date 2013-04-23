@@ -10,7 +10,7 @@ If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
 Persistent queues are supported when beanstalkd persistence mode is enabled.
 
-Backburner supports multiple queues, job priorities, delays, and timeouts. In addition, 
+Backburner supports multiple queues, job priorities, delays, and timeouts. In addition,
 Backburner has robust support for retrying failed jobs, handling error cases,
 custom logging, and extensible plugin hooks.
 
@@ -89,7 +89,7 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 ```ruby
 Backburner.configure do |config|
   config.beanstalk_url    = ["beanstalk://127.0.0.1", "..."]
-  config.tube_namespace   = "some-app-production"
+  config.tube_namespace   = "some.app.production"
   config.on_error         = lambda { |e| puts e }
   config.max_job_retries  = 3 # default 0 retries
   config.retry_delay      = 2 # default 5 seconds
@@ -102,8 +102,8 @@ end
 
 The key options available are:
 
-| Option  | Description                                                              		  |
-| ------- | -------------------------------                                           	  |
+| Option  | Description                                                                   |
+| ------- | -------------------------------                                               |
 | `beanstalk_url`  | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
 | `tube_namespace` | Prefix used for all tubes related to this backburner queue.          |
 | `on_error`       | Lambda invoked with the error whenever any job in the system fails.  |
@@ -126,8 +126,27 @@ Here's an example:
 
 ```ruby
 class NewsletterJob
+  def self.perform(email, body)
+    NewsletterMailer.deliver_text_to_email(email, body)
+  end
+
+  # defaults to 'backburner-jobs' tube
+  def self.queue
+    "newsletter"
+  end
+
+  def self.queue_priority
+    1000 # most urgent priority is 0
+  end
+end
+```
+
+You can include the optional `Backburner::Queue` module so you can more easily specify a `queue` name for this job:
+
+```ruby
+class NewsletterJob
   include Backburner::Queue
-  queue "newsletter"  # defaults to 'newsletter-job'
+  queue "newsletter"  # defaults to 'backburner-jobs' tube
   queue_priority 1000 # most urgent priority is 0
 
   def self.perform(email, body)
@@ -136,7 +155,6 @@ class NewsletterJob
 end
 ```
 
-Notice that you can include the optional `Backburner::Queue` module so you can specify a `queue` name for this job.
 Jobs can be enqueued with:
 
 ```ruby
@@ -144,7 +162,7 @@ Backburner.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...'
 ```
 
 `Backburner.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters
-to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`)
+to that object's `perform` method. The queue name used by default is the catch-all (i.e `{namespace}.backburner-jobs`)
 if not otherwise specified.
 
 ### Simple Async Jobs ###
@@ -178,7 +196,7 @@ User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 This will automatically enqueue a job for that user record that will run `activate` with the specified argument.
 Note that you can set the queue name and queue priority at the class level and
 you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
-The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
+The queue name used by default is `{namespace}.backburner-jobs` if not otherwise specified.
 
 ### Working Jobs
 
@@ -203,13 +221,13 @@ require 'backburner/tasks'
 so you can run:
 
 ```
-$ QUEUES=newsletter-sender,push-message rake backburner:work
+$ QUEUES=newsletter-sender,backburner-jobs rake backburner:work
 ```
 
 You can also run the backburner binary for a convenient worker:
 
 ```
-bundle exec backburner newsletter-sender,push-message -d -P /var/run/backburner.pid -l /var/log/backburner.log
+bundle exec backburner newsletter-sender,backburner-jobs -d -P /var/run/backburner.pid -l /var/log/backburner.log
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
@@ -223,7 +241,7 @@ example from above. We'll run the following code to create a job:
 User.async.reset_password(@user.id)
 ```
 
-The following JSON will be stored in the `{namespace}.user` queue:
+The following JSON will be put on the `{namespace}.backburner-jobs` queue:
 
 ``` javascript
 {
@@ -295,7 +313,7 @@ If you are interested in helping out, please let us know.
 Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
 process **all** queues instead, then you can leave the queue list blank.
 
-When you execute a worker without queues specified, any queue for a known job queue class with `include Backburner::Queue` will be processed.
+When you execute a worker without the queues specified, queues for known job queue class with `include Backburner::Queue` will be processed.
 To access the list of known queue classes, you can use:
 
 ```ruby
@@ -320,7 +338,7 @@ The `default_queues` stores the specific list of queues that should be processed
 
 ### Failures
 
-When a job fails in backburner (usually because an exception was raised), the job will be released 
+When a job fails in backburner (usually because an exception was raised), the job will be released
 and retried again (with progressive delays in between) until the `max_job_retries` configuration is reached.
 
 ```ruby
@@ -362,8 +380,8 @@ Be sure to check logs whenever things do not seem to be processing.
 ### Hooks
 
 Backburner is highly extensible and can be tailored to your needs by using various hooks that
-can be triggered across the job processing lifecycle. 
-Often using hooks is much easier then trying to monkey patch the externals. 
+can be triggered across the job processing lifecycle.
+Often using hooks is much easier then trying to monkey patch the externals.
 
 Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
