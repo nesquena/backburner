@@ -9,7 +9,7 @@ describe "Backburner::Worker module" do
 
   describe "for enqueue class method" do
     it "should support enqueuing plain job" do
-      Backburner::Worker.enqueue TestPlainJob, [7, 9], :ttr => 100
+      Backburner::Worker.enqueue TestPlainJob, [7, 9], :ttr => 100, :pri => 2000
       job, body = pop_one_job("test-plain")
       assert_equal "TestPlainJob", body["class"]
       assert_equal [7, 9], body["args"]

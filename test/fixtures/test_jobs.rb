@@ -3,8 +3,7 @@ $worker_success = false
 
 class TestPlainJob
   def self.queue; "test-plain"; end
-  def self.queue_priority; 2000; end
-  def self.perform(x, y); $worker_test_count += x + y; end
+  def self.perform(x, y); $worker_test_count += x + y + 1; end
 end
 
 class TestJob

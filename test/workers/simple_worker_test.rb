@@ -58,6 +58,17 @@ describe "Backburner::Workers::Basic module" do
       $worker_success = false
     end
 
+    it "should work a plain enqueued job" do
+      clear_jobs!("foo.bar")
+      @worker_class.enqueue TestPlainJob, [1, 2], :queue => "foo.bar"
+      silenced(2) do
+        worker = @worker_class.new('foo.bar')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_equal 4, $worker_test_count
+    end # plain enqueue
+
     it "should work an enqueued job" do
       clear_jobs!("foo.bar")
       @worker_class.enqueue TestJob, [1, 2], :queue => "foo.bar"
