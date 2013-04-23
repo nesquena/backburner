@@ -2,6 +2,8 @@
 
 ## Version 0.3.4 (Unreleased)
 
+ * FIX #22 Adds signal handlers for worker to manage proper shutdown (Thanks @tkiley)
+
 ## Version 0.3.3 (April 19 2013)
 
  * Fix naming conflict rename 'config' to 'queue_config'
