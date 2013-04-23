@@ -11,6 +11,7 @@ end
 
 class TestJobFork
   include Backburner::Queue
+  queue "test-job-fork"
   queue_priority 1000
   def self.perform(x, y)
     Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
@@ -21,6 +22,7 @@ end
 
 class TestFailJobFork
   include Backburner::Queue
+  queue "test-fail-job-fork"
   def self.perform(x, y)
     Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
        :worker_raise => true

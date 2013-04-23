@@ -8,14 +8,23 @@ describe "Backburner::Worker module" do
   end
 
   describe "for enqueue class method" do
+    it "should support enqueuing plain job" do
+      Backburner::Worker.enqueue TestPlainJob, [7, 9], :ttr => 100
+      job, body = pop_one_job("test-plain")
+      assert_equal "TestPlainJob", body["class"]
+      assert_equal [7, 9], body["args"]
+      assert_equal 100, job.ttr
+      assert_equal 2000, job.pri
+    end # plain
+
     it "should support enqueuing job" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100
-      job, body = pop_one_job("test-job")
+      job, body = pop_one_job("backburner-jobs")
       assert_equal "TestJob", body["class"]
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
       assert_equal 1000, job.pri
-    end # simple
+    end # queue
 
     it "should support enqueuing job with custom queue" do
       Backburner::Worker.enqueue TestJob, [6, 7], :queue => "test.bar", :pri => 5000

@@ -1,6 +1,12 @@
 $worker_test_count = 0
 $worker_success = false
 
+class TestPlainJob
+  def self.queue; "test-plain"; end
+  def self.queue_priority; 2000; end
+  def self.perform(x, y); $worker_test_count += x + y; end
+end
+
 class TestJob
   include Backburner::Queue
   queue_priority 1000

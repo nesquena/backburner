@@ -2,7 +2,6 @@ require File.expand_path('../test_helper', __FILE__)
 
 module NestedDemo
   class TestJobC
-    include Backburner::Queue
     def self.perform(x); puts "Performed #{x} in #{self}"; end
   end
 

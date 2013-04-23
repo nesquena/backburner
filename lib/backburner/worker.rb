@@ -28,11 +28,11 @@ module Backburner
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
       tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
-      res = job_class.invoke_hook_events(:before_enqueue, *args)
+      res = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
       return false unless res # stop if hook is false
       data = { :class => job_class.name, :args => args }
       tube.put data.to_json, :pri => pri, :delay => delay, :ttr => ttr
-      job_class.invoke_hook_events(:after_enqueue, *args)
+      Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       return true
     end
 
@@ -171,7 +171,7 @@ module Backburner
       tube_names = Array(tube_names).compact if tube_names && Array(tube_names).compact.size > 0
       tube_names = nil if tube_names && tube_names.compact.empty?
       tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
-      Array(tube_names)
+      Array(tube_names).uniq
     end
 
     # Registers signal handlers TERM and INT to trigger
