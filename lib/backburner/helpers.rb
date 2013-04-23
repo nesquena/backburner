@@ -90,7 +90,7 @@ module Backburner
       elsif tube.respond_to?(:queue) # use queue name
         tube.queue
       elsif tube.is_a?(Class) # no queue name, use job_class
-        "backburner-jobs" # tube.name
+        queue_config.general_queue # tube.name
       else # turn into a string
         tube.to_s
       end

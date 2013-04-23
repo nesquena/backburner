@@ -84,7 +84,7 @@ class MiniTest::Spec
   end
 
   # pop_one_job(tube_name)
-  def pop_one_job(tube_name)
+  def pop_one_job(tube_name=Backburner.configuration.general_queue)
     connection = Backburner::Worker.connection
     tube_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
     connection.tubes.watch!(tube_name)

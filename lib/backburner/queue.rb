@@ -16,7 +16,7 @@ module Backburner
         if name
           @queue_name = name
         else # accessor
-          @queue_name || "backburner-jobs"
+          @queue_name || Backburner.configuration.general_queue
         end
       end
 
