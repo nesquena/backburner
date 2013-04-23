@@ -46,8 +46,8 @@ describe "Backburner::Workers::Basic module" do
     it "should properly retrieve all tubes" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
-      assert_contains worker.tube_names, "demo.test.test-job"
-      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.test-job"
+      assert_contains worker.tube_names, "demo.test.backburner-jobs"
+      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
       assert_match /demo\.test\.test-job/, out
     end # all read
   end # prepare
@@ -57,6 +57,17 @@ describe "Backburner::Workers::Basic module" do
       $worker_test_count = 0
       $worker_success = false
     end
+
+    it "should work a plain enqueued job" do
+      clear_jobs!("foo.bar")
+      @worker_class.enqueue TestPlainJob, [1, 2], :queue => "foo.bar"
+      silenced(2) do
+        worker = @worker_class.new('foo.bar')
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_equal 4, $worker_test_count
+    end # plain enqueue
 
     it "should work an enqueued job" do
       clear_jobs!("foo.bar")

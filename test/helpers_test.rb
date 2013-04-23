@@ -53,7 +53,7 @@ describe "Backburner::Helpers module" do
   end # config
 
   describe "for expand_tube_name method" do
-    before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job.")) }
+    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.foo.job.", :primary_queue => "backburner-jobs"))  }
 
     it "supports base strings" do
       assert_equal "test.foo.job.email/send-news", expand_tube_name("email/send_news")
@@ -73,7 +73,34 @@ describe "Backburner::Helpers module" do
     end # queue names
 
     it "supports class names" do
-      assert_equal "test.foo.job.runtime-error", expand_tube_name(RuntimeError)
+      assert_equal "test.foo.job.backburner-jobs", expand_tube_name(RuntimeError)
     end # class names
   end # expand_tube_name
+
+  describe "for resolve_priority method" do
+    before { Backburner.stubs(:configuration).returns(stub(:default_priority => 1000))  }
+
+    it "supports fix num priority" do
+      assert_equal 500, resolve_priority(500)
+    end
+
+    it "supports classes which respond to queue_priority" do
+      job = stub(:queue_priority => 600)
+      assert_equal 600, resolve_priority(job)
+    end
+
+    it "supports classes which returns null queue_priority" do
+      job = stub(:queue_priority => nil)
+      assert_equal 1000, resolve_priority(job)
+    end
+
+    it "supports classes which don't respond to queue_priority" do
+      job = stub(:fake => true)
+      assert_equal 1000, resolve_priority(job)
+    end
+
+    it "supports default pri for null values" do
+      assert_equal 1000, resolve_priority(nil)
+    end
+  end # resolve_priority
 end

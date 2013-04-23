@@ -89,12 +89,29 @@ module Backburner
         tube
       elsif tube.respond_to?(:queue) # use queue name
         tube.queue
-      elsif tube.is_a?(Class) # no queue name, use job_class
-        tube.name
+      elsif tube.is_a?(Class) # no queue name, use default
+        queue_config.primary_queue # tube.name
       else # turn into a string
         tube.to_s
       end
       [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.')
+    end
+
+    # Resolves job priority based on the value given. Can be integer, a class or nothing
+    #
+    # @example
+    #  resolve_priority(1000) => 1000
+    #  resolve_priority(FooBar) => <queue priority>
+    #  resolve_priority(nil) => <default priority>
+    #
+    def resolve_priority(pri)
+      if pri.is_a?(Fixnum)
+        pri
+      elsif pri.respond_to?(:queue_priority)
+        pri.queue_priority || Backburner.configuration.default_priority
+      else
+        Backburner.configuration.default_priority
+      end
     end
 
   end

@@ -15,8 +15,6 @@ end
 
 
 class HookedObjectAfterEnqueueFail
-  extend Backburner::Hooks
-
   def self.after_enqueue_abe(*args)
     puts "!!after_enqueue_foo!! #{args.inspect}"
   end
@@ -44,8 +42,6 @@ class HookedObjectBeforePerformFail
 end
 
 class HookedObjectAfterPerformFail
-  extend Backburner::Hooks
-
   def self.after_perform_abe(*args)
     puts "!!after_perform_foo!! #{args.inspect}"
   end
@@ -56,8 +52,6 @@ class HookedObjectAfterPerformFail
 end
 
 class HookedObjectJobFailure
-  extend Backburner::Hooks
-
   def self.foo(x)
     raise HookFailError, "HookedObjectJobFailure on foo!"
   end

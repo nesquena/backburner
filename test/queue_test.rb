@@ -15,7 +15,7 @@ describe "Backburner::Queue module" do
 
   describe "for queue method accessor" do
     it "should return the queue name" do
-      assert_equal "nested-demo/test-job-a", NestedDemo::TestJobA.queue
+      assert_equal Backburner.configuration.primary_queue, NestedDemo::TestJobA.queue
     end
   end # queue_name
 

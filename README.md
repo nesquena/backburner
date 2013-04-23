@@ -10,7 +10,7 @@ If you want to use beanstalk for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
 Persistent queues are supported when beanstalkd persistence mode is enabled.
 
-Backburner supports multiple queues, job priorities, delays, and timeouts. In addition, 
+Backburner supports multiple queues, job priorities, delays, and timeouts. In addition,
 Backburner has robust support for retrying failed jobs, handling error cases,
 custom logging, and extensible plugin hooks.
 
@@ -89,7 +89,7 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 ```ruby
 Backburner.configure do |config|
   config.beanstalk_url    = ["beanstalk://127.0.0.1", "..."]
-  config.tube_namespace   = "some-app-production"
+  config.tube_namespace   = "some.app.production"
   config.on_error         = lambda { |e| puts e }
   config.max_job_retries  = 3 # default 0 retries
   config.retry_delay      = 2 # default 5 seconds
@@ -97,13 +97,14 @@ Backburner.configure do |config|
   config.respond_timeout  = 120
   config.default_worker   = Backburner::Workers::Simple
   config.logger           = Logger.new(STDOUT)
+  config.primary_queue    = "backburner-jobs"
 end
 ```
 
 The key options available are:
 
-| Option  | Description                                                              		  |
-| ------- | -------------------------------                                           	  |
+| Option  | Description                                                                   |
+| ------- | -------------------------------                                               |
 | `beanstalk_url`  | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
 | `tube_namespace` | Prefix used for all tubes related to this backburner queue.          |
 | `on_error`       | Lambda invoked with the error whenever any job in the system fails.  |
@@ -111,23 +112,50 @@ The key options available are:
 | `max_job_retries`| Integer defines how many times to retry a job before burying.        |
 | `retry_delay`    | Integer defines the base time to wait (in secs) between job retries. |
 | `logger`         | Logger recorded to when backburner wants to report info or errors.   |
+| `primary_queue`  | Primary queue used for a job when an alternate queue is not given.   |
+
+## Breaking Changes
+
+Since **v0.4.0**: Jobs used to be placed into default queues based on the name of the class enqueuing i.e NewsletterJob would
+be put into a 'newsletter-job' queue. After 0.4.0, all jobs are placed into a primary queue named "my.app.namespace.backburner-jobs"
+unless otherwise specified.
 
 ## Usage
 
-Backburner allows you to create jobs and place them on a beanstalk queue, and later pull those jobs off the queue and
-process them asynchronously.
+Backburner allows you to create jobs and place them onto any number of beanstalk tubes, and later pull those jobs off the tubes and
+process them asynchronously with a worker.
 
 ### Enqueuing Jobs ###
 
-At the core, Backburner is about jobs that can be processed. Jobs are simple ruby objects with a method defined named `perform`.
+At the core, Backburner is about jobs that can be processed asynchronously. Jobs are simple ruby objects which respond to `perform`.
 
-Any object which responds to `perform` can be queued as a job. Job objects are queued as JSON to be later processed by a task runner.
-Here's an example:
+Job objects are queued as JSON onto a tube to be later processed by a worker. Here's an example:
+
+```ruby
+class NewsletterJob
+  # required
+  def self.perform(email, body)
+    NewsletterMailer.deliver_text_to_email(email, body)
+  end
+
+  # optional, defaults to 'backburner-jobs' tube
+  def self.queue
+    "newsletter-sender"
+  end
+
+  # optional, defaults to default_priority
+  def self.queue_priority
+    1000 # most urgent priority is 0
+  end
+end
+```
+
+You can include the optional `Backburner::Queue` module so you can easily specify queue settings for this job:
 
 ```ruby
 class NewsletterJob
   include Backburner::Queue
-  queue "newsletter"  # defaults to 'newsletter-job'
+  queue "newsletter-sender"  # defaults to 'backburner-jobs' tube
   queue_priority 1000 # most urgent priority is 0
 
   def self.perform(email, body)
@@ -136,7 +164,6 @@ class NewsletterJob
 end
 ```
 
-Notice that you can include the optional `Backburner::Queue` module so you can specify a `queue` name for this job.
 Jobs can be enqueued with:
 
 ```ruby
@@ -144,8 +171,8 @@ Backburner.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...'
 ```
 
 `Backburner.enqueue` accepts first a ruby object that supports `perform` and then a series of parameters
-to that object's `perform` method. The queue name used by default is the normalized class name (i.e `{namespace}.newsletter-job`)
-if not otherwise specified.
+to that object's `perform` method. The queue name used by default is `{namespace}.backburner-jobs`
+unless otherwise specified.
 
 ### Simple Async Jobs ###
 
@@ -168,21 +195,21 @@ class User
   end
 end
 
-# Async works for instance methods on a persisted model
+# Async works for instance methods on a persisted object with an `id`
 @user = User.first
 @user.async(:ttr => 100, :queue => "activate").activate(@device.id)
-# ..as well as for class methods
+# ..and for class methods
 User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 ```
 
-This will automatically enqueue a job for that user record that will run `activate` with the specified argument.
+This automatically enqueues a job for that user record that will run `activate` with the specified argument.
 Note that you can set the queue name and queue priority at the class level and
 you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
-The queue name used by default is the normalized class name (i.e `{namespace}.user`) if not otherwise specified.
+The queue name used by default is `{namespace}.backburner-jobs` if not otherwise specified.
 
 ### Working Jobs
 
-Backburner workers are processes that run forever handling jobs that get reserved. Starting a worker in ruby code is simple:
+Backburner workers are processes that run forever handling jobs that are reserved from the queue. Starting a worker in ruby code is simple:
 
 ```ruby
 Backburner.work
@@ -191,7 +218,7 @@ Backburner.work
 This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
-Backburner.work('newsletter_sender')
+Backburner.work('newsletter-sender,push-notifier')
 ```
 
 The Backburner worker also exists as a rake task:
@@ -203,13 +230,13 @@ require 'backburner/tasks'
 so you can run:
 
 ```
-$ QUEUES=newsletter-sender,push-message rake backburner:work
+$ QUEUES=newsletter-sender,push-notifier rake backburner:work
 ```
 
 You can also run the backburner binary for a convenient worker:
 
 ```
-bundle exec backburner newsletter-sender,push-message -d -P /var/run/backburner.pid -l /var/log/backburner.log
+bundle exec backburner newsletter-sender,push-notifier -d -P /var/run/backburner.pid -l /var/log/backburner.log
 ```
 
 This will daemonize the worker and store the pid and logs automatically.
@@ -223,7 +250,7 @@ example from above. We'll run the following code to create a job:
 User.async.reset_password(@user.id)
 ```
 
-The following JSON will be stored in the `{namespace}.user` queue:
+The following JSON will be put on the `{namespace}.backburner-jobs` queue:
 
 ``` javascript
 {
@@ -276,7 +303,7 @@ end
 or determine the worker on the fly when invoking `work`:
 
 ```ruby
-Backburner.work('newsletter_sender', :worker => Backburner::Workers::ThreadsOnFork)
+Backburner.work('newsletter-sender', :worker => Backburner::Workers::ThreadsOnFork)
 ```
 
 or through associated rake tasks with:
@@ -295,7 +322,7 @@ If you are interested in helping out, please let us know.
 Workers can be easily restricted to processing only a specific set of queues as shown above. However, if you want a worker to
 process **all** queues instead, then you can leave the queue list blank.
 
-When you execute a worker without queues specified, any queue for a known job queue class with `include Backburner::Queue` will be processed.
+When you execute a worker without any queues specified, queues for known job queue class with `include Backburner::Queue` will be processed.
 To access the list of known queue classes, you can use:
 
 ```ruby
@@ -310,7 +337,7 @@ queues processed when none are specified. To do this, you can use the `default_q
 Backburner.default_queues.concat(["foo", "bar"])
 ```
 
-This will ensure that the _foo_ and _bar_ queues are processed by default. You can also add job queue names:
+This will ensure that the _foo_ and _bar_ queues are processed by any default workers. You can also add job queue names with:
 
 ```ruby
 Backburner.default_queues << NewsletterJob.queue
@@ -320,7 +347,7 @@ The `default_queues` stores the specific list of queues that should be processed
 
 ### Failures
 
-When a job fails in backburner (usually because an exception was raised), the job will be released 
+When a job fails in backburner (usually because an exception was raised), the job will be released
 and retried again (with progressive delays in between) until the `max_job_retries` configuration is reached.
 
 ```ruby
@@ -362,8 +389,8 @@ Be sure to check logs whenever things do not seem to be processing.
 ### Hooks
 
 Backburner is highly extensible and can be tailored to your needs by using various hooks that
-can be triggered across the job processing lifecycle. 
-Often using hooks is much easier then trying to monkey patch the externals. 
+can be triggered across the job processing lifecycle.
+Often using hooks is much easier then trying to monkey patch the externals.
 
 Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
@@ -381,7 +408,7 @@ and then you can start the rake task with:
 
 ```bash
 $ rake backburner:work
-$ QUEUES=newsletter-sender,push-message rake backburner:work
+$ QUEUES=newsletter-sender,push-notifier rake backburner:work
 ```
 
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
