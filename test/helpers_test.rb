@@ -73,7 +73,7 @@ describe "Backburner::Helpers module" do
     end # queue names
 
     it "supports class names" do
-      assert_equal "test.foo.job.runtime-error", expand_tube_name(RuntimeError)
+      assert_equal "test.foo.job.backburner-jobs", expand_tube_name(RuntimeError)
     end # class names
   end # expand_tube_name
 end
