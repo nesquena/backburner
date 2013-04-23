@@ -5,7 +5,7 @@ require File.expand_path('../fixtures/hooked', __FILE__)
 describe "Backburner::Worker module" do
   before do
     Backburner.default_queues.clear
-    clear_jobs!("backburner-jobs")
+    clear_jobs!(Backburner.configuration.general_queue)
   end
 
   describe "for enqueue class method" do
@@ -20,7 +20,7 @@ describe "Backburner::Worker module" do
 
     it "should support enqueuing job" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100
-      job, body = pop_one_job("backburner-jobs")
+      job, body = pop_one_job
       assert_equal "TestJob", body["class"]
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
