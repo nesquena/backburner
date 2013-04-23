@@ -5,7 +5,7 @@ require File.expand_path('../fixtures/hooked', __FILE__)
 describe "Backburner::Worker module" do
   before do
     Backburner.default_queues.clear
-    clear_jobs!(Backburner.configuration.general_queue)
+    clear_jobs!(Backburner.configuration.primary_queue)
   end
 
   describe "for enqueue class method" do
