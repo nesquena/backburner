@@ -114,6 +114,12 @@ The key options available are:
 | `logger`         | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`  | Primary queue used for a job when an alternate queue is not given.   |
 
+## Breaking Changes
+
+Since **v0.4.0**: Jobs used to be placed into default queues based on the name of the class enqueuing i.e NewsletterJob would
+be put into a 'newsletter-job' queue. After 0.4.0, all jobs are placed into a primary queue named "my.app.namespace.backburner-jobs"
+unless otherwise specified.
+
 ## Usage
 
 Backburner allows you to create jobs and place them onto any number of beanstalk tubes, and later pull those jobs off the tubes and
