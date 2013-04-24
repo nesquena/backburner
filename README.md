@@ -291,8 +291,9 @@ Priorities can be customized with:
 
 ```ruby
 Backburner.configure do |config|
-  config.priority_labels  = { :custom => 50, :useful => 5 }
-  # or append to default priorities with `Backburner::Configuration::PRIORITY_LABELS.merge(:foo => 5)`
+  config.priority_labels = { :custom => 50, :useful => 5 }
+  # or append to default priorities with
+  # config.priority_labels  = Backburner::Configuration::PRIORITY_LABELS.merge(:foo => 5)
 end
 ```
 
@@ -300,10 +301,10 @@ and then these aliases can be used anywhere that a numerical value can:
 
 ```ruby
 Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
-User.async(:pri => :high, :delay => 10.seconds).reset_password(@user.id)
+User.async(:pri => :useful, :delay => 10.seconds).reset_password(@user.id)
 ```
 
-Using named priorities can make managing the importance of different jobs much easier.
+Using named priorities can greatly simplify priority management.
 
 ### Processing Strategies
 
