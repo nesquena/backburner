@@ -14,7 +14,7 @@
     });
 
     window.BACKBURNER.ConfigurationView = Backbone.Marionette.ItemView.extend({
-        template: '#configurationView'
+        template: 'resources/templates/configuration_view.hbs'
     });
 
 }());

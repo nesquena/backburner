@@ -3,9 +3,9 @@
     var BACKBURNER = {};
     window.BACKBURNER = BACKBURNER;
 
-    //Use Handlebars
-    Backbone.Marionette.TemplateCache.prototype.compileTemplate = function(rawTemplate) {
-      return Handlebars.compile(rawTemplate);
+    Backbone.Marionette.Renderer.render = function(template, data){
+      if (!JST[template]) throw "Template '" + template + "' not found!";
+      return JST[template](data);
     };
 
     BACKBURNER.App = new Backbone.Marionette.Application();

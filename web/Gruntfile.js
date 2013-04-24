@@ -9,7 +9,7 @@ module.exports = function(grunt) {
               'components/underscore/underscore.js',
               'components/backbone/backbone.js',
               'components/marionette/lib/backbone.marionette.js',
-              'components/handlebars/handlebars.js',
+              'components/handlebars/handlebars.runtime.js',
               'components/bootstrap/docs/assets/js/bootstrap.js',
               'components/spin.js/spin.js',
               'resources/js/**/*.js'],
@@ -31,14 +31,25 @@ module.exports = function(grunt) {
         src: 'dist/<%= pkg.name %>.js',
         dest: 'dist/<%= pkg.name %>.min.js'
       }
+    },
+    handlebars: {
+      compile: {
+        options: {
+          namespace: "JST"
+        },
+        files: {
+          "resources/js/compiled-templates.js": "resources/templates/**/*.hbs"
+        }
+      }
     }
   });
 
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-handlebars');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'handlebars', 'concat', 'uglify']);
 
 };

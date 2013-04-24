@@ -6203,10 +6203,9 @@ body {
 }
 
 a:link { color: #00A3C9; }
-a:active { color: #00A3C9; }
 a:visited { color: #00A3C9; }
-a:focus { color: #00A3C9; }
 a:hover { color: #00A3C9; }
+a:active { color: #00A3C9; }
 
 #footer_credit {
     padding-top: 20px;
