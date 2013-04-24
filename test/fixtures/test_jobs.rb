@@ -8,7 +8,7 @@ end
 
 class TestJob
   include Backburner::Queue
-  queue_priority 1000
+  queue_priority :medium
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 

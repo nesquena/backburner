@@ -18,13 +18,22 @@ describe "Backburner::Worker module" do
       assert_equal 2000, job.pri
     end # plain
 
-    it "should support enqueuing job" do
+    it "should support enqueuing job with class queue priority" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100
       job, body = pop_one_job
       assert_equal "TestJob", body["class"]
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
-      assert_equal 1000, job.pri
+      assert_equal 100, job.pri
+    end # queue
+
+    it "should support enqueuing job with specified named priority" do
+      Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100, :pri => 'high'
+      job, body = pop_one_job
+      assert_equal "TestJob", body["class"]
+      assert_equal [3, 4], body["args"]
+      assert_equal 100, job.ttr
+      assert_equal 0, job.pri
     end # queue
 
     it "should support enqueuing job with custom queue" do
