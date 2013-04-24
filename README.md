@@ -98,21 +98,23 @@ Backburner.configure do |config|
   config.default_worker   = Backburner::Workers::Simple
   config.logger           = Logger.new(STDOUT)
   config.primary_queue    = "backburner-jobs"
+  config.priority_labels  = { :custom => 50, :useless => 1000 }
 end
 ```
 
 The key options available are:
 
-| Option  | Description                                                                   |
-| ------- | -------------------------------                                               |
-| `beanstalk_url`  | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
-| `tube_namespace` | Prefix used for all tubes related to this backburner queue.          |
-| `on_error`       | Lambda invoked with the error whenever any job in the system fails.  |
-| `default_worker` | Worker class that will be used if no other worker is specified.      |
-| `max_job_retries`| Integer defines how many times to retry a job before burying.        |
-| `retry_delay`    | Integer defines the base time to wait (in secs) between job retries. |
-| `logger`         | Logger recorded to when backburner wants to report info or errors.   |
-| `primary_queue`  | Primary queue used for a job when an alternate queue is not given.   |
+| Option            | Description                                                          |
+| ----------------- | -------------------------------                                      |
+| `beanstalk_url`   | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
+| `tube_namespace`  | Prefix used for all tubes related to this backburner queue.          |
+| `on_error`        | Lambda invoked with the error whenever any job in the system fails.  |
+| `default_worker`  | Worker class that will be used if no other worker is specified.      |
+| `max_job_retries` | Integer defines how many times to retry a job before burying.        |
+| `retry_delay`     | Integer defines the base time to wait (in secs) between job retries. |
+| `logger`          | Logger recorded to when backburner wants to report info or errors.   |
+| `primary_queue`   | Primary queue used for a job when an alternate queue is not given.   |
+| `priority_labels` | Hash of named priority definitions for your app.                     |
 
 ## Breaking Changes
 
@@ -278,6 +280,31 @@ would be stored as:
 
 Since all jobs are persisted in JSON, your jobs must only accept arguments that can be encoded into that format.
 This is why our examples use object IDs instead of passing around objects.
+
+### Named Priorities
+
+As of v0.4.0, Backburner has support for named priorities. beanstalkd priorities are numerical but
+backburner supports a mapping between a word and a numerical value. The following priorities are
+available by default: `high` is 0, `medium` is 100, and `low` is 200.
+
+Priorities can be customized with:
+
+```ruby
+Backburner.configure do |config|
+  config.priority_labels = { :custom => 50, :useful => 5 }
+  # or append to default priorities with
+  # config.priority_labels  = Backburner::Configuration::PRIORITY_LABELS.merge(:foo => 5)
+end
+```
+
+and then these aliases can be used anywhere that a numerical value can:
+
+```ruby
+Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
+User.async(:pri => :useful, :delay => 10.seconds).reset_password(@user.id)
+```
+
+Using named priorities can greatly simplify priority management.
 
 ### Processing Strategies
 

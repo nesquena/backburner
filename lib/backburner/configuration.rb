@@ -1,5 +1,7 @@
 module Backburner
   class Configuration
+    PRIORITY_LABELS = { :high => 0, :medium => 100, :low => 200 }
+
     attr_accessor :beanstalk_url      # beanstalk url connection
     attr_accessor :tube_namespace     # namespace prefix for every queue
     attr_accessor :default_priority   # default job priority
@@ -11,6 +13,7 @@ module Backburner
     attr_accessor :logger             # logger
     attr_accessor :default_worker     # default worker class
     attr_accessor :primary_queue      # the general queue
+    attr_accessor :priority_labels    # priority labels
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -24,6 +27,7 @@ module Backburner
       @logger            = nil
       @default_worker    = Backburner::Workers::Simple
       @primary_queue     = "backburner-jobs"
+      @priority_labels   = PRIORITY_LABELS
     end
   end # Configuration
 end # Backburner

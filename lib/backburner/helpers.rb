@@ -105,14 +105,16 @@ module Backburner
     #  resolve_priority(nil) => <default priority>
     #
     def resolve_priority(pri)
-      if pri.is_a?(Fixnum)
+      if pri.respond_to?(:queue_priority)
+        resolve_priority(pri.queue_priority)
+      elsif pri.is_a?(String) || pri.is_a?(Symbol) # named priority
+        resolve_priority(Backburner.configuration.priority_labels[pri.to_sym])
+      elsif pri.is_a?(Fixnum) # numerical
         pri
-      elsif pri.respond_to?(:queue_priority)
-        pri.queue_priority || Backburner.configuration.default_priority
-      else
+      else # default
         Backburner.configuration.default_priority
       end
     end
 
-  end
-end
+  end # Helpers
+end # Backburner
