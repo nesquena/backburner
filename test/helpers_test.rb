@@ -78,15 +78,35 @@ describe "Backburner::Helpers module" do
   end # expand_tube_name
 
   describe "for resolve_priority method" do
-    before { Backburner.stubs(:configuration).returns(stub(:default_priority => 1000))  }
+    before { Backburner.configure { |config| config.default_priority = 1000 }  }
 
     it "supports fix num priority" do
       assert_equal 500, resolve_priority(500)
     end
 
+    it "supports baked in priority alias" do
+      assert_equal 200, resolve_priority(:low)
+      assert_equal 0,   resolve_priority(:high)
+    end
+
+    it "supports custom priority alias" do
+      Backburner.configure { |config| config.priority_labels = { :foo => 5 } }
+      assert_equal 5,   resolve_priority(:foo)
+    end
+
+    it "supports aliased priority alias" do
+      Backburner.configure { |config| config.priority_labels = { :foo => 5, :bar => 'foo' } }
+      assert_equal 5,   resolve_priority(:bar)
+    end
+
     it "supports classes which respond to queue_priority" do
       job = stub(:queue_priority => 600)
       assert_equal 600, resolve_priority(job)
+    end
+
+    it "supports classes which respond to queue_priority with named alias" do
+      job = stub(:queue_priority => :low)
+      assert_equal 200, resolve_priority(job)
     end
 
     it "supports classes which returns null queue_priority" do
