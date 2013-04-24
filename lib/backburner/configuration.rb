@@ -13,7 +13,7 @@ module Backburner
     attr_accessor :logger             # logger
     attr_accessor :default_worker     # default worker class
     attr_accessor :primary_queue      # the general queue
-    attr_writer   :priority_labels    # priority labels
+    attr_accessor :priority_labels    # priority labels
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -27,13 +27,7 @@ module Backburner
       @logger            = nil
       @default_worker    = Backburner::Workers::Simple
       @primary_queue     = "backburner-jobs"
-      @priority_labels   = { }
-    end
-
-    # Returns known priority_labels
-    # priority_labels => { :high => 0, :medium => 100, :low => 200 }
-    def priority_labels
-      PRIORITY_LABELS.merge(@priority_labels)
+      @priority_labels   = PRIORITY_LABELS
     end
   end # Configuration
 end # Backburner

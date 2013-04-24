@@ -79,6 +79,7 @@ describe "Backburner::Helpers module" do
 
   describe "for resolve_priority method" do
     before { Backburner.configure { |config| config.default_priority = 1000 }  }
+    after  { Backburner.configure { |config| config.priority_labels = Backburner::Configuration::PRIORITY_LABELS } }
 
     it "supports fix num priority" do
       assert_equal 500, resolve_priority(500)

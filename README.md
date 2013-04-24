@@ -287,15 +287,16 @@ As of v0.4.0, Backburner has support for named priorities. beanstalkd priorities
 backburner supports a mapping between a word and a numerical value. The following priorities are
 available by default: `high` is 0, `medium` is 100, and `low` is 200.
 
-Custom priorities can be added with:
+Priorities can be customized with:
 
 ```ruby
 Backburner.configure do |config|
   config.priority_labels  = { :custom => 50, :useful => 5 }
+  # or append to default priorities with `Backburner::Configuration::PRIORITY_LABELS.merge(:foo => 5)`
 end
 ```
 
-and then these aliases can be used anywhere the numerical value can:
+and then these aliases can be used anywhere that a numerical value can:
 
 ```ruby
 Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
