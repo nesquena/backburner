@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Version 0.3.4 (Unreleased)
+## Version 0.3.5 (Unreleased)
+
+## Version 0.3.4 (April 23 2013)
+
+ * FIX #22 Adds signal handlers for worker to manage proper shutdown (Thanks @tkiley)
 
 ## Version 0.3.3 (April 19 2013)
 
