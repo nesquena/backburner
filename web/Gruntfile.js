@@ -12,6 +12,7 @@ module.exports = function(grunt) {
               'components/handlebars/handlebars.runtime.js',
               'components/bootstrap/docs/assets/js/bootstrap.js',
               'components/spin.js/spin.js',
+              'resources/templates/compiled-templates.js',
               'resources/js/**/*.js'],
         dest: 'dist/<%= pkg.name %>.js'
       },
@@ -23,8 +24,7 @@ module.exports = function(grunt) {
       }
     },
     jshint: {
-      beforeconcat: ['resources/js/app.js',
-                     'resources/js/spinner.js']
+      beforeconcat: ['resources/js/**/*.js']
     },
     uglify: {
       build: {
@@ -38,7 +38,7 @@ module.exports = function(grunt) {
           namespace: "JST"
         },
         files: {
-          "resources/js/compiled-templates.js": "resources/templates/**/*.hbs"
+          "resources/templates/compiled-templates.js": "resources/templates/**/*.hbs"
         }
       }
     }

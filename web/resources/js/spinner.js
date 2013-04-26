@@ -1,6 +1,6 @@
-(function() {
+(function(Backburner) {
 
-    window.BACKBURNER.App.module("Spinner", function(myModule, App, Backbone, Marionette, $, _) {
+    Backburner.App.module("Spinner", function(myModule, App, Backbone, Marionette, $, _) {
         // Private Data And Functions
         var spinner = null;
         var target = null;
@@ -24,7 +24,7 @@
               top: '4px', // Top position relative to parent in px
               left: 'auto' // Left position relative to parent in px
             };
-            return new Spinner(opts).spin(target);
+            return new window.Spinner(opts).spin(target);
         };
 
 
@@ -38,12 +38,10 @@
         };
 
         myModule.stopSpinner = function() {
-            spinner.stop();
+            if (spinner !== null) {
+              spinner.stop();
+            }
         };
-
-        App.addInitializer(function(options) {
-            myModule.startSpinner();
-        });
     });
 
-}());
+}(window.Backburner));

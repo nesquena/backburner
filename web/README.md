@@ -1,6 +1,17 @@
 # Backburner Web Monitoring Interface
 
-This is a Javascript application built with Grunt.js using Bower as the Javascript dependency manager.
+This is a Backbone Marionnette application built with Grunt.js using Bower as the Javascript dependency manager.
+
+## Including the web interface in a Rails application
+
+``` ruby
+require 'backburner/web'
+
+Example::Application.routes.draw do
+
+  mount Backburner::Web, at: '/backburner'
+end
+```
 
 ## Building the JS and CSS Resources
 

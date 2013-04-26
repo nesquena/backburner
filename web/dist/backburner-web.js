@@ -17683,69 +17683,6 @@ Handlebars.template = Handlebars.VM.template;
 
 }));
 
-(function() {
-    
-    var BACKBURNER = {};
-    window.BACKBURNER = BACKBURNER;
-
-    Backbone.Marionette.Renderer.render = function(template, data){
-      if (!JST[template]) throw "Template '" + template + "' not found!";
-      return JST[template](data);
-    };
-
-    BACKBURNER.App = new Backbone.Marionette.Application();
-    BACKBURNER.App.addRegions({
-        content: "#content"
-    });
-
-    BACKBURNER.App.Router = Backbone.Marionette.AppRouter.extend({
-        appRoutes: {
-            "": "showMonitoring",
-            "configuration": "showConfiguration"
-        }
-    });
-
-    BACKBURNER.App.Controller = Marionette.Controller.extend({
-        configuration: null,
-
-        initialize: function(options) {
-            this.configuration = options.configuration;
-        },
-        showMonitoring: function() {
-            BACKBURNER.App.content.show(new window.BACKBURNER.MonitoringView());
-        },
-
-        showConfiguration: function() {
-            BACKBURNER.App.content.show(new window.BACKBURNER.ConfigurationView({model: this.configuration}));
-        }
-    });
-
-    BACKBURNER.App.bind("initialize:after", function(optionns) {
-        Backbone.history.start();
-        BACKBURNER.App.Spinner.stopSpinner();
-    });
-
-    BACKBURNER.App.addInitializer(function(options) {
-        var configuration = new window.BACKBURNER.Configuration({});
-        configuration.fetch({async: false}).
-        success(function() {
-            var controller = new BACKBURNER.App.Controller({configuration: configuration});
-            var router = new BACKBURNER.App.Router({controller: controller});
-        }).
-        error(function() {
-            console.log("Failed to retrieve configuration");
-        });
-    });
-
-    $(document).ready(function() {
-        var options = {
-
-        };
-        BACKBURNER.App.start(options);
-    });
-
-
-}());
 this["JST"] = this["JST"] || {};
 
 this["JST"]["resources/templates/configuration_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
@@ -17754,7 +17691,11 @@ helpers = helpers || Handlebars.helpers; data = data || {};
   var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression;
 
 
-  buffer += "<table class=\"table table-striped\">\n    <tr>\n        <th>Option</th>\n        <th>Value</th>\n    </tr>\n    <tr>\n        <td>beanstalk_url</td>\n        <td>";
+  buffer += "<table class=\"table table-striped\">\n    <tr>\n        <th>Option</th>\n        <th>Value</th>\n    </tr>\n    <tr>\n        <td>version</td>\n        <td>";
+  if (stack1 = helpers.version) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.version; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n    </tr>\n    <tr>\n        <td>beanstalk_url</td>\n        <td>";
   if (stack1 = helpers.beanstalk_url) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
   else { stack1 = depth0.beanstalk_url; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
   buffer += escapeExpression(stack1)
@@ -17786,20 +17727,291 @@ helpers = helpers || Handlebars.helpers; data = data || {};
   return buffer;
   });
 
-this["JST"]["resources/templates/monitoring_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
+this["JST"]["resources/templates/dashboard_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [2,'>= 1.0.0-rc.3'];
 helpers = helpers || Handlebars.helpers; data = data || {};
   
 
 
-  return "MONITORING VIEW";
+  return "<div class=\"row\">\n  <div class=\"span3\">\n    <div id=\"stats\"></div>\n    <img src=\"img/stove.png\"/>\n  </div>\n  <div id=\"queue_stats\" class=\"span9\"></div>\n</div>";
+  });
+
+this["JST"]["resources/templates/job_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [2,'>= 1.0.0-rc.3'];
+helpers = helpers || Handlebars.helpers; data = data || {};
+  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression;
+
+
+  buffer += "<td class=\"stats_value\">";
+  if (stack1 = helpers.id) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.id; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.state) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.state; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.pri) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.pri; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.age) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.age; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.time_left) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.time_left; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.delay) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.delay; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.reserves) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.reserves; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.releases) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.releases; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.buries) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.buries; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.timeouts) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.timeouts; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.ttr) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.ttr; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.kicks) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.kicks; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n<td>";
+  if (stack1 = helpers.body) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.body; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>";
+  return buffer;
+  });
+
+this["JST"]["resources/templates/jobs_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [2,'>= 1.0.0-rc.3'];
+helpers = helpers || Handlebars.helpers; data = data || {};
+  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression;
+
+
+  buffer += "<h2>";
+  if (stack1 = helpers.name) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.name; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</h2>\n<p>Most recent jobs (Maximum 100)</p>\n<table class=\"table table-striped\">\n  <thead>\n    <th>ID</th>\n    <th>State</th>\n    <th>Pri</th>\n    <th>Age</th>\n    <th>Time-Left</th>\n    <th>Delay</th>\n    <th>Reserves</th>\n    <th>Releases</th>\n    <th>Buries</th>\n    <th>Timeouts</th>\n    <th>TTR</th>\n    <th>Kicks</th>\n    <th>Body</th>\n  </thead>\n  <tbody>\n  </tbody>\n</table>";
+  return buffer;
+  });
+
+this["JST"]["resources/templates/queue_stats_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [2,'>= 1.0.0-rc.3'];
+helpers = helpers || Handlebars.helpers; data = data || {};
+  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression;
+
+
+  buffer += "<h3><a href=\"#queue/";
+  if (stack1 = helpers.name) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.name; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "\">";
+  if (stack1 = helpers.name) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.name; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</a></h3>\n<div class=\"well\">\n   <table class=\"stats_table\">\n     <tr>\n       <td class=\"stats_name\">Total Jobs</td><td class=\"stats_value\">";
+  if (stack1 = helpers.total_jobs) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.total_jobs; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n       <td>&nbsp;</td>\n       <td class=\"stats_name\">Current Urgent</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_urgent) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_urgent; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Using</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_using) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_using; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n       <td>&nbsp;</td>\n       <td class=\"stats_name\">Current Ready</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_ready) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_ready; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Waiting</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_waiting) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_waiting; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n       <td>&nbsp;</td>\n       <td class=\"stats_name\">Current Reserved</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_reserved) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_reserved; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Watching</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_watching) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_watching; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n       <td>&nbsp;</td>\n       <td class=\"stats_name\">Current Delayed</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_delayed) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_delayed; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\"></td><td class=\"stats_value\"></td>\n       <td>&nbsp;</td>\n       <td class=\"stats_name\">Current Buried</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_buried) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_buried; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n    </table>\n</div>";
+  return buffer;
+  });
+
+this["JST"]["resources/templates/stats_view.hbs"] = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [2,'>= 1.0.0-rc.3'];
+helpers = helpers || Handlebars.helpers; data = data || {};
+  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression;
+
+
+  buffer += "<div class=\"well\">\n   <table class=\"stats_table\">\n     <tr>\n       <td class=\"stats_name\">Total Jobs</td><td class=\"stats_value\">";
+  if (stack1 = helpers.total_jobs) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.total_jobs; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Urgent</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_urgent) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_urgent; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Ready</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_ready) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_ready; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Delayed</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_delayed) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_delayed; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Buried</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_jobs_buried) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_jobs_buried; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Job Timeouts</td><td class=\"stats_value\">";
+  if (stack1 = helpers.job_timeouts) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.job_timeouts; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Connections</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_connections) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_connections; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Producers</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_producers) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_producers; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Workers</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_workers) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_workers; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n     <tr>\n       <td class=\"stats_name\">Current Waiting</td><td class=\"stats_value\">";
+  if (stack1 = helpers.current_waiting) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
+  else { stack1 = depth0.current_waiting; stack1 = typeof stack1 === functionType ? stack1.apply(depth0) : stack1; }
+  buffer += escapeExpression(stack1)
+    + "</td>\n     </tr>\n</div>";
+  return buffer;
   });
 (function() {
 
-    window.BACKBURNER.Configuration = Backbone.Model.extend({
+    var Backburner = {};
+    window.Backburner = Backburner;
+
+    Backbone.Marionette.Renderer.render = function(template, data){
+      if (!JST[template]) throw "Template '" + template + "' not found!";
+      return JST[template](data);
+    };
+
+    Backburner.App = new Backbone.Marionette.Application();
+    Backburner.App.addRegions({
+        content: "#content"
+    });
+
+    Backburner.App.Router = Backbone.Marionette.AppRouter.extend({
+        appRoutes: {
+            "": "showDashboard",
+            "queue/:name": "showJobs",
+            "configuration": "showConfiguration"
+        }
+    });
+
+    Backburner.App.Controller = Marionette.Controller.extend({
+        configuration: null,
+        stats: null,
+
+        initialize: function(options) {
+            this.configuration = options.configuration;
+            this.stats = new Backburner.Stats({});
+            this.stats.queues = new Backburner.QueueStatsCollection();
+        },
+        showDashboard: function() {
+            var self = this,
+                layout = new Backburner.DashboardLayout();
+            Backburner.App.Spinner.startSpinner();
+            Backburner.App.content.show(layout);
+            this.stats.fetch({async: true}).
+            success(function() {
+                layout.stats.show(new Backburner.StatsView({model: self.stats}));
+                layout.queue_stats.show(new Backburner.QueueStatsCollectionView({collection: self.stats.queues}));
+                Backburner.App.Spinner.stopSpinner();
+
+            }).
+            error(function() {
+                console.log("Failed to retrieve stats");
+            });
+        },
+        showJobs: function(name) {
+            var queue_stats = new Backburner.QueueStats({name: name}),
+                jobs = new Backburner.JobCollection();
+            Backburner.App.Spinner.startSpinner();
+            jobs.queue_name = name;
+            jobs.fetch({async: true}).
+            success(function() {
+                Backburner.App.content.show(new Backburner.JobCollectionView({model: queue_stats, collection: jobs}));
+                Backburner.App.Spinner.stopSpinner();
+            }).
+            error(function() {
+                console.log("Failed to retrieve jobs");
+            });
+
+        },
+        showConfiguration: function() {
+            Backburner.App.content.show(new Backburner.ConfigurationView({model: this.configuration}));
+        }
+    });
+
+    Backburner.App.addInitializer(function(options) {
+        var configuration = new Backburner.Configuration({});
+        configuration.fetch({async: false}).
+        success(function() {
+            var controller = new Backburner.App.Controller({configuration: configuration}),
+                router = new Backburner.App.Router({controller: controller});
+        }).
+        error(function() {
+            console.log("Failed to retrieve configuration");
+        });
+    });
+
+    Backburner.App.bind("initialize:after", function(options) {
+        Backbone.history.start();
+    });
+
+    $(document).ready(function() {
+        var options = {};
+        Backburner.App.start(options);
+    });
+
+}());
+(function(Backburner) {
+
+    Backburner.Configuration = Backbone.Model.extend({
         url: 'configuration',
         defaults: {
-            "beanstalk_url":    [],
+            "version":          null,
+            "beanstalk_url":    null,
             "tube_namespace":   null,
             "default_priority": null,
             "respond_timeout":  null,
@@ -17809,23 +18021,106 @@ helpers = helpers || Handlebars.helpers; data = data || {};
         }
     });
 
-    window.BACKBURNER.ConfigurationView = Backbone.Marionette.ItemView.extend({
+    Backburner.ConfigurationView = Backbone.Marionette.ItemView.extend({
         template: 'resources/templates/configuration_view.hbs'
     });
 
-}());
-(function() {
+}(window.Backburner));
+(function(Backburner) {
 
-    window.BACKBURNER.Monitoring = Backbone.Model.extend({});
+    Backburner.Stats = Backbone.Model.extend({
+        url: 'stats',
+        defaults: {
+            "current_jobs_urgent":   0,
+            "current_jobs_ready": 0,
+            "current_jobs_reserved":  0,
+            "current_jobs_delayed":  0,
+            "current_jobs_buried":      0,
+            "job_timeouts":   0,
+            "total_jobs":   0,
+            "current_connections":   0,
+            "current_producers":   0,
+            "current_workers":   0,
+            "current_waiting":   0
+        },
+        queues: null,
 
-    window.BACKBURNER.MonitoringView = Backbone.Marionette.ItemView.extend({
-        template: 'resources/templates/monitoring_view.hbs'
+        parse: function(response, options) {
+            if (response.queues) {
+                this.queues.set(response.queues);
+            }
+            return response;
+        }
     });
 
-}());
-(function() {
+    Backburner.QueueStats = Backbone.Model.extend({
+        defaults: {
+            "name":   null,
+            "current_jobs_urgent":   0,
+            "current_jobs_ready": 0,
+            "current_jobs_reserved":  0,
+            "current_jobs_delayed":  0,
+            "current_jobs_buried":      0,
+            "total_jobs":   0,
+            "current_using":   0,
+            "current_waiting":   0,
+            "current_watching":   0
+        }
+    });
 
-    window.BACKBURNER.App.module("Spinner", function(myModule, App, Backbone, Marionette, $, _) {
+    Backburner.QueueStatsCollection = Backbone.Collection.extend({
+        model: Backburner.QueueStats
+    });
+
+    Backburner.DashboardLayout = Backbone.Marionette.Layout.extend({
+        template: 'resources/templates/dashboard_view.hbs',
+
+        regions: {
+            stats: "#stats",
+            queue_stats: "#queue_stats"
+        }
+    });
+
+    Backburner.StatsView = Backbone.Marionette.ItemView.extend({
+        template: 'resources/templates/stats_view.hbs'
+    });
+
+    Backburner.QueueStatsView = Backbone.Marionette.ItemView.extend({
+        template: 'resources/templates/queue_stats_view.hbs'
+    });
+
+    Backburner.QueueStatsCollectionView = Backbone.Marionette.CollectionView.extend({
+        itemView: Backburner.QueueStatsView
+    });
+
+}(window.Backburner));
+(function(Backburner) {
+
+    Backburner.Job = Backbone.Model.extend({
+    });
+
+    Backburner.JobCollection = Backbone.Collection.extend({
+        model: Backburner.Job,
+        url: function() {
+            return 'queue/' + this.queue_name + "/jobs";
+        },
+        queue_name: null
+    });
+
+    Backburner.JobView = Backbone.Marionette.ItemView.extend({
+        template: 'resources/templates/job_view.hbs',
+        tagName: 'tr'
+    });
+    Backburner.JobCollectionView = Backbone.Marionette.CompositeView.extend({
+        template: 'resources/templates/jobs_view.hbs',
+        itemView: Backburner.JobView,
+        itemViewContainer: "tbody"
+    });
+
+}(window.Backburner));
+(function(Backburner) {
+
+    Backburner.App.module("Spinner", function(myModule, App, Backbone, Marionette, $, _) {
         // Private Data And Functions
         var spinner = null;
         var target = null;
@@ -17849,7 +18144,7 @@ helpers = helpers || Handlebars.helpers; data = data || {};
               top: '4px', // Top position relative to parent in px
               left: 'auto' // Left position relative to parent in px
             };
-            return new Spinner(opts).spin(target);
+            return new window.Spinner(opts).spin(target);
         };
 
 
@@ -17863,12 +18158,10 @@ helpers = helpers || Handlebars.helpers; data = data || {};
         };
 
         myModule.stopSpinner = function() {
-            spinner.stop();
+            if (spinner !== null) {
+              spinner.stop();
+            }
         };
-
-        App.addInitializer(function(options) {
-            myModule.startSpinner();
-        });
     });
 
-}());
+}(window.Backburner));

@@ -11,3 +11,16 @@ a:active { color: #00A3C9; }
     padding-top: 20px;
     text-align: center;
 }
+
+#stats {
+    height: 260px;
+}
+
+.stats_table {
+    width: 100%;
+}
+.stats_name {
+}.stats_value {
+    text-align: right;
+    font-weight: bold;
+}

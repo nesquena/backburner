@@ -1,9 +1,10 @@
-(function() {
+(function(Backburner) {
 
-    window.BACKBURNER.Configuration = Backbone.Model.extend({
+    Backburner.Configuration = Backbone.Model.extend({
         url: 'configuration',
         defaults: {
-            "beanstalk_url":    [],
+            "version":          null,
+            "beanstalk_url":    null,
             "tube_namespace":   null,
             "default_priority": null,
             "respond_timeout":  null,
@@ -13,8 +14,8 @@
         }
     });
 
-    window.BACKBURNER.ConfigurationView = Backbone.Marionette.ItemView.extend({
+    Backburner.ConfigurationView = Backbone.Marionette.ItemView.extend({
         template: 'resources/templates/configuration_view.hbs'
     });
 
-}());
+}(window.Backburner));

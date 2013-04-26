@@ -17,4 +17,4 @@ test/version_tmp
 tmp
 web/components
 web/node_modules
-web/resources/js/compiled-templates
+web/resources/templates/compiled-templates.js
