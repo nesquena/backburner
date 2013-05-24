@@ -1,15 +1,16 @@
 module Backburner
   class Configuration
-    attr_accessor :beanstalk_url      # beanstalk url connection
-    attr_accessor :tube_namespace     # namespace prefix for every queue
-    attr_accessor :default_priority   # default job priority
-    attr_accessor :respond_timeout    # default job timeout
-    attr_accessor :on_error           # error handler
-    attr_accessor :max_job_retries    # max job retries
-    attr_accessor :retry_delay        # retry delay in seconds
-    attr_accessor :default_queues     # default queues
-    attr_accessor :logger             # logger
-    attr_accessor :default_worker     # default worker class
+    attr_accessor :beanstalk_url        # beanstalk url connection
+    attr_accessor :tube_namespace       # namespace prefix for every queue
+    attr_accessor :default_priority     # default job priority
+    attr_accessor :respond_timeout      # default job timeout
+    attr_accessor :on_error             # error handler
+    attr_accessor :max_job_retries      # max job retries
+    attr_accessor :retry_delay          # retry delay in seconds
+    attr_accessor :default_queues       # default queues
+    attr_accessor :logger               # logger
+    attr_accessor :default_worker       # default worker class
+    attr_accessor :connection_proc      # proc for establishing connection instance
 
     def initialize
       @beanstalk_url     = "beanstalk://localhost"
@@ -22,6 +23,12 @@ module Backburner
       @default_queues    = []
       @logger            = nil
       @default_worker    = Backburner::Workers::Simple
+      @connection_proc   = lambda { |url, opts| Connection.new(url, opts) }
+    end
+
+    # @configuration.establish_connection(:auth => "")
+    def establish_connection(opts={})
+      @connection_proc.call(self.beanstalk_url, opts)
     end
   end # Configuration
 end # Backburner

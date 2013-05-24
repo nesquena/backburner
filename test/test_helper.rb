@@ -100,3 +100,16 @@ class MiniTest::Spec
     end
   end
 end # MiniTest::Spec
+
+# replace_method(Beaneater::Pool, :transmit_to_all, msg_handler) { ... }
+# Used to stub method behavior with altered action
+def replace_method(klass, action, replacement = Proc.new(){})
+  method = klass.instance_method(action)
+  klass.send(:define_method, action, replacement)
+  begin
+    yield
+  ensure
+    klass.send(:remove_method, action)
+    klass.send(:define_method, action, method)
+  end
+end

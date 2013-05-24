@@ -48,8 +48,8 @@ module Backburner
     # Returns the worker connection.
     # @example
     #   Backburner::Worker.connection # => <Beaneater::Pool>
-    def self.connection
-      @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
+    def self.connection(opts={})
+      @connection ||= Backburner.configuration.establish_connection(opts)
     end
 
     # List of tube names to be watched and processed
