@@ -400,10 +400,11 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
 
 As of Backburner 0.4.0, the project now has baked in support for [IronMQ](http://www.iron.io/mq) which means that beanstalkd and backburner
 can now be used on Heroku as well. Thanks to [@kenkeiter](https://github.com/kenkeiter) for submitting the pull request for this. To enable IronMQ support,
-simply add the following configuration:
+simply add the following configuration (Note that default_queues must be specified because IronMQ does not support the list-tubes command):
 
 ```ruby
 Backburner.configure do |config|
+  config.default_queues  = [ 'some_queue_name' ]
   config.connection_proc = lambda { |url, opts|
     auth = { :project_id => 'some_project_id', :token => 'some_token_id' }
     Backburner::IronMQConnection.new("beanstalk://mq-aws-us-east-1.iron.io", :auth => auth)
