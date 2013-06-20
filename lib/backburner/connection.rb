@@ -14,6 +14,11 @@ module Backburner
       connect!
     end
 
+    # True if connected to IronMQ
+    def iron_mq?
+      false
+    end
+
     # Sets the delegator object to the underlying beaneater pool
     # self.put(...)
     def __getobj__
@@ -51,20 +56,23 @@ module Backburner
   end # Connection
 
   class IronMQConnection < Connection
-      protected
+    def iron_mq?
+      true
+    end
 
-      def connect!
-        unless @beanstalk
-          @beanstalk = Beaneater::Pool.new(beanstalk_addresses)
-          authenticate! if @opts[:auth]
-        end
-        @beanstalk
-      end
+    protected
 
-      def authenticate!
-        auth = "oauth #{@opts[:auth][:token]} #{@opts[:auth][:project_id]}"
-        @beanstalk.transmit_to_all("put 0 0 0 #{auth.length}\r\n")
-        @beanstalk.transmit_to_all(auth)
+    def connect!
+      unless @beanstalk
+        @beanstalk = Beaneater::Pool.new(beanstalk_addresses)
+        authenticate! if @opts[:auth]
       end
-    end # IronMQConnection
+      @beanstalk
+    end
+
+    def authenticate!
+      auth = "oauth #{@opts[:auth][:token]} #{@opts[:auth][:project_id]}"
+      @beanstalk.transmit_to_all("put 0 0 0 #{auth.length}\r\n#{auth}")
+    end
+  end # IronMQConnection
 end # Backburner

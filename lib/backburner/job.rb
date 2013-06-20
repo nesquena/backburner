@@ -39,13 +39,14 @@ module Backburner
     # @example
     #   @task.process
     #
-    def process
+    def process(skip_timeout = false)
       # Invoke before hook and stop if false
       res = job_class.invoke_hook_events(:before_perform, *args)
       return false unless res
       # Execute the job
       job_class.around_hook_events(:around_perform, *args) do
-        timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
+        ttr = skip_timeout ? 0 : task.ttr - 1
+        timeout_job_after(ttr) { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook

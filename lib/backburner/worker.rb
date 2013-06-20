@@ -110,7 +110,7 @@ module Backburner
     def work_one_job
       job = Backburner::Job.new(self.connection.tubes.reserve)
       self.log_job_begin(job.name, job.args)
-      job.process
+      job.process(self.connection.iron_mq?)
       self.log_job_end(job.name)
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
