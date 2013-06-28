@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## Version 0.3.5 (Unreleased)
+## Version 0.4.0 (June 28 2013)
+
+NOTE: This is the start of working with @bradgessler to improve backburner and merge with quebert
+
+ * NEW #26 #27 Remove need for Queue mixin, allow plain ruby objects
+ * NEW Default all jobs to a single general queue rather than separate queues
+ * NEW Add support for named priorities, allowing shorthand names for priority values
 
 ## Version 0.3.4 (April 23 2013)
 
