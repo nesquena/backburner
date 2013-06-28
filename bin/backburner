@@ -1,10 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'backburner'
-require 'dante'
+require 'backburner/cli'
 
 # bundle exec backburner foo,bar
-queues = (ARGV.first ? ARGV.first.split(',') : nil) rescue nil
-Dante.run('backburner') do |opts|
-  Backburner.work(queues)
-end
+Backburner::CLI.start(ARGV)

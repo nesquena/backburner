@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.4.1 (June 28 2013)
+
+ * FIX #43 Properly support CLI options and smart load the app environment.
+
 ## Version 0.4.0 (June 28 2013)
 
 NOTE: This is the start of working with @bradgessler to improve backburner and merge with quebert

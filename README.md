@@ -238,10 +238,11 @@ $ QUEUES=newsletter-sender,push-notifier rake backburner:work
 You can also run the backburner binary for a convenient worker:
 
 ```
-bundle exec backburner newsletter-sender,push-notifier -d -P /var/run/backburner.pid -l /var/log/backburner.log
+bundle exec backburner -q newsletter-sender,push-notifier -d -P /var/run/backburner.pid -l /var/log/backburner.log
 ```
 
-This will daemonize the worker and store the pid and logs automatically.
+This will daemonize the worker and store the pid and logs automatically. For Rails and Padrino, the environment should
+load automatically. For other cases, use the `-r` flag to specify a file to require.
 
 ### Persistence
 
