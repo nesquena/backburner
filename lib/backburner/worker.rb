@@ -34,6 +34,8 @@ module Backburner
       tube.put data.to_json, :pri => pri, :delay => delay, :ttr => ttr
       Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       return true
+    rescue Beaneater::NotConnected => e
+      retry_connection!
     end
 
     # Starts processing jobs with the specified tube_names.
@@ -51,6 +53,24 @@ module Backburner
     def self.connection
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
+
+    # Retries to make a connection to beanstalkd if that connection failed.
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
+    def self.retry_connection!(max_tries=5)
+      retry_count = 0
+      begin
+        @connection = nil
+        self.connection
+      rescue Beaneater::NotConnected => e
+        if retry_count < max_tries
+          retry_count += 1
+          sleep 0.5
+          retry
+        else # stop retrying
+          raise e
+        end
+      end
+    end # retry_connection!
 
     # List of tube names to be watched and processed
     attr_accessor :tube_names

@@ -443,6 +443,10 @@ The best way to deploy these rake tasks is using a monitoring library. We sugges
 which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
 [examples/god](https://github.com/nesquena/backburner/blob/master/examples/god.rb).
 
+In Backburner, if the beanstalkd connection is temporarily severed, several retries to establish the connection will be attempted.
+After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
+You can manually catch this exception, and attempt another manual retry using `Backburner::Worker.retry_connection!`.
+
 ### Web Front-end
 
 Be sure to check out the Sinatra-powered project [beanstalkd_view](https://github.com/denniskuczynski/beanstalkd_view)
