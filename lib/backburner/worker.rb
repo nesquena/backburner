@@ -27,15 +27,15 @@ module Backburner
       pri   = resolve_priority(opts[:pri] || job_class)
       delay = [0, opts[:delay].to_i].max
       ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
-      tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
       res = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
       return false unless res # stop if hook is false
       data = { :class => job_class.name, :args => args }
-      tube.put data.to_json, :pri => pri, :delay => delay, :ttr => ttr
+      retryable_command do
+        tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
+        tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+      end
       Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       return true
-    rescue Beaneater::NotConnected => e
-      retry_connection!
     end
 
     # Starts processing jobs with the specified tube_names.
@@ -54,23 +54,21 @@ module Backburner
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
 
-    # Retries to make a connection to beanstalkd if that connection failed.
+    # Retries the given command specified in the block several times if there is a connection error
+    # Used to execute beanstalkd commands in a retryable way
+    #
+    # @example
+    #   retryable_command { ... }
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    def self.retry_connection!(max_tries=5)
-      retry_count = 0
+    #
+    def self.retryable_command(max_tries=8, &block)
       begin
-        @connection = nil
-        self.connection
+        yield
       rescue Beaneater::NotConnected => e
-        if retry_count < max_tries
-          retry_count += 1
-          sleep 0.5
-          retry
-        else # stop retrying
-          raise e
-        end
+        retry_connection!(max_tries)
+        yield
       end
-    end # retry_connection!
+    end
 
     # List of tube names to be watched and processed
     attr_accessor :tube_names
@@ -155,6 +153,41 @@ module Backburner
       end
       handle_error(e, job.name, job.args)
     end
+
+    # Retries the given command specified in the block several times if there is a connection error
+    # Used to execute beanstalkd commands in a retryable way
+    #
+    # @example
+    #   retryable_command { ... }
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
+    #
+    def self.retryable_command(max_tries=8, &block)
+      begin
+        yield
+      rescue Beaneater::NotConnected => e
+        retry_connection!(max_tries)
+        yield
+      end
+    end
+
+    # Retries to make a connection to beanstalkd if that connection failed.
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
+    #
+    def self.retry_connection!(max_tries=8)
+      retry_count = 0
+      begin
+        @connection = nil
+        self.connection.stats
+      rescue Beaneater::NotConnected => e
+        if retry_count < max_tries
+          retry_count += 1
+          sleep 1
+          retry
+        else # stop retrying
+          raise e
+        end
+      end
+    end # retry_connection!
 
     protected
 
