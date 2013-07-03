@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.4.2 (July 3 2013)
+
+ * FIX #44 Properly retry to connect to beanstalkd when connection fails.
+
 ## Version 0.4.1 (June 28 2013)
 
  * FIX #43 Properly support CLI options and smart load the app environment.
