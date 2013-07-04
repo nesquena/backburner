@@ -44,7 +44,11 @@ module Backburner
     #   Backburner::Worker.start(["foo.tube.name"])
     #
     def self.start(tube_names=nil)
-      self.new(tube_names).start
+      begin
+        self.new(tube_names).start
+      rescue SystemExit
+        # do nothing
+      end
     end
 
     # Returns the worker connection.
@@ -109,7 +113,7 @@ module Backburner
     # Triggers this worker to shutdown
     def shutdown
       log_info 'Worker exiting...'
-      Kernel.exit!
+      Kernel.exit
     end
 
     # Processes tube_names given tube_names array.
