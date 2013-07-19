@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Version 0.4.3 (July 19 2013)
+
+ * FIX #44 Additional fix to issue introduced in 0.4.2
+ * FIX #45 More graceful shutdown using Kernel.exit and rescuing SystemExit. (Thanks @ryanjohns)
+
 ## Version 0.4.2 (July 3 2013)
 
  * FIX #44 Properly retry to connect to beanstalkd when connection fails.
