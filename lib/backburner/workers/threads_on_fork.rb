@@ -165,12 +165,17 @@ module Backburner
         @runs = 0
 
         if @threads_number == 1
-          run_while_can
+          run_while_can(name)
         else
           threads_count = Thread.list.count
           @threads_number.times do
             create_thread do
-              run_while_can
+              conn = Connection.new(Backburner.configuration.beanstalk_url)
+              begin
+                run_while_can(name, conn)
+              ensure
+                conn.close
+              end
             end
           end
           sleep 0.1 while Thread.list.count > threads_count
@@ -180,16 +185,19 @@ module Backburner
       end
 
       # Run work_one_job while we can
-      def run_while_can
+      def run_while_can(name, conn = nil)
+        conn ||= connection
+        watch_tube(name, conn)
         while @garbage_after.nil? or @garbage_after > @runs
           @runs += 1
-          work_one_job
+          work_one_job(conn)
         end
       end
 
       # Shortcut for watching a tube on beanstalk connection
-      def watch_tube(name)
-        connection.tubes.watch!(name)
+      def watch_tube(name, conn = nil)
+        conn ||= connection
+        conn.tubes.watch!(name)
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to
