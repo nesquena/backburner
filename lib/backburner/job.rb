@@ -77,8 +77,8 @@ module Backburner
     def timeout_job_after(secs, &block)
       begin
         Timeout::timeout(secs) { yield }
-      rescue Timeout::Error
-        raise JobTimeout, "#{name} hit #{secs}s timeout"
+      rescue Timeout::Error => e
+        raise JobTimeout, "#{name} hit #{secs}s timeout.\nbacktrace: #{e.backtrace}"
       end
     end
 
