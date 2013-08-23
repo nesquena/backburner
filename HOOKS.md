@@ -34,16 +34,20 @@ Hooks are just methods prefixed with the hook type. For example:
 ```ruby
 class SomeJob
   def self.before_perform_log_job(*args)
-    Logger.info "About to perform #{self} with #{args.inspect}"
+    logger.info "About to perform #{self} with #{args.inspect}"
   end
 
   def self.on_failure_bury(e, *args)
-    Logger.info "Performing #{self} caused an exception (#{e})"
+    logger.info "Performing #{self} caused an exception (#{e})"
     self.bury
   end
 
   def self.perform(*args)
     # ...
+  end
+  
+  def self.logger
+    @_logger ||= Logger.new(STDOUT)
   end
 end
 ```
