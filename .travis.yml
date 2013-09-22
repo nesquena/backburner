@@ -9,6 +9,9 @@ before_install:
   - make
   - ./beanstalkd &
   - cd $TRAVIS_BUILD_DIR
+matrix:
+  allow_failures:
+    - rbx-19mode
 script:
   - bundle install
   - bundle exec rake test
