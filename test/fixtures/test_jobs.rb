@@ -9,6 +9,7 @@ end
 class TestJob
   include Backburner::Queue
   queue_priority :medium
+  queue_respond_timeout 300
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 

@@ -31,5 +31,12 @@ describe "Backburner::Queue module" do
       NestedDemo::TestJobB.queue_priority(1000)
       assert_equal 1000, NestedDemo::TestJobB.queue_priority
     end
-  end # queue
+  end # queue_priority
+
+  describe "for queue_respond_timeout assignment method" do
+    it "should allow queue respond_timeout to be assigned" do
+      NestedDemo::TestJobB.queue_respond_timeout(300)
+      assert_equal 300, NestedDemo::TestJobB.queue_respond_timeout
+    end
+  end # queue_respond_timeout
 end # Backburner::Queue

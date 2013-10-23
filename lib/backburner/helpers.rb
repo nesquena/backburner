@@ -116,5 +116,22 @@ module Backburner
       end
     end
 
+    # Resolves job respond timeout based on the value given. Can be integer, a class or nothing
+    #
+    # @example
+    #  resolve_respond_timeout(1000) => 1000
+    #  resolve_respond_timeout(FooBar) => <queue respond_timeout>
+    #  resolve_respond_timeout(nil) => <default respond_timeout>
+    #
+    def resolve_respond_timeout(ttr)
+      if ttr.respond_to?(:queue_respond_timeout)
+        resolve_respond_timeout(ttr.queue_respond_timeout)
+      elsif ttr.is_a?(Fixnum) # numerical
+        ttr
+      else # default
+        Backburner.configuration.respond_timeout
+      end
+    end
+
   end # Helpers
 end # Backburner

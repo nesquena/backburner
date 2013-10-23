@@ -26,7 +26,7 @@ module Backburner
     def self.enqueue(job_class, args=[], opts={})
       pri   = resolve_priority(opts[:pri] || job_class)
       delay = [0, opts[:delay].to_i].max
-      ttr   = opts[:ttr] || Backburner.configuration.respond_timeout
+      ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
       res = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
       return false unless res # stop if hook is false
       data = { :class => job_class.name, :args => args }
