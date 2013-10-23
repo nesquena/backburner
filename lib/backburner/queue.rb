@@ -33,6 +33,20 @@ module Backburner
           @queue_priority
         end
       end
+
+      # Returns or assigns queue respond_timeout for this job
+      #
+      # @example
+      #   queue_respond_timeout 120
+      #   @klass.queue_respond_timeout # => 120
+      #
+      def queue_respond_timeout(ttr=nil)
+        if ttr
+          @queue_respond_timeout = ttr
+        else # accessor
+          @queue_respond_timeout
+        end
+      end
     end # ClassMethods
   end # Queue
 end # Backburner

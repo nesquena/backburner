@@ -78,8 +78,14 @@ describe "Backburner::Helpers module" do
   end # expand_tube_name
 
   describe "for resolve_priority method" do
-    before { Backburner.configure { |config| config.default_priority = 1000 }  }
-    after  { Backburner.configure { |config| config.priority_labels = Backburner::Configuration::PRIORITY_LABELS } }
+    before do
+      @original_queue_priority = Backburner.configuration.default_priority
+      Backburner.configure { |config| config.default_priority = 1000 }
+    end
+    after do
+      Backburner.configure { |config| config.default_priority = @original_queue_priority }
+      Backburner.configure { |config| config.priority_labels = Backburner::Configuration::PRIORITY_LABELS }
+    end
 
     it "supports fix num priority" do
       assert_equal 500, resolve_priority(500)
@@ -124,4 +130,35 @@ describe "Backburner::Helpers module" do
       assert_equal 1000, resolve_priority(nil)
     end
   end # resolve_priority
+
+  describe "for resolve_respond_timeout method" do
+    before do
+      @original_respond_timeout = Backburner.configuration.respond_timeout
+      Backburner.configure { |config| config.respond_timeout = 300 }
+    end
+    after { Backburner.configure { |config| config.respond_timeout = @original_respond_timeout } }
+
+    it "supports fix num respond_timeout" do
+      assert_equal 500, resolve_respond_timeout(500)
+    end
+
+    it "supports classes which respond to queue_respond_timeout" do
+      job = stub(:queue_respond_timeout => 600)
+      assert_equal 600, resolve_respond_timeout(job)
+    end
+
+    it "supports classes which returns null queue_respond_timeout" do
+      job = stub(:queue_respond_timeout => nil)
+      assert_equal 300, resolve_respond_timeout(job)
+    end
+
+    it "supports classes which don't respond to queue_respond_timeout" do
+      job = stub(:fake => true)
+      assert_equal 300, resolve_respond_timeout(job)
+    end
+
+    it "supports default ttr for null values" do
+      assert_equal 300, resolve_respond_timeout(nil)
+    end
+  end # resolve_respond_timeout
 end

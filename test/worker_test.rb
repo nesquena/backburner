@@ -5,7 +5,7 @@ require File.expand_path('../fixtures/hooked', __FILE__)
 describe "Backburner::Worker module" do
   before do
     Backburner.default_queues.clear
-    clear_jobs!(Backburner.configuration.primary_queue)
+    clear_jobs!(Backburner.configuration.primary_queue, "test-plain", "test.bar", "bar.baz.foo")
   end
 
   describe "for enqueue class method" do
@@ -25,7 +25,7 @@ describe "Backburner::Worker module" do
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
       assert_equal 100, job.pri
-    end # queue
+    end # queue priority
 
     it "should support enqueuing job with specified named priority" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100, :pri => 'high'
@@ -34,7 +34,16 @@ describe "Backburner::Worker module" do
       assert_equal [3, 4], body["args"]
       assert_equal 100, job.ttr
       assert_equal 0, job.pri
-    end # queue
+    end # queue named priority
+
+    it "should support enqueuing job with class queue respond_timeout" do
+      Backburner::Worker.enqueue TestJob, [3, 4]
+      job, body = pop_one_job
+      assert_equal "TestJob", body["class"]
+      assert_equal [3, 4], body["args"]
+      assert_equal 300, job.ttr
+      assert_equal 100, job.pri
+    end # queue respond_timeout
 
     it "should support enqueuing job with custom queue" do
       Backburner::Worker.enqueue TestJob, [6, 7], :queue => "test.bar", :pri => 5000
@@ -43,7 +52,7 @@ describe "Backburner::Worker module" do
       assert_equal [6, 7], body["args"]
       assert_equal 0, job.delay
       assert_equal 5000, job.pri
-      assert_equal Backburner.configuration.respond_timeout, job.ttr
+      assert_equal 300, job.ttr
     end # custom
 
     it "should support async job" do

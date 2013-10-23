@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'tempfile'
 require 'minitest/autorun'
-require 'mocha'
+require 'mocha/setup'
 $:.unshift File.expand_path("../../lib")
 require 'backburner'
 require File.expand_path('../helpers/templogger', __FILE__)
