@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.4.4 (October 27 2013)
+
+ * NEW #51 Added ability to set per-queue default ttr's (Thanks @ryanjohns)
+
 ## Version 0.4.3 (July 19 2013)
 
  * FIX #44 Additional fix to issue introduced in 0.4.2
