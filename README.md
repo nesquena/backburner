@@ -305,9 +305,13 @@ Backburner.configure do |config|
 end
 ```
 
-and then these aliases can be used anywhere that a numerical value can:
+and then these aliases can be used anywhere that a numerical value can, except in the `Backburner.configure` block:
 
 ```ruby
+Backburner.configure do |config|
+  config.default_priority = 100 # don't use a label here!
+end
+
 Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
 User.async(:pri => :useful, :delay => 10.seconds).reset_password(@user.id)
 ```
