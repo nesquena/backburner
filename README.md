@@ -251,6 +251,22 @@ bundle exec backburner -q newsletter-sender,push-notifier -d -P /var/run/backbur
 This will daemonize the worker and store the pid and logs automatically. For Rails and Padrino, the environment should
 load automatically. For other cases, use the `-r` flag to specify a file to require.
 
+### Delaying Jobs
+
+In Backburner, jobs can be delayed by specifying the `delay` option whenever you enqueue a job. If you want to schedule a job for an hour from now, simply add that option while enqueuing the standard job:
+
+```ruby
+Backburner::Worker.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...', :delay => 1.hour)
+```
+
+or while you schedule an async method call:
+
+```ruby
+User.async(:delay => 1.hour).reset_password(@user.id)
+```
+
+Backburner will take care of the rest!
+
 ### Persistence
 
 Jobs are persisted to queues as JSON objects. Let's take our `User`
