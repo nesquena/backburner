@@ -256,7 +256,7 @@ load automatically. For other cases, use the `-r` flag to specify a file to requ
 In Backburner, jobs can be delayed by specifying the `delay` option whenever you enqueue a job. If you want to schedule a job for an hour from now, simply add that option while enqueuing the standard job:
 
 ```ruby
-Backburner::Worker.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...', :delay => 1.hour)
+Backburner::Worker.enqueue(NewsletterJob, ['foo@admin.com', 'lorem ipsum...'], :delay => 1.hour)
 ```
 
 or while you schedule an async method call:
