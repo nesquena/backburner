@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.4.5 (December 16 2013)
+
+ * FIX #47 Create a backburner connection per thread (Thanks @thcrock)
+
 ## Version 0.4.4 (October 27 2013)
 
  * NEW #51 Added ability to set per-queue default ttr's (Thanks @ryanjohns)
