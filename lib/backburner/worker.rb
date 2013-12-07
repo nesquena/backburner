@@ -136,8 +136,9 @@ module Backburner
     # @example
     #   @worker.work_one_job
     #
-    def work_one_job
-      job = Backburner::Job.new(self.connection.tubes.reserve)
+    def work_one_job(conn = nil)
+      conn ||= self.connection
+      job = Backburner::Job.new(conn.tubes.reserve)
       self.log_job_begin(job.name, job.args)
       job.process
       self.log_job_end(job.name)
