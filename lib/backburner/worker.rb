@@ -156,7 +156,7 @@ module Backburner
         job.bury
         self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
       end
-      handle_error(e, job.name, job.args)
+      handle_error(e, job.name, job.args, job)
     end
 
     # Retries the given command specified in the block several times if there is a connection error
@@ -211,12 +211,14 @@ module Backburner
 
     # Handles an error according to custom definition
     # Used when processing a job that errors out
-    def handle_error(e, name, args)
+    def handle_error(e, name, args, job)
       if error_handler = Backburner.configuration.on_error
         if error_handler.arity == 1
           error_handler.call(e)
-        else
+        elsif error_handler.arity == 3
           error_handler.call(e, name, args)
+        else
+          error_handler.call(e, name, args, job)
         end
       end
     end
