@@ -80,6 +80,7 @@ module Backburner
     # Expands a tube to include the prefix
     #
     # @example
+    #   expand_tube_name("foo_with_settings:3:100:6") # => <prefix>.foo_with_settings
     #   expand_tube_name("foo") # => <prefix>.foo
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
@@ -94,7 +95,7 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.')
+      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.').split(':').first
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing

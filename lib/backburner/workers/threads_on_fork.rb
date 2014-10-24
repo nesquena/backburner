@@ -70,6 +70,7 @@ module Backburner
       def initialize(*args)
         @tubes_data = {}
         super
+        self.process_tube_options
       end
 
       # Process the special tube_names of ThreadsOnFork worker
@@ -101,11 +102,23 @@ module Backburner
         end
       end
 
+      def process_tube_options
+        Backburner::Worker.known_queue_classes.each do |queue|
+          queue_settings = {
+              :threads => queue.queue_jobs_limit,
+              :garbage => queue.queue_garbage_limit,
+              :retries => queue.queue_retry_limit
+          }
+          @tubes_data[expand_tube_name(queue)].merge!(queue_settings){|k, v1, v2| v1.nil? ? v2 : v1 }
+        end
+      end
+
       def prepare
         self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
         self.tube_names = Array(self.tube_names)
         tube_names.map! { |name| expand_tube_name(name)  }
-        log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
+        tube_display_names = tube_names.map{|name| "#{name}:#{@tubes_data[name].values}"}
+        log_info "Working #{tube_names.size} queues: [ #{tube_display_names.join(', ')} ]"
       end
 
       # For each tube we will call fork_and_watch to create the fork
