@@ -99,6 +99,7 @@ Backburner.configure do |config|
   config.logger           = Logger.new(STDOUT)
   config.primary_queue    = "backburner-jobs"
   config.priority_labels  = { :custom => 50, :useless => 1000 }
+  config.reserve_timeout  = nil
 end
 ```
 
@@ -115,6 +116,7 @@ The key options available are:
 | `logger`          | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`   | Primary queue used for a job when an alternate queue is not given.   |
 | `priority_labels` | Hash of named priority definitions for your app.                     |
+| `reserve_timeout` | Duration to wait for work from a single server, or nil for forever.  |
 
 ## Breaking Changes
 

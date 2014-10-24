@@ -138,7 +138,11 @@ module Backburner
     #
     def work_one_job(conn = nil)
       conn ||= self.connection
-      job = Backburner::Job.new(conn.tubes.reserve)
+      begin
+        job = Backburner::Job.new(conn.tubes.reserve(Backburner.configuration.reserve_timeout))
+      rescue Beaneater::TimedOutError => e
+        return
+      end
       self.log_job_begin(job.name, job.args)
       job.process
       self.log_job_end(job.name)
