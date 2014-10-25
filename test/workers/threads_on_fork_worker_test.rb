@@ -1,5 +1,6 @@
 require File.expand_path('../../test_helper', __FILE__)
 require File.expand_path('../../fixtures/test_fork_jobs', __FILE__)
+require File.expand_path('../../fixtures/test_queue_settings', __FILE__)
 
 describe "Backburner::Workers::ThreadsOnFork module" do
 
@@ -16,7 +17,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
   after do
     Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5; config.logger = nil }
     unless @ignore_forks
-      if @worker_class.instance_variable_get("@child_pids").length > 0
+      cpids = @worker_class.instance_variable_get("@child_pids")
+      if cpids && cpids.length > 0
         raise "Why is there forks alive?"
       end
     end
@@ -46,6 +48,18 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         "demo.test.foo6" => { :threads => nil, :garbage => nil, :retries => 9   },
         "demo.test.foo7" => { :threads => nil, :garbage => 10,  :retries => nil }
       }, worker.instance_variable_get("@tubes_data"))
+    end
+  end
+
+  describe "for process_tube_settings" do
+    it "should set the settings specified by queue name in class" do
+      worker = @worker_class.new
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings'],  { :threads => 5,   :garbage => 10,   :retries => 6 })
+    end
+
+    it 'should override the tube settings if they are specified directly at class level' do
+      worker = @worker_class.new
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings-override'], { :threads => 10,   :garbage => 1000,   :retries => 2 })
     end
   end
 
