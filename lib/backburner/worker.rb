@@ -58,22 +58,6 @@ module Backburner
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
 
-    # Retries the given command specified in the block several times if there is a connection error
-    # Used to execute beanstalkd commands in a retryable way
-    #
-    # @example
-    #   retryable_command { ... }
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    #
-    def self.retryable_command(max_tries=8, &block)
-      begin
-        yield
-      rescue Beaneater::NotConnected => e
-        retry_connection!(max_tries)
-        yield
-      end
-    end
-
     # List of tube names to be watched and processed
     attr_accessor :tube_names
 
@@ -112,7 +96,9 @@ module Backburner
 
     # Triggers this worker to shutdown
     def shutdown
-      log_info 'Worker exiting...'
+      Thread.new do
+        log_info 'Worker exiting...'
+      end
       Kernel.exit
     end
 
