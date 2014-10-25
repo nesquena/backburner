@@ -9,7 +9,7 @@ module Backburner
       #   @worker.prepare
       #
       def prepare
-        self.tube_names.map! { |name| expand_tube_name(name)  }
+        self.tube_names.map! { |name| expand_tube_name(name)  }.uniq!
         log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
         self.connection.tubes.watch!(*self.tube_names)
       end
