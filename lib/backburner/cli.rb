@@ -17,7 +17,6 @@ module Backburner
       runner.execute do |opts|
         queues = (opts[:queues] ? opts[:queues].split(',') : nil) rescue nil
         load_enviroment(opts[:require])
-        p queues
         Backburner.work(queues)
       end
     end
