@@ -484,6 +484,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
  * Kristen Tucker - Coming up with the gem name
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
+ * [Evgeniy Denisov](https://github.com/silentshade) - Multiple fixes and cleanups
  * [Andy Bakun](https://github.com/thwarted) - Fixes to how multiple beanstalkd instances are processed
  * [Renan T. Fernandes](https://github.com/ShadowBelmolve) - Added threads_on_fork worker
  * [Daniel Farrell](https://github.com/danielfarrell) - Added forking worker
