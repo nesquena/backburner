@@ -58,22 +58,6 @@ module Backburner
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
 
-    # Retries the given command specified in the block several times if there is a connection error
-    # Used to execute beanstalkd commands in a retryable way
-    #
-    # @example
-    #   retryable_command { ... }
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    #
-    def self.retryable_command(max_tries=8, &block)
-      begin
-        yield
-      rescue Beaneater::NotConnected => e
-        retry_connection!(max_tries)
-        yield
-      end
-    end
-
     # List of tube names to be watched and processed
     attr_accessor :tube_names
 
@@ -112,7 +96,9 @@ module Backburner
 
     # Triggers this worker to shutdown
     def shutdown
-      log_info 'Worker exiting...'
+      Thread.new do
+        log_info 'Worker exiting...'
+      end
       Kernel.exit
     end
 
@@ -138,7 +124,11 @@ module Backburner
     #
     def work_one_job(conn = nil)
       conn ||= self.connection
-      job = Backburner::Job.new(conn.tubes.reserve)
+      begin
+        job = Backburner::Job.new(conn.tubes.reserve(Backburner.configuration.reserve_timeout))
+      rescue Beaneater::TimedOutError => e
+        return
+      end
       self.log_job_begin(job.name, job.args)
       job.process
       self.log_job_end(job.name)
@@ -201,7 +191,7 @@ module Backburner
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
       existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
-      known_queues + existing_tubes + [queue_config.primary_queue]
+      existing_tubes + known_queues + [queue_config.primary_queue]
     end
 
     # Returns a reference to the beanstalk connection
