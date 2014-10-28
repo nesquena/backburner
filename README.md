@@ -241,7 +241,7 @@ require 'backburner/tasks'
 so you can run:
 
 ```
-$ QUEUES=newsletter-sender,push-notifier rake backburner:work
+$ QUEUE=newsletter-sender,push-notifier rake backburner:work
 ```
 
 You can also run the backburner binary for a convenient worker:
@@ -362,7 +362,7 @@ Backburner.work('newsletter-sender', :worker => Backburner::Workers::ThreadsOnFo
 or through associated rake tasks with:
 
 ```
-$ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
+$ QUEUE=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
 ```
 
 For more information on the threads_on_fork worker, check out the
@@ -461,7 +461,7 @@ and then you can start the rake task with:
 
 ```bash
 $ rake backburner:work
-$ QUEUES=newsletter-sender,push-notifier rake backburner:work
+$ QUEUE=newsletter-sender,push-notifier rake backburner:work
 ```
 
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
