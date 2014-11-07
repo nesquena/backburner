@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Version 0.4.6 (October 26 2014)
+
+ * NEW Add job to on_error handler if the handler has a 4th argument (@Nitrodist)
+ * NEW Use a timeout when looking for a job to reserve (@EasyPost)
+ * NEW Support configuring settings on threads on fork class (@silentshade)
+ * FIX queue override by existing queues (@silentshade)
+ * FIX Use thread to log exit message (@silentshade)
+
 ## Version 0.4.5 (December 16 2013)
 
  * FIX #47 Create a backburner connection per thread (Thanks @thcrock)
