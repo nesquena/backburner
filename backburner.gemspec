@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.license       = 'MIT'
 
   s.add_runtime_dependency 'beaneater', '~> 0.3.1'
-  s.add_runtime_dependency 'dante', '~> 0.1.5'
+  s.add_runtime_dependency 'dante', '> 0.1.5'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest', '3.2.0'
