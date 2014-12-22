@@ -159,7 +159,7 @@ module Backburner
     def self.retryable_command(max_tries=8, &block)
       begin
         yield
-      rescue Beaneater::NotConnected => e
+      rescue Beaneater::NotConnected
         retry_connection!(max_tries)
         yield
       end

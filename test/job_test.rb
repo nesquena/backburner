@@ -68,7 +68,7 @@ describe "Backburner::Job module" do
       it "should process task" do
         @job = Backburner::Job.new(@task)
         out = silenced(1) { @job.process }
-        assert_match /Performed 56 in NestedDemo::TestJobC/, out
+        assert_match(/Performed 56 in NestedDemo::TestJobC/, out)
       end # process
     end # valid
 

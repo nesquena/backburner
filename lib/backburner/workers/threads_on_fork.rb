@@ -1,7 +1,6 @@
 module Backburner
   module Workers
     class ThreadsOnFork < Worker
-
       class << self
         attr_accessor :shutdown
         attr_accessor :threads_number
@@ -18,7 +17,7 @@ module Backburner
             begin
               Process.kill(0, id)
               tmp_ids << id
-            rescue Errno::ESRCH => e
+            rescue Errno::ESRCH
             end
           end
           @child_pids = tmp_ids if @child_pids != tmp_ids
@@ -69,6 +68,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
+        @connection = nil
         super
         self.process_tube_options
       end
@@ -253,7 +253,6 @@ module Backburner
       def connection
         @connection || super
       end
-
     end
   end
 end

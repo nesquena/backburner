@@ -17,7 +17,7 @@ describe "Backburner::Logger module" do
     it "can be configured to log to logger" do
       Backburner.configure { |config| config.logger = @logger }
       log_info("foo")
-      assert_match /I,.*?foo/, @strio.string
+      assert_match(/I,.*?foo/, @strio.string)
     end
 
     after do
@@ -34,7 +34,7 @@ describe "Backburner::Logger module" do
     it "can be configured to log to logger" do
       Backburner.configure { |config| config.logger = @logger }
       log_error("bar")
-      assert_match /E,.*?bar/, @strio.string
+      assert_match(/E,.*?bar/, @strio.string)
     end
 
     after do

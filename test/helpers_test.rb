@@ -40,7 +40,7 @@ describe "Backburner::Helpers module" do
   describe "for exception_message method" do
     it "prints out message about failure" do
       output = exception_message(RuntimeError.new("test"))
-      assert_match /Exception RuntimeError/, output
+      assert_match(/Exception RuntimeError/, output)
     end
   end # exception_message
 
