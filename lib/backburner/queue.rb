@@ -1,6 +1,12 @@
 module Backburner
   module Queue
     def self.included(base)
+      base.instance_variable_set(:@queue_name, nil)
+      base.instance_variable_set(:@queue_priority, nil)
+      base.instance_variable_set(:@queue_respond_timeout, nil)
+      base.instance_variable_set(:@queue_jobs_limit, nil)
+      base.instance_variable_set(:@queue_garbage_limit, nil)
+      base.instance_variable_set(:@queue_retry_limit, nil)
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base
     end
