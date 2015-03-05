@@ -9,6 +9,12 @@ describe "Backburner::Workers::Basic module" do
   end
 
   describe "for prepare method" do
+    it "should make tube names array always unique to avoid duplication" do
+      worker = @worker_class.new(["foo", "demo.test.foo"])
+      worker.prepare
+      assert_equal ["demo.test.foo"], worker.tube_names
+    end
+
     it "should watch specified tubes" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
