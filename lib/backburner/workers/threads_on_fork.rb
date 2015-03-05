@@ -122,7 +122,7 @@ module Backburner
       def prepare
         self.tube_names ||= Backburner.default_queues.any? ? Backburner.default_queues : all_existing_queues
         self.tube_names = Array(self.tube_names)
-        tube_names.map! { |name| expand_tube_name(name)  }
+        tube_names.map! { |name| expand_tube_name(name)  }.uniq!
         tube_display_names = tube_names.map{|name| "#{name}:#{@tubes_data[name].values}"}
         log_info "Working #{tube_names.size} queues: [ #{tube_display_names.join(', ')} ]"
       end
