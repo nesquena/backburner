@@ -14,7 +14,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # multiple
 
     it "should watch single tube" do
@@ -22,7 +22,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
       assert_same_elements ["demo.test.foo"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # single
 
     it "should respect default_queues settings" do
@@ -31,7 +31,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end
 
     it "should assign based on all tubes" do
@@ -40,7 +40,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.bar/, out
+      assert_match(/demo\.test\.bar/, out)
     end # all assign
 
     it "should properly retrieve all tubes" do
@@ -48,7 +48,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
       assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
-      assert_match /demo\.test\.test-job/, out
+      assert_match(/demo\.test\.test-job/, out)
     end # all read
   end # prepare
 
@@ -139,9 +139,9 @@ describe "Backburner::Workers::Basic module" do
           worker.work_one_job
         end
       end
-      assert_match /attempt 1 of 2, retrying/, out.first
-      assert_match /Finished TestRetryJob/m, out.last
-      assert_match /attempt 2 of 2, burying/m, out.last
+      assert_match(/attempt 1 of 2, retrying/, out.first)
+      assert_match(/Finished TestRetryJob/m, out.last)
+      assert_match(/attempt 2 of 2, burying/m, out.last)
       assert_equal 2, $worker_test_count
       assert_equal false, $worker_success
     end # retry, bury
@@ -158,9 +158,9 @@ describe "Backburner::Workers::Basic module" do
           worker.work_one_job
         end
       end
-      assert_match /attempt 1 of 3, retrying/, out.first
-      assert_match /attempt 2 of 3, retrying/, out[1]
-      assert_match /Completed TestRetryJob/m, out.last
+      assert_match(/attempt 1 of 3, retrying/, out.first)
+      assert_match(/attempt 2 of 3, retrying/, out[1])
+      assert_match(/Completed TestRetryJob/m, out.last)
       refute_match(/failed/, out.last)
       assert_equal 3, $worker_test_count
       assert_equal true, $worker_success
@@ -175,14 +175,14 @@ describe "Backburner::Workers::Basic module" do
         worker.prepare
         worker.work_one_job
       end
-      assert_match /before_enqueue.*after_enqueue.*Working 1 queues/m, out
-      assert_match /!!before_enqueue_bar!! \[nil, :foo, 5\]/, out
-      assert_match /!!after_enqueue_bar!! \[nil, :foo, 5\]/, out
-      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
-      assert_match /!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out
-      assert_match /!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out
-      assert_match /!!on_failure_foo!!.*HookFailError/, out
-      assert_match /attempt 1 of 1, burying/, out
+      assert_match(/before_enqueue.*after_enqueue.*Working 1 queues/m, out)
+      assert_match(/!!before_enqueue_bar!! \[nil, :foo, 5\]/, out)
+      assert_match(/!!after_enqueue_bar!! \[nil, :foo, 5\]/, out)
+      assert_match(/!!before_perform_foo!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!on_failure_foo!!.*HookFailError/, out)
+      assert_match(/attempt 1 of 1, burying/, out)
     end # event hooks, no retry
 
     it "should support event hooks with retry" do
@@ -197,26 +197,26 @@ describe "Backburner::Workers::Basic module" do
           worker.work_one_job
         end
       end
-      assert_match /before_enqueue.*after_enqueue.*Working 1 queues/m, out
-      assert_match /!!before_enqueue_bar!! \[nil, :foo, 5\]/, out
-      assert_match /!!after_enqueue_bar!! \[nil, :foo, 5\]/, out
-      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
-      assert_match /!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out
-      assert_match /!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out
-      assert_match /!!on_failure_foo!!.*HookFailError/, out
-      assert_match /!!on_failure_foo!!.*retrying.*around_perform_bar.*around_perform_cat/m, out
-      assert_match /attempt 1 of 2, retrying/, out
-      assert_match /!!before_perform_foo!! \[nil, "foo", 5\]/, out
-      assert_match /!!END around_perform_bar!! \[nil, "foo", 5\]/, out
-      assert_match /!!END around_perform_cat!! \[nil, "foo", 5\]/, out
-      assert_match /!!after_perform_foo!! \[nil, "foo", 5\]/, out
-      assert_match /Finished HookedObjectSuccess/, out
+      assert_match(/before_enqueue.*after_enqueue.*Working 1 queues/m, out)
+      assert_match(/!!before_enqueue_bar!! \[nil, :foo, 5\]/, out)
+      assert_match(/!!after_enqueue_bar!! \[nil, :foo, 5\]/, out)
+      assert_match(/!!before_perform_foo!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!on_failure_foo!!.*HookFailError/, out)
+      assert_match(/!!on_failure_foo!!.*retrying.*around_perform_bar.*around_perform_cat/m, out)
+      assert_match(/attempt 1 of 2, retrying/, out)
+      assert_match(/!!before_perform_foo!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!END around_perform_bar!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!END around_perform_cat!! \[nil, "foo", 5\]/, out)
+      assert_match(/!!after_perform_foo!! \[nil, "foo", 5\]/, out)
+      assert_match(/Finished HookedObjectSuccess/, out)
     end # event hooks, with retry
 
     it "should support event hooks with stopping enqueue" do
       $hooked_fail_count = 0
       clear_jobs!('foo.bar.events.retry2')
-      out = silenced(2) do
+      silenced(2) do
         HookedObjectBeforeEnqueueFail.async(:queue => 'foo.bar.events.retry2').foo(5)
       end
       expanded_tube = [Backburner.configuration.tube_namespace, 'foo.bar.events.retry2'].join(".")
@@ -226,15 +226,15 @@ describe "Backburner::Workers::Basic module" do
     it "should support event hooks with stopping perform" do
       $hooked_fail_count = 0
       clear_jobs!('foo.bar.events.retry3')
-      expanded_tube = [Backburner.configuration.tube_namespace, 'foo.bar.events.retry3'].join(".")
+      [Backburner.configuration.tube_namespace, 'foo.bar.events.retry3'].join(".")
       out = silenced(2) do
         HookedObjectBeforePerformFail.async(:queue => 'foo.bar.events.retry3').foo(10)
         worker = @worker_class.new('foo.bar.events.retry3')
         worker.prepare
         worker.work_one_job
       end
-      assert_match /!!before_perform_foo!! \[nil, "foo", 10\]/, out
-      assert_match /before_perform_foo.*Completed/m, out
+      assert_match(/!!before_perform_foo!! \[nil, "foo", 10\]/, out)
+      assert_match(/before_perform_foo.*Completed/m, out)
       refute_match(/Fail ran!!/, out)
       refute_match(/HookFailError/, out)
     end # stopping perform

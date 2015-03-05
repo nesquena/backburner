@@ -229,7 +229,7 @@ Backburner.work
 This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
-Backburner.work('newsletter-sender,push-notifier')
+Backburner.work('newsletter-sender', 'push-notifier')
 ```
 
 The Backburner worker also exists as a rake task:

@@ -72,14 +72,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # multiple
 
     it "should watch single tube" do
       worker = @worker_class.new("foo")
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # single
 
     it "should respect default_queues settings" do
@@ -87,7 +87,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end
 
     it "should assign based on all tubes" do
@@ -95,14 +95,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.bar/, out
+      assert_match(/demo\.test\.bar/, out)
     end # all assign
 
     it "should properly retrieve all tubes" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.test-job-fork"
-      assert_match /demo\.test\.test-job-fork/, out
+      assert_match(/demo\.test\.test-job-fork/, out)
     end # all read
   end # prepare
 
@@ -136,7 +136,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       def worker.create_thread(*args, &block); block.call(*args) end
 
       out = silenced(2) { worker.start(false) }
-      refute_match /Catastrophic failure/, out
+      refute_match(/Catastrophic failure/, out)
     end
 
     it "fork_and_watch thread should log an error if exitstatus is != 99" do
@@ -153,7 +153,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       end
       def worker.create_thread(*args, &block); block.call(*args) end
       out = silenced(2) { worker.start(false) }
-      assert_match /Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out
+      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out)
     end
 
     describe "fork_inner" do
