@@ -20,7 +20,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # multiple
 
     it "should watch single tube" do
@@ -28,7 +28,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
       assert_same_elements ["demo.test.foo"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # single
 
     it "should respect default_queues settings" do
@@ -37,7 +37,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end
 
     it "should assign based on all tubes" do
@@ -46,7 +46,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
       assert_same_elements ["demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
-      assert_match /demo\.test\.bar/, out
+      assert_match(/demo\.test\.bar/, out)
     end # all assign
 
     it "should properly retrieve all tubes" do
@@ -54,7 +54,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
       assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
-      assert_match /demo\.test\.test-job/, out
+      assert_match(/demo\.test\.test-job/, out)
     end # all read
   end # prepare
 
@@ -180,6 +180,4 @@ describe "Backburner::Workers::Forking module" do
     end # retrying, succeeds
 
   end # practical tests
-
-
 end

@@ -10,6 +10,7 @@ module Backburner
     # `url` can be a string i.e 'localhost:3001' or an array of addresses.
     def initialize(url)
       @url = url
+      @beanstalk = nil
       connect!
     end
 

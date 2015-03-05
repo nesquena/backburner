@@ -12,22 +12,22 @@ describe "Backburner::Hooks module" do
       it "should support successful invocation" do
         out = silenced { @res = @hooks.invoke_hook_events(HookedObjectSuccess, :before_enqueue, 5, 6) }
         assert_equal [nil, nil], @res
-        assert_match /!!before_enqueue_foo!! \[5\, 6\]/, out
-        assert_match /!!before_enqueue_bar!! \[5\, 6\]/, out
+        assert_match(/!!before_enqueue_foo!! \[5\, 6\]/, out)
+        assert_match(/!!before_enqueue_bar!! \[5\, 6\]/, out)
       end
 
       it "should support fail case" do
         out = silenced { @res = @hooks.invoke_hook_events(HookedObjectBeforeEnqueueFail, :before_enqueue, 5, 6) }
         assert_equal false, @res
-        assert_match /!!before_enqueue_foo!! \[5\, 6\]/, out
+        assert_match(/!!before_enqueue_foo!! \[5\, 6\]/, out)
       end
     end # before_enqueue
 
     describe "with after_enqueue" do
       it "should support successful invocation" do
         out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :after_enqueue, 7, 8) }
-        assert_match /!!after_enqueue_foo!! \[7\, 8\]/, out
-        assert_match /!!after_enqueue_bar!! \[7\, 8\]/, out
+        assert_match(/!!after_enqueue_foo!! \[7\, 8\]/, out)
+        assert_match(/!!after_enqueue_bar!! \[7\, 8\]/, out)
       end
 
       it "should support fail case" do
@@ -40,20 +40,20 @@ describe "Backburner::Hooks module" do
     describe "with before_perform" do
       it "should support successful invocation" do
         out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :before_perform, 1, 2) }
-        assert_match /!!before_perform_foo!! \[1\, 2\]/, out
+        assert_match(/!!before_perform_foo!! \[1\, 2\]/, out)
       end
 
       it "should support fail case" do
         out = silenced { @res = @hooks.invoke_hook_events(HookedObjectBeforePerformFail, :before_perform, 5, 6) }
         assert_equal false, @res
-        assert_match /!!before_perform_foo!! \[5\, 6\]/, out
+        assert_match(/!!before_perform_foo!! \[5\, 6\]/, out)
       end
     end # before_perform
 
     describe "with after_perform" do
       it "should support successful invocation" do
         out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :after_perform, 3, 4) }
-        assert_match /!!after_perform_foo!! \[3\, 4\]/, out
+        assert_match(/!!after_perform_foo!! \[3\, 4\]/, out)
       end
 
       it "should support fail case" do
@@ -66,7 +66,7 @@ describe "Backburner::Hooks module" do
     describe "with on_failure" do
       it "should support successful invocation" do
         out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :on_failure, RuntimeError, 10) }
-        assert_match /!!on_failure_foo!! RuntimeError \[10\]/, out
+        assert_match(/!!on_failure_foo!! RuntimeError \[10\]/, out)
       end
     end # on_failure
   end # invoke_hook_events
@@ -79,12 +79,12 @@ describe "Backburner::Hooks module" do
             puts "!!FIRED!!"
           }
         end
-        assert_match /BEGIN.*?bar.*BEGIN.*cat.*FIRED.*END.*cat.*END.*bar/m, out
-        assert_match /!!BEGIN around_perform_bar!! \[7\, 8\]/, out
-        assert_match /!!BEGIN around_perform_cat!! \[7\, 8\]/, out
-        assert_match /!!FIRED!!/, out
-        assert_match /!!END around_perform_cat!! \[7\, 8\]/, out
-        assert_match /!!END around_perform_bar!! \[7\, 8\]/, out
+        assert_match(/BEGIN.*?bar.*BEGIN.*cat.*FIRED.*END.*cat.*END.*bar/m, out)
+        assert_match(/!!BEGIN around_perform_bar!! \[7\, 8\]/, out)
+        assert_match(/!!BEGIN around_perform_cat!! \[7\, 8\]/, out)
+        assert_match(/!!FIRED!!/, out)
+        assert_match(/!!END around_perform_cat!! \[7\, 8\]/, out)
+        assert_match(/!!END around_perform_bar!! \[7\, 8\]/, out)
       end
     end # successful
   end # around_hook_events

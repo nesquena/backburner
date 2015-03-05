@@ -99,6 +99,7 @@ Backburner.configure do |config|
   config.logger           = Logger.new(STDOUT)
   config.primary_queue    = "backburner-jobs"
   config.priority_labels  = { :custom => 50, :useless => 1000 }
+  config.reserve_timeout  = nil
 end
 ```
 
@@ -115,6 +116,7 @@ The key options available are:
 | `logger`          | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`   | Primary queue used for a job when an alternate queue is not given.   |
 | `priority_labels` | Hash of named priority definitions for your app.                     |
+| `reserve_timeout` | Duration to wait for work from a single server, or nil for forever.  |
 
 ## Breaking Changes
 
@@ -227,7 +229,7 @@ Backburner.work
 This will process jobs in all queues but you can also restrict processing to specific queues:
 
 ```ruby
-Backburner.work('newsletter-sender,push-notifier')
+Backburner.work('newsletter-sender', 'push-notifier')
 ```
 
 The Backburner worker also exists as a rake task:
@@ -239,7 +241,7 @@ require 'backburner/tasks'
 so you can run:
 
 ```
-$ QUEUES=newsletter-sender,push-notifier rake backburner:work
+$ QUEUE=newsletter-sender,push-notifier rake backburner:work
 ```
 
 You can also run the backburner binary for a convenient worker:
@@ -360,7 +362,7 @@ Backburner.work('newsletter-sender', :worker => Backburner::Workers::ThreadsOnFo
 or through associated rake tasks with:
 
 ```
-$ QUEUES=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
+$ QUEUE=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
 ```
 
 For more information on the threads_on_fork worker, check out the
@@ -459,7 +461,7 @@ and then you can start the rake task with:
 
 ```bash
 $ rake backburner:work
-$ QUEUES=newsletter-sender,push-notifier rake backburner:work
+$ QUEUE=newsletter-sender,push-notifier rake backburner:work
 ```
 
 The best way to deploy these rake tasks is using a monitoring library. We suggest [God](https://github.com/mojombo/god/)
@@ -482,6 +484,8 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
  * Kristen Tucker - Coming up with the gem name
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
+ * [Evgeniy Denisov](https://github.com/silentshade) - Multiple fixes and cleanups
+ * [Andy Bakun](https://github.com/thwarted) - Fixes to how multiple beanstalkd instances are processed
  * [Renan T. Fernandes](https://github.com/ShadowBelmolve) - Added threads_on_fork worker
  * [Daniel Farrell](https://github.com/danielfarrell) - Added forking worker
 

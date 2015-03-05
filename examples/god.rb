@@ -4,7 +4,7 @@ God.watch do |w|
   w.env = { 'PADRINO_ENV' => 'production', 'QUEUES' => 'newsletter-sender,push-message' }
   w.group    = 'backburner-workers'
   w.interval = 30.seconds
-  w.start = "bundle exec rake -f Rakefile backburner:start"
+  w.start = "bundle exec rake -f Rakefile backburner:work"
   w.log   = "/var/log/god/backburner-worker-1.log"
 
   # restart if memory gets too high

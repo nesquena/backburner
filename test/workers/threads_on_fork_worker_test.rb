@@ -1,5 +1,6 @@
 require File.expand_path('../../test_helper', __FILE__)
 require File.expand_path('../../fixtures/test_fork_jobs', __FILE__)
+require File.expand_path('../../fixtures/test_queue_settings', __FILE__)
 
 describe "Backburner::Workers::ThreadsOnFork module" do
 
@@ -16,7 +17,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
   after do
     Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5; config.logger = nil }
     unless @ignore_forks
-      if @worker_class.instance_variable_get("@child_pids").length > 0
+      cpids = @worker_class.instance_variable_get("@child_pids")
+      if cpids && cpids.length > 0
         raise "Why is there forks alive?"
       end
     end
@@ -49,6 +51,18 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     end
   end
 
+  describe "for process_tube_settings" do
+    it "should set the settings specified by queue name in class" do
+      worker = @worker_class.new
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings'],  { :threads => 5,   :garbage => 10,   :retries => 6 })
+    end
+
+    it 'should override the tube settings if they are specified directly at class level' do
+      worker = @worker_class.new
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings-override'], { :threads => 10,   :garbage => 1000,   :retries => 2 })
+    end
+  end
+
   describe "for prepare method" do
     before do
       Backburner.configure { |config| config.logger = false }
@@ -64,14 +78,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # multiple
 
     it "should watch single tube" do
       worker = @worker_class.new("foo")
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end # single
 
     it "should respect default_queues settings" do
@@ -79,7 +93,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.foo/, out
+      assert_match(/demo\.test\.foo/, out)
     end
 
     it "should assign based on all tubes" do
@@ -87,14 +101,14 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
-      assert_match /demo\.test\.bar/, out
+      assert_match(/demo\.test\.bar/, out)
     end # all assign
 
     it "should properly retrieve all tubes" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.test-job-fork"
-      assert_match /demo\.test\.test-job-fork/, out
+      assert_match(/demo\.test\.test-job-fork/, out)
     end # all read
   end # prepare
 
@@ -128,7 +142,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       def worker.create_thread(*args, &block); block.call(*args) end
 
       out = silenced(2) { worker.start(false) }
-      refute_match /Catastrophic failure/, out
+      refute_match(/Catastrophic failure/, out)
     end
 
     it "fork_and_watch thread should log an error if exitstatus is != 99" do
@@ -145,7 +159,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       end
       def worker.create_thread(*args, &block); block.call(*args) end
       out = silenced(2) { worker.start(false) }
-      assert_match /Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out
+      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out)
     end
 
     describe "fork_inner" do

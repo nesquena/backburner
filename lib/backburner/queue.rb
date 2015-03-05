@@ -1,6 +1,12 @@
 module Backburner
   module Queue
     def self.included(base)
+      base.instance_variable_set(:@queue_name, nil)
+      base.instance_variable_set(:@queue_priority, nil)
+      base.instance_variable_set(:@queue_respond_timeout, nil)
+      base.instance_variable_set(:@queue_jobs_limit, nil)
+      base.instance_variable_set(:@queue_garbage_limit, nil)
+      base.instance_variable_set(:@queue_retry_limit, nil)
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base
     end
@@ -45,6 +51,48 @@ module Backburner
           @queue_respond_timeout = ttr
         else # accessor
           @queue_respond_timeout
+        end
+      end
+
+      # Returns or assigns queue parallel active jobs limit (only ThreadsOnFork Worker)
+      #
+      # @example
+      #   queue_jobs_limit 5
+      #   @klass.queue_jobs_limit # => 5
+      #
+      def queue_jobs_limit(limit=nil)
+        if limit
+          @queue_jobs_limit = limit
+        else #accessor
+          @queue_jobs_limit
+        end
+      end
+
+      # Returns or assigns queue jobs garbage limit (only ThreadsOnFork Worker)
+      #
+      # @example
+      #   queue_garbage_limit 1000
+      #   @klass.queue_garbage_limit # => 1000
+      #
+      def queue_garbage_limit(limit=nil)
+        if limit
+          @queue_garbage_limit = limit
+        else #accessor
+          @queue_garbage_limit
+        end
+      end
+
+      # Returns or assigns queue retry limit (only ThreadsOnFork Worker)
+      #
+      # @example
+      #   queue_retry_limit 6
+      #   @klass.queue_retry_limit # => 6
+      #
+      def queue_retry_limit(limit=nil)
+        if limit
+          @queue_retry_limit = limit
+        else #accessor
+          @queue_retry_limit
         end
       end
     end # ClassMethods
