@@ -25,7 +25,7 @@ module Backburner
 
     # Connects to a beanstalk queue
     def connect!
-      @beanstalk ||= Beaneater::Pool.new(beanstalk_addresses)
+      @beanstalk ||= Beaneater.new(beanstalk_addresses)
     end
 
     # Returns the beanstalk queue addresses
@@ -34,8 +34,8 @@ module Backburner
     #   beanstalk_addresses => ["localhost:11300"]
     #
     def beanstalk_addresses
-      uris = self.url.is_a?(Array) ? self.url : self.url.split(/[\s,]+/)
-      uris.map { |uri| beanstalk_host_and_port(uri) }
+      uri = self.url.is_a?(Array) ? self.url.first : self.url
+      beanstalk_host_and_port(uri)
     end
 
     # Returns a host and port based on the uri_string given

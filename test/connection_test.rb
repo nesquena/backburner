@@ -11,23 +11,15 @@ describe "Backburner::Connection class" do
     end
 
     it "should setup beanstalk connection" do
-      assert_kind_of Beaneater::Pool, @connection.beanstalk
+      assert_kind_of Beaneater, @connection.beanstalk
     end
   end # initialize single connection
 
-  describe "for initialize with multiple urls" do
-    it "should support single string with commas" do
-      @connection = Backburner::Connection.new("beanstalk://localhost,beanstalk://localhost")
-      connections = @connection.beanstalk.connections
-      assert_equal 2, connections.size
-      assert_equal ['localhost:11300','localhost:11300'], connections.map(&:address)
-    end
-
-    it "should support array of connections" do
-      @connection = Backburner::Connection.new(['beanstalk://127.0.0.1:11300','beanstalk://localhost'])
-      connections = @connection.beanstalk.connections
-      assert_equal 2, @connection.beanstalk.connections.size
-      assert_equal ['127.0.0.1:11300','localhost:11300'], connections.map(&:address)
+  describe "for initialize with url" do
+    it "should delegate the address url correctly" do
+      @connection = Backburner::Connection.new("beanstalk://localhost")
+      connection = @connection.beanstalk.connection
+      assert_equal 'localhost:11300', connection.address
     end
   end # initialize
 
@@ -45,7 +37,7 @@ describe "Backburner::Connection class" do
     end
 
     it "delegate methods to beanstalk connection" do
-      assert_equal "localhost", @connection.connections.first.host
+      assert_equal "localhost", @connection.connection.host
     end
   end # delegator
 end # Connection

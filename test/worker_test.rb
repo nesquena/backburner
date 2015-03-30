@@ -77,7 +77,7 @@ describe "Backburner::Worker module" do
   describe "for connection class method" do
     it "should return the beanstalk connection" do
       assert_equal "beanstalk://localhost", Backburner::Worker.connection.url
-      assert_kind_of Beaneater::Pool, Backburner::Worker.connection.beanstalk
+      assert_kind_of Beaneater, Backburner::Worker.connection.beanstalk
     end
   end # connection
 
