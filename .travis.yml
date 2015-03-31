@@ -2,7 +2,7 @@
 rvm:
   - 1.9.3
   - 2.0.0
-  - rbx-19mode
+  - rbx-2
 before_install:
   - curl -L https://github.com/kr/beanstalkd/archive/v1.9.tar.gz | tar xz -C /tmp
   - cd /tmp/beanstalkd-1.9/
@@ -11,7 +11,7 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 matrix:
   allow_failures:
-    - rvm: rbx-19mode
+    - rvm: rbx-2
 script:
   - bundle install
   - bundle exec rake test
