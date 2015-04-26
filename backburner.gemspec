@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.version       = Backburner::VERSION
   s.license       = 'MIT'
 
-  s.add_runtime_dependency 'beaneater', '~> 0.3.1'
+  s.add_runtime_dependency 'beaneater', '~> 1.0'
   s.add_runtime_dependency 'dante', '> 0.1.5'
 
   s.add_development_dependency 'rake'

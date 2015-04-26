@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.0.0 (April 26 2015)
+
+ * NEW Updating to Beaneater 1.0 (@alup)
+
 ## Version 0.4.6 (October 26 2014)
 
  * NEW Add job to on_error handler if the handler has a 4th argument (@Nitrodist)
