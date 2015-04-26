@@ -53,7 +53,7 @@ module Backburner
 
     # Returns the worker connection.
     # @example
-    #   Backburner::Worker.connection # => <Beaneater::Pool>
+    #   Backburner::Worker.connection # => <Beaneater::Connection>
     def self.connection
       @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
     end
