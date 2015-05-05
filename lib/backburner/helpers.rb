@@ -95,7 +95,12 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.').split(':').first
+
+      if prefix
+        [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.').split(':').first
+      else
+        dasherize(queue_name).gsub(/^#{prefix}/, '').gsub(/\.+/, '.').split(':').first
+      end
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing
