@@ -85,6 +85,20 @@ describe "Backburner::Helpers module" do
       test = lambda { "email/send_news" }
       assert_equal "test.foo.job.email/send-news", expand_tube_name(test)
     end #lambdas
+
+    it "removes prefix if configured as nil" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => nil, :namespace_separator => '.'))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
+
+    it "removes prefix if configured as false" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => false, :namespace_separator => '.'))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
   end # expand_tube_name
 
   describe "for alternative namespace separator" do
