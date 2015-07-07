@@ -154,7 +154,7 @@ class NewsletterJob
 
   # optional, defaults to respond_timeout
   def self.queue_respond_timeout
-    300 # number of seconds before job times out
+    300 # number of seconds before job times out, 0 to avoid timeout
   end
 end
 ```
@@ -166,7 +166,7 @@ class NewsletterJob
   include Backburner::Queue
   queue "newsletter-sender"  # defaults to 'backburner-jobs' tube
   queue_priority 1000 # most urgent priority is 0
-  queue_respond_timeout 300 # number of seconds before job times out
+  queue_respond_timeout 300 # number of seconds before job times out, 0 to avoid timeout
 
   def self.perform(email, body)
     NewsletterMailer.deliver_text_to_email(email, body)
@@ -194,7 +194,7 @@ class User
   include Backburner::Performable
   queue "user-jobs"  # defaults to 'user'
   queue_priority 500 # most urgent priority is 0
-  queue_respond_timeout 300 # number of seconds before job times out
+  queue_respond_timeout 300 # number of seconds before job times out, 0 to avoid timeout
 
   def activate(device_id)
     @device = Device.find(device_id)
