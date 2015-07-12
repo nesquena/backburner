@@ -46,7 +46,7 @@ module Backburner
       return false unless res
       # Execute the job
       @hooks.around_hook_events(job_class, :around_perform, *args) do
-        timeout_job_after(task.ttr - 1) { job_class.perform(*args) }
+        timeout_job_after(task.ttr) { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook
