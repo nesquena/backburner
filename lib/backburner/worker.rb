@@ -129,9 +129,9 @@ module Backburner
       rescue Beaneater::TimedOutError => e
         return
       end
-      self.log_job_begin(job.name, job.args)
+      self.log_job_begin(job)
       job.process
-      self.log_job_end(job.name)
+      self.log_job_end(job)
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
@@ -141,10 +141,10 @@ module Backburner
       if num_retries < queue_config.max_job_retries # retry again
         delay = queue_config.retry_delay + num_retries ** 3
         job.release(:delay => delay)
-        self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
+        self.log_job_end(job, "#{retry_status}, retrying in #{delay}s") if job_started_at
       else # retries failed, bury
         job.bury
-        self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+        self.log_job_end(job, "#{retry_status}, burying") if job_started_at
       end
       handle_error(e, job.name, job.args, job)
     end
