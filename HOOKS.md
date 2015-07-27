@@ -1,9 +1,9 @@
 # Backburner Hooks
 
-You can customize Backburner or write plugins using its hook API. 
+You can customize Backburner or write plugins using its hook API.
 In many cases you can use a hook rather than mess around with Backburner's internals.
 
-## Job Hooks 
+## Job Hooks
 
 Hooks are transparently adapted from [Resque](https://github.com/defunkt/resque/blob/master/docs/HOOKS.md), so
 if you are familiar with their hook API, now you can use nearly the same ones with beanstalkd and backburner!
@@ -45,7 +45,7 @@ class SomeJob
   def self.perform(*args)
     # ...
   end
-  
+
   def self.logger
     @_logger ||= Logger.new(STDOUT)
   end

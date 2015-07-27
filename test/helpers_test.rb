@@ -75,6 +75,20 @@ describe "Backburner::Helpers module" do
     it "supports class names" do
       assert_equal "test.foo.job.backburner-jobs", expand_tube_name(RuntimeError)
     end # class names
+
+    it "removes prefix if configured as nil" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => nil))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
+
+    it "removes prefix if configured as false" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => false))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
   end # expand_tube_name
 
   describe "for resolve_priority method" do
