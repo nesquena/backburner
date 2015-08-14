@@ -54,7 +54,7 @@ describe "Backburner::Workers::Forking module" do
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
       assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
-      assert_match(/demo\.test\.test-job/, out)
+      assert_match(/demo\.test\.backburner-jobs/, out)
     end # all read
   end # prepare
 

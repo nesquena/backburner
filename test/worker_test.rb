@@ -63,6 +63,14 @@ describe "Backburner::Worker module" do
       assert_equal 100, job.ttr
       assert_equal Backburner.configuration.default_priority, job.pri
     end # async
+
+    it "should support enqueueing job with lambda queue" do
+      expected_queue_name = TestLambdaQueueJob.calculated_queue_name
+      Backburner::Worker.enqueue TestLambdaQueueJob, [6, 7], :queue => lambda { |klass| klass.calculated_queue_name }
+      job, body = pop_one_job(expected_queue_name)
+      assert_equal "TestLambdaQueueJob", body["class"]
+      assert_equal [6, 7], body["args"]
+    end
   end # enqueue
 
   describe "for start class method" do

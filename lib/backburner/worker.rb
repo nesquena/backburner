@@ -31,7 +31,8 @@ module Backburner
       return false unless res # stop if hook is false
       data = { :class => job_class.name, :args => args }
       retryable_command do
-        tube  = connection.tubes[expand_tube_name(opts[:queue]  || job_class)]
+        queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
+        tube  = connection.tubes[expand_tube_name(queue || job_class)]
         tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
       end
       Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
