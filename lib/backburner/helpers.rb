@@ -90,7 +90,10 @@ module Backburner
       queue_name = if tube.is_a?(String)
         tube
       elsif tube.respond_to?(:queue) # use queue name
-        tube.queue
+        queue = tube.queue
+        queue.is_a?(Proc) ? queue.call(tube) : queue
+      elsif tube.is_a?(Proc)
+        tube.call
       elsif tube.is_a?(Class) # no queue name, use default
         queue_config.primary_queue # tube.name
       else # turn into a string

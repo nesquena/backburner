@@ -31,3 +31,9 @@ class TestAsyncJob
   include Backburner::Performable
   def self.foo(x, y); $worker_test_count = x * y; end
 end
+
+class TestLambdaQueueJob
+  include Backburner::Queue
+  queue lambda { |klass| klass.calculated_queue_name }
+  def self.calculated_queue_name; 'lambda-queue' end
+end
