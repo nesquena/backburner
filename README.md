@@ -470,6 +470,39 @@ The best way to deploy these rake tasks is using a monitoring library. We sugges
 which watches processes and ensures their stability. A simple God recipe for Backburner can be found in
 [examples/god](https://github.com/nesquena/backburner/blob/master/examples/god.rb).
 
+#### Command-Line Interface
+
+Instead of using the Rake tasks, you can use Backburner's command-line interface (CLI) – powered by the [Dante gem](https://github.com/nesquena/dante) – to launch daemonized workers. Several flags are available to control the process. Many of these are provided by Dante itself, such as flags for logging (`-l`), the process' PID (`-P`), whether to daemonize (`-d`) or kill a running process (`-k`). Backburner provides a few more:
+
+
+##### Queues (`-q`)
+
+Control which queues the worker will watch with the `-q` flag. Comma-separate multiple queue names and, if you're using the `ThreadsOnFork` worker, colon-separate the settings for thread limit, garbage limit and retries limit (eg. `send_mail:4:10:3`). See its [wiki page](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker) for some more details.
+
+```ruby
+backburner -q send_mail,create_thumbnail # You may need to use `bundle exec`
+```
+
+##### Boot an app (`-r`)
+
+Load an app with the `-r` flag. Backburner supports automatic loading for both Rails and Padrino apps when started from the their root folder. However, you may point to a specific app's root using this flag, which is very useful when running workers from a service script.
+
+```ruby
+path="/var/www/my-app/current"
+backburner -r "$path"
+```
+
+##### Load an environment (`-e`)
+
+Use the `-e` flag to control which environment your app should use:
+
+```ruby
+environment="production"  
+backburner -e $environment
+```
+
+#### Reconnecting
+
 In Backburner, if the beanstalkd connection is temporarily severed, several retries to establish the connection will be attempted.
 After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
 You can manually catch this exception, and attempt another manual retry using `Backburner::Worker.retry_connection!`.
