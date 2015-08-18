@@ -54,7 +54,7 @@ describe "Backburner::Workers::Basic module" do
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
       assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
-      assert_match(/demo\.test\.test-job/, out)
+      assert_match(/demo\.test\.backburner-jobs/, out)
     end # all read
   end # prepare
 
@@ -172,6 +172,58 @@ describe "Backburner::Workers::Basic module" do
       assert_equal true, $worker_success
     end # retrying, succeeds
 
+    it "should back off retries exponentially" do
+      max_job_retries = 3
+      clear_jobs!('foo.bar')
+      Backburner.configure do |config|
+        config.max_job_retries = max_job_retries
+        config.retry_delay = 0
+        #config.retry_delay_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) } # default retry_delay_proc
+      end
+      @worker_class.enqueue TestConfigurableRetryJob, [max_job_retries], :queue => 'foo.bar'
+      out = []
+      (max_job_retries + 1).times do
+        out << silenced(10) do
+          worker = @worker_class.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+      end
+      assert_match(/attempt 1 of 4, retrying in 0/, out.first)
+      assert_match(/attempt 2 of 4, retrying in 1/, out[1])
+      assert_match(/attempt 3 of 4, retrying in 8/, out[2])
+      assert_match(/Completed TestConfigurableRetryJob/m, out.last)
+      refute_match(/failed/, out.last)
+      assert_equal 4, $worker_test_count
+      assert_equal true, $worker_success
+    end
+
+    it "should allow configurable back off retry delays" do
+      max_job_retries = 3
+      clear_jobs!('foo.bar')
+      Backburner.configure do |config|
+        config.max_job_retries = max_job_retries
+        config.retry_delay = 0
+        config.retry_delay_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 2) }
+      end
+      @worker_class.enqueue TestConfigurableRetryJob, [max_job_retries], :queue => 'foo.bar'
+      out = []
+      (max_job_retries + 1).times do
+        out << silenced(5) do
+          worker = @worker_class.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+      end
+      assert_match(/attempt 1 of 4, retrying in 0/, out.first)
+      assert_match(/attempt 2 of 4, retrying in 1/, out[1])
+      assert_match(/attempt 3 of 4, retrying in 4/, out[2])
+      assert_match(/Completed TestConfigurableRetryJob/m, out.last)
+      refute_match(/failed/, out.last)
+      assert_equal 4, $worker_test_count
+      assert_equal true, $worker_success
+    end
+
     it "should support event hooks without retry" do
       $hooked_fail_count = 0
       clear_jobs!('foo.bar.events')
@@ -248,7 +300,11 @@ describe "Backburner::Workers::Basic module" do
     end # stopping perform
 
     after do
-      Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5 }
+      Backburner.configure do |config|
+        config.max_job_retries = 0
+        config.retry_delay = 5
+        config.retry_delay_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) } 
+      end
     end
   end # work_one_job
 end # Worker

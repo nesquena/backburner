@@ -27,6 +27,15 @@ class TestRetryJob
   end
 end
 
+class TestConfigurableRetryJob
+  include Backburner::Queue
+  def self.perform(retry_count)
+    $worker_test_count += 1
+    raise RuntimeError unless $worker_test_count > retry_count
+    $worker_success = true
+  end
+end
+
 class TestAsyncJob
   include Backburner::Performable
   def self.foo(x, y); $worker_test_count = x * y; end
