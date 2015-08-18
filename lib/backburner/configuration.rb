@@ -9,7 +9,8 @@ module Backburner
     attr_accessor :respond_timeout     # default job timeout
     attr_accessor :on_error            # error handler
     attr_accessor :max_job_retries     # max job retries
-    attr_accessor :retry_delay         # retry delay in seconds
+    attr_accessor :retry_delay         # (minimum) retry delay in seconds
+    attr_accessor :retry_delay_proc    # proc to calculate delay (and allow for back-off)
     attr_accessor :default_queues      # default queues
     attr_accessor :logger              # logger
     attr_accessor :default_worker      # default worker class
@@ -26,6 +27,7 @@ module Backburner
       @on_error            = nil
       @max_job_retries     = 0
       @retry_delay         = 5
+      @retry_delay_proc    = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }
       @default_queues      = []
       @logger              = nil
       @default_worker      = Backburner::Workers::Simple
