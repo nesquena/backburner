@@ -66,6 +66,12 @@ describe "Backburner module" do
     it "remembers the namespace_separator" do
       assert_equal ".", Backburner.configuration.namespace_separator
     end
+
+    it "disallows a reserved separator" do
+      assert_raises RuntimeError do
+        Backburner.configuration.namespace_separator = ':'
+      end
+    end
   end # configuration
 
   describe "for default_queues" do

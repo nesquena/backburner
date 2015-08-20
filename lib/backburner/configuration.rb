@@ -4,7 +4,7 @@ module Backburner
 
     attr_accessor :beanstalk_url       # beanstalk url connection
     attr_accessor :tube_namespace      # namespace prefix for every queue
-    attr_accessor :namespace_separator # namespace separator
+    attr_reader   :namespace_separator # namespace separator
     attr_accessor :default_priority    # default job priority
     attr_accessor :respond_timeout     # default job timeout
     attr_accessor :on_error            # error handler
@@ -32,6 +32,11 @@ module Backburner
       @primary_queue       = "backburner-jobs"
       @priority_labels     = PRIORITY_LABELS
       @reserve_timeout     = nil
+    end
+
+    def namespace_separator=(val)
+      raise 'Namespace separator cannot used reserved queue configuration separator ":"' if val == ':'
+      @namespace_separator = val
     end
   end # Configuration
 end # Backburner
