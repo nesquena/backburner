@@ -45,7 +45,7 @@ describe "Backburner::Helpers module" do
   end # exception_message
 
   describe "for queue_config" do
-    before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job")) }
+    before { Backburner.expects(:configuration).returns(stub(:tube_namespace => "test.foo.job", :namespace_separator => '.')) }
 
     it "accesses correct value for namespace" do
       assert_equal "test.foo.job", queue_config.tube_namespace
@@ -53,7 +53,7 @@ describe "Backburner::Helpers module" do
   end # config
 
   describe "for expand_tube_name method" do
-    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.foo.job.", :primary_queue => "backburner-jobs"))  }
+    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.foo.job.", :namespace_separator => '.', :primary_queue => "backburner-jobs"))  }
 
     it "supports base strings" do
       assert_equal "test.foo.job.email/send-news", expand_tube_name("email/send_news")
@@ -76,6 +76,14 @@ describe "Backburner::Helpers module" do
       assert_equal "test.foo.job.backburner-jobs", expand_tube_name(RuntimeError)
     end # class names
   end # expand_tube_name
+
+  describe "for alternative namespace separator" do
+    before { Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test", :namespace_separator => '-', :primary_queue => "backburner-jobs"))  }
+
+    it "uses alternative namespace separator" do
+      assert_equal "test-queue-name", expand_tube_name("queue_name")
+    end # simple string
+  end
 
   describe "for resolve_priority method" do
     before do

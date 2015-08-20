@@ -62,6 +62,10 @@ describe "Backburner module" do
     it "remembers the tube_namespace" do
       assert_equal "demo.test", Backburner.configuration.tube_namespace
     end
+
+    it "remembers the namespace_separator" do
+      assert_equal ".", Backburner.configuration.namespace_separator
+    end
   end # configuration
 
   describe "for default_queues" do
