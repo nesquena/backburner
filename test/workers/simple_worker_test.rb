@@ -188,6 +188,7 @@ describe "Backburner::Workers::Basic module" do
       assert_match(/!!BEGIN around_perform_bar!! \[nil, "foo", 5\]/, out)
       assert_match(/!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out)
       assert_match(/!!on_failure_foo!!.*HookFailError/, out)
+      assert_match(/!!on_bury_foo!! \[nil, "foo", 5\]/, out)
       assert_match(/attempt 1 of 1, burying/, out)
     end # event hooks, no retry
 
@@ -211,6 +212,7 @@ describe "Backburner::Workers::Basic module" do
       assert_match(/!!BEGIN around_perform_cat!! \[nil, "foo", 5\]/, out)
       assert_match(/!!on_failure_foo!!.*HookFailError/, out)
       assert_match(/!!on_failure_foo!!.*retrying.*around_perform_bar.*around_perform_cat/m, out)
+      assert_match(/!!on_retry_foo!! 1 0 \[nil, "foo", 5\]/, out)
       assert_match(/attempt 1 of 2, retrying/, out)
       assert_match(/!!before_perform_foo!! \[nil, "foo", 5\]/, out)
       assert_match(/!!END around_perform_bar!! \[nil, "foo", 5\]/, out)

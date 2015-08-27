@@ -19,10 +19,10 @@ module Backburner
     #  Backburner::Job.new(payload)
     #
     def initialize(task)
+      @hooks = Backburner::Hooks
       @task = task
       @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
       @name, @args = body["class"], body["args"]
-      @hooks = Backburner::Hooks
     rescue => ex # Job was not valid format
       self.bury
       raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
@@ -54,6 +54,16 @@ module Backburner
     rescue => e
       @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
       raise e
+    end
+
+    def bury
+      @hooks.invoke_hook_events(job_class, :on_bury, *args)
+      task.bury
+    end
+
+    def retry(count, delay)
+      @hooks.invoke_hook_events(job_class, :on_retry, count, delay, *args)
+      task.release(delay: delay)
     end
 
     protected
