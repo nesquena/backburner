@@ -86,6 +86,7 @@ module Backburner
     #
     def expand_tube_name(tube)
       prefix = queue_config.tube_namespace
+      separator = queue_config.namespace_separator
       queue_name = if tube.is_a?(String)
         tube
       elsif tube.respond_to?(:queue) # use queue name
@@ -95,7 +96,7 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(".").gsub(/\.+/, '.').split(':').first
+      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(separator).gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing
