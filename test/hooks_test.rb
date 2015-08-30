@@ -69,6 +69,20 @@ describe "Backburner::Hooks module" do
         assert_match(/!!on_failure_foo!! RuntimeError \[10\]/, out)
       end
     end # on_failure
+
+    describe 'with on_retry' do
+      it "should support successful invocation" do
+        out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :on_retry, 1, 0, 10) }
+        assert_match(/!!on_retry_foo!! 1 0 \[10\]/, out)
+      end
+    end
+
+    describe 'with on_bury' do
+      it "should support successful invocation" do
+        out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :on_bury, 10) }
+        assert_match(/!!on_bury_foo!! \[10\]/, out)
+      end
+    end
   end # invoke_hook_events
 
   describe "for around_hook_events method" do

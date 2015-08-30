@@ -100,6 +100,14 @@ class HookedObjectSuccess
     puts "!!on_failure_foo!! #{ex.inspect} #{args.inspect}"
   end
 
+  def self.on_bury_foo(*args)
+    puts "!!on_bury_foo!! #{args.inspect}"
+  end
+
+  def self.on_retry_foo(retry_count, delay, *args)
+    puts "!!on_retry_foo!! #{retry_count} #{delay} #{args.inspect}"
+  end
+
   def self.foo(x)
     $hooked_fail_count += 1
     raise HookFailError, "Fail!" if $hooked_fail_count == 1
