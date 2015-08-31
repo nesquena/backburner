@@ -94,6 +94,7 @@ Backburner.configure do |config|
   config.on_error            = lambda { |e| puts e }
   config.max_job_retries     = 3 # default 0 retries
   config.retry_delay         = 2 # default 5 seconds
+  config.retry_delay_proc    = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }
   config.default_priority    = 65536
   config.respond_timeout     = 120
   config.default_worker      = Backburner::Workers::Simple
@@ -110,11 +111,12 @@ The key options available are:
 | -----------------     | -------------------------------                                      |
 | `beanstalk_url`       | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
 | `tube_namespace`      | Prefix used for all tubes related to this backburner queue.          |
-| `namespace_separator` | Separator used for namespace and queue name                      |
+| `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
 | `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
 | `retry_delay`         | Integer defines the base time to wait (in secs) between job retries. |
+| `retry_delay_proc`    | Lambda calculates the delay used, allowing for exponential back-off. |
 | `logger`              | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`       | Primary queue used for a job when an alternate queue is not given.   |
 | `priority_labels`     | Hash of named priority definitions for your app.                     |
@@ -403,7 +405,7 @@ The `default_queues` stores the specific list of queues that should be processed
 ### Failures
 
 When a job fails in backburner (usually because an exception was raised), the job will be released
-and retried again (with progressive delays in between) until the `max_job_retries` configuration is reached.
+and retried again until the `max_job_retries` configuration is reached.
 
 ```ruby
 Backburner.configure do |config|
@@ -413,6 +415,19 @@ end
 ```
 
 Note the default `max_job_retries` is 0, meaning that by default **jobs are not retried**.
+
+As jobs are retried, a progressively-increasing delay is added to give time for transient
+problems to resolve themselves. This may be configured using `retry_delay_proc`. It expects 
+an object that responds to `#call` and receives the value of `retry_delay` and the number
+of times the job has been retried already. The default is a cubic back-off, eg:
+
+```ruby
+Backburner.configure do |config|
+  config.retry_delay      = 2 # The minimum number of seconds a retry will be delayed
+  config.retry_delay_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }
+end
+```
+
 If continued retry attempts fail, the job will be buried and can be 'kicked' later for inspection.
 
 You can also setup a custom error handler for jobs using configure:
