@@ -75,6 +75,16 @@ describe "Backburner::Helpers module" do
     it "supports class names" do
       assert_equal "test.foo.job.backburner-jobs", expand_tube_name(RuntimeError)
     end # class names
+
+    it "supports lambda in queue object" do
+      test = stub(:queue => lambda { |job_class| "email/send_news" })
+      assert_equal "test.foo.job.email/send-news", expand_tube_name(test)
+    end # lambdas in queue object
+
+    it "supports lambdas" do
+      test = lambda { "email/send_news" }
+      assert_equal "test.foo.job.email/send-news", expand_tube_name(test)
+    end #lambdas
   end # expand_tube_name
 
   describe "for alternative namespace separator" do

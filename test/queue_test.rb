@@ -24,6 +24,11 @@ describe "Backburner::Queue module" do
       NestedDemo::TestJobB.queue("nested/job")
       assert_equal "nested/job", NestedDemo::TestJobB.queue
     end
+
+    it "should allow lambdas" do
+      NestedDemo::TestJobB.queue(lambda { |klass| klass.name })
+      assert_equal "NestedDemo::TestJobB", NestedDemo::TestJobB.queue
+    end
   end # queue
 
   describe "for queue_priority assignment method" do

@@ -186,6 +186,10 @@ Backburner.enqueue NewsletterJob, 'foo@admin.com', 'lorem ipsum...'
 to that object's `perform` method. The queue name used by default is `{namespace}.backburner-jobs`
 unless otherwise specified.
 
+You may also pass a lambda as the queue name and it will be evaluated when enqueuing a
+job (and passed the Job's class as an argument). This is especially useful when combined
+with "Simple Async Jobs" (see below).
+
 ### Simple Async Jobs ###
 
 In addition to defining custom jobs, a job can also be enqueued by invoking the `async` method on any object which
@@ -218,7 +222,17 @@ User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 This automatically enqueues a job for that user record that will run `activate` with the specified argument.
 Note that you can set the queue name and queue priority at the class level and
 you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
-The queue name used by default is `{namespace}.backburner-jobs` if not otherwise specified.
+
+The queue name used by default is `{namespace}.backburner-jobs` if not otherwise
+specified.
+
+If a lambda is given for `queue`, then it will be called and given the
+_performable_ object's class as an argument:
+
+```ruby
+# Given the User class above
+User.async(:queue => lambda { |user_klass| ["queue1","queue2"].sample(1).first }).do_hard_work # would add the job to either queue1 or queue2 randomly
+```
 
 ### Working Jobs
 

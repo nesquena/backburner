@@ -22,7 +22,7 @@ module Backburner
         if name
           @queue_name = name
         else # accessor
-          @queue_name || Backburner.configuration.primary_queue
+          (@queue_name.is_a?(Proc) ? @queue_name.call(self) : @queue_name) || Backburner.configuration.primary_queue
         end
       end
 
