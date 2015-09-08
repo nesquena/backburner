@@ -13,19 +13,23 @@ module Backburner
         opts.on("-q", "--queues PATH", String, "The specific queues to work.") do |queues|
           options[:queues] = queues
         end
+        opts.on("-e", "--environment ENVIRONMENT", String, "The environment to run Backburner within") do |environment|
+          options[:environment] = environment
+        end
       end
       runner.execute do |opts|
         queues = (opts[:queues] ? opts[:queues].split(',') : nil) rescue nil
-        load_enviroment(opts[:require])
+        load_environment(opts[:require], opts[:environment])
         Backburner.work(queues)
       end
     end
 
     protected
 
-      def self.load_enviroment(file = nil)
+      def self.load_environment(file = nil, environment = nil)
         file ||= "."
         if File.directory?(file) && File.exists?(File.expand_path("#{file}/config/environment.rb"))
+          ENV["RAILS_ENV"] = environment if environment && ENV["RAILS_ENV"].nil?
           require "rails"
           require File.expand_path("#{file}/config/environment.rb")
           if defined?(::Rails) && ::Rails.respond_to?(:application)
@@ -37,11 +41,9 @@ module Backburner
             ::Rails::Initializer.run :load_application_classes
           end
         elsif File.directory?(file) && File.exists?(File.expand_path("#{file}/config/boot.rb"))
-          if defined?(::Padrino)
-            # Padrino
-            require "padrino"
-            require File.expand_path("#{file}/config/boot.rb")
-          end
+          ENV["RACK_ENV"] = environment if environment && ENV["RACK_ENV"].nil?
+          ENV["PADRINO_ROOT"] = file
+          require File.expand_path("#{file}/config/boot.rb")
         elsif File.file?(file)
           require File.expand_path(file)
         end
