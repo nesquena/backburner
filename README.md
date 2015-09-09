@@ -236,6 +236,56 @@ _performable_ object's class as an argument:
 User.async(:queue => lambda { |user_klass| ["queue1","queue2"].sample(1).first }).do_hard_work # would add the job to either queue1 or queue2 randomly
 ```
 
+### Using Async Asynchronously ###
+
+It's often useful to code without thinking about where you might need asynchronous
+behavior and then only making things async in a production environment. To accomplish
+this, the `Backburner::Performable` module provides two methods (which accept the
+same options as the `async` method):
+
+`Backburner::Performable.handle_asynchronously` handles instance methods of a class:
+
+```ruby
+# Given the User class above
+Backburner::Performable.handle_asynchronously(User, :activate, ttr: 100, queue: 'activate')
+# Now all calls to the activate method on a User instance will be async and with
+# the given options.
+```
+
+`Backburner::Performable.handle_static_asynchronously` handles class methods:
+
+```ruby
+# Given the User class above
+Backburner::Performable.handle_static_asynchronously(User, :reset_password, pri: 100, delay: 10.seconds)
+# Now all calls to User.reset_password will be async
+```
+
+Alternatively, once you've included the `Performable` module in a class, you can `handle_asynchronously` or `handle_static_asynchronously` directly on the class:
+
+```ruby
+class User
+  include Backburner::Performable
+
+  def send_welcome_email
+    # ...
+  end
+  handle_asynchronously :send_welcome_email, queue: 'send-mail', pri: 5000, ttr: 60
+
+  def self.update_recent_visitors
+    # ...
+  end
+  handle_static_asynchronously :update_recent_visitors, queue: 'long-tasks', ttr: 300
+end
+```
+
+Now, all calls to `User.update_recent_visitors` or `User#send_welcome_email` will automatically be handled asynchronously.
+
+#### A Note About Auto-Async
+
+Because an async proxy is injected and used in place of the original method, you must not rely on the return value of the method. Using the example `User` class above, if my `send_welcome_email` returned the status of an email submission and I relied on that to take some further action, I will be surprised after rewiring things with `handle_asynchronously` because the async proxy actually returns the (boolean) result of `Backburner::Worker.enqueue`.
+
+
+
 ### Working Jobs
 
 Backburner workers are processes that run forever handling jobs that are reserved from the queue. Starting a worker in ruby code is simple:
