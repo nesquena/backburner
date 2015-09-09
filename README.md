@@ -266,9 +266,9 @@ Now, all calls to `User.update_recent_visitors` or `User#send_welcome_email` wil
 ```ruby
 # Given the User class above
 Backburner::Performable.handle_asynchronously(User, :activate, ttr: 100, queue: 'activate')
-# Now all calls to the activate method on a User instance will be async and with
-# the given options.
 ```
+
+Now all calls to the `activate` method on a `User` instance will be async with the provided options.
 
 #### A Note About Auto-Async
 
