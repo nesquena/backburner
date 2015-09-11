@@ -26,6 +26,10 @@ There are a variety of hooks available that are triggered during the lifecycle o
 	to perform the job (but is not required to do so). It may handle exceptions
 	thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
 
+* `on_retry`: Called with the retry count, the delay and the job args whenever a job is retried. 
+
+* `on_bury`: Called with the job args when the job is buried.
+
 * `on_failure`: Called with the exception and job args if any exception occurs
   while performing the job (or hooks).
 
