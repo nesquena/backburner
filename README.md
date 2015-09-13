@@ -585,6 +585,7 @@ jobs processed by your beanstalk workers. An excellent addition to your Backburn
 ## Acknowledgements
 
  * [Nathan Esquenazi](https://github.com/nesquena) - Project maintainer
+ * [Dave Myron](https://github.com/contentfree) - Multiple features and doc improvements
  * Kristen Tucker - Coming up with the gem name
  * [Tim Lee](https://github.com/timothy1ee), [Josh Hull](https://github.com/joshbuddy), [Nico Taing](https://github.com/Nico-Taing) - Helping me work through the idea
  * [Miso](http://gomiso.com) - Open-source friendly place to work
