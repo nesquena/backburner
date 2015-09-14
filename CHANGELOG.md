@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Version 1.1.0 (September 14, 2015)
+## Version 1.1.0 (September 14 2015)
 
  * NEW Ability to configure namespace separator (@bfolkens)
  * NEW Avoid timeouts altogether by setting queue_respond_timeout to 0 (@zacviandier)
