@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Version 1.1.0 (September 14, 2015)
+
+ * NEW Ability to configure namespace separator (@bfolkens)
+ * NEW Avoid timeouts altogether by setting queue_respond_timeout to 0 (@zacviandier)
+ * NEW Event hooks for on_retry and on_bury (@contentfree)
+ * NEW Support lambdas for queue names (@contentfree)
+ * NEW Allow for control of delay calculation (@contentfree)
+ * NEW Ability to specify environment when running the CLI (@contentfree)
+ * NEW Control default async behavior of methods (@contentfree)
+
 ## Version 1.0.0 (April 26 2015)
 
  * NEW Updating to Beaneater 1.0 (@alup)
