@@ -99,11 +99,16 @@ describe "Backburner::Workers::Basic module" do
     end # fail, argument
 
     it "should work an enqueued failing job" do
-      clear_jobs!("foo.bar")
-      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar"
+      # NB: The #bury expectation below leaves the job in the queue (as reserved!)
+      # since bury is never actually called on the task. Therefore, clear_jobs!()
+      # can't remove it which can break a lot of things depending on the order the
+      # tests are run. So we ensure that it's using a unique queue name. Mocha
+      # lacks expectations with proxies (where we could actually call bury)
+      clear_jobs!('foo.bar.failed')
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => 'foo.bar.failed'
       Backburner::Job.any_instance.expects(:bury).once
       out = silenced(2) do
-        worker = @worker_class.new('foo.bar')
+        worker = @worker_class.new('foo.bar.failed')
         worker.prepare
         worker.work_one_job
       end
