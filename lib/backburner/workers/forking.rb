@@ -29,11 +29,15 @@ module Backburner
       # Waits for a job, works the job, and exits
       def fork_one_job
         pid = Process.fork do
-          @connection = Connection.new(Backburner.configuration.beanstalk_url)
           work_one_job
           coolest_exit
         end
         Process.wait(pid)
+      end
+
+      def on_reconnect(conn)
+        @connection = conn
+        prepare
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to

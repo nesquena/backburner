@@ -58,3 +58,15 @@ class TestAsyncJobFork
     }], :queue => 'response'
   end
 end
+
+class TestJobMultithreadFork
+  include Backburner::Queue
+  queue "test-job-multithread-fork"
+  queue_priority 1000
+  def self.perform(x, y)
+    sleep 1 # simluate work
+    Backburner::Workers::ThreadsOnFork.enqueue ResponseJob, [{
+        :worker_test_count_set => x + y
+    }], :queue => 'response'
+  end
+end

@@ -19,7 +19,7 @@ module Backburner
     attr_accessor :reserve_timeout     # duration to wait to reserve on a single server
 
     def initialize
-      @beanstalk_url       = "beanstalk://localhost"
+      @beanstalk_url       = "beanstalk://127.0.0.1"
       @tube_namespace      = "backburner.worker.queue"
       @namespace_separator = "."
       @default_priority    = 65536

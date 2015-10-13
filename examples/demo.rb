@@ -38,7 +38,7 @@ module Tester
   end
 end
 
-# connection = Backburner::Connection.new("beanstalk://localhost")
+# connection = Backburner::Connection.new("beanstalk://127.0.0.1")
 
 Backburner.configure do |config|
   config.beanstalk_url = "beanstalk://127.0.0.1"

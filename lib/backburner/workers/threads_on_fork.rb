@@ -50,6 +50,7 @@ module Backburner
 
         def finish_forks
           return if is_child
+
           ids = child_pids
           if ids.length > 0
             puts "[ThreadsOnFork workers] Stopping forks: #{ids.join(", ")}"
@@ -68,7 +69,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
-        @connection = nil
+        @mutex = Mutex.new
         super
         self.process_tube_options
       end
@@ -171,8 +172,6 @@ module Backburner
       # If we limit the number of threads to 1 it will just run in a loop without
       # creating any extra thread.
       def fork_inner(name)
-        watch_tube(name)
-
         if @tubes_data[name]
           queue_config.max_job_retries = @tubes_data[name][:retries] if @tubes_data[name][:retries]
         else
@@ -184,16 +183,18 @@ module Backburner
         @runs = 0
 
         if @threads_number == 1
-          run_while_can(name)
+          watch_tube(name)
+          run_while_can
         else
           threads_count = Thread.list.count
           @threads_number.times do
             create_thread do
-              conn = Connection.new(Backburner.configuration.beanstalk_url)
               begin
-                run_while_can(name, conn)
+                conn = new_connection
+                watch_tube(name, conn)
+                run_while_can(conn)
               ensure
-                conn.close
+                conn.close if conn
               end
             end
           end
@@ -204,19 +205,21 @@ module Backburner
       end
 
       # Run work_one_job while we can
-      def run_while_can(name, conn = nil)
-        conn ||= connection
-        watch_tube(name, conn)
+      def run_while_can(conn = connection)
         while @garbage_after.nil? or @garbage_after > @runs
-          @runs += 1
+          @runs += 1 # FIXME: Likely race condition
           work_one_job(conn)
         end
       end
 
-      # Shortcut for watching a tube on beanstalk connection
-      def watch_tube(name, conn = nil)
-        conn ||= connection
+      # Shortcut for watching a tube on our beanstalk connection
+      def watch_tube(name, conn = connection)
+        @watching_tube = name
         conn.tubes.watch!(name)
+      end
+
+      def on_reconnect(conn)
+        watch_tube(@watching_tube, conn) if @watching_tube
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to
@@ -239,19 +242,16 @@ module Backburner
       end
 
       # Forks the specified block and adds the process to the child process pool
+      # FIXME: If blk.call breaks then the pid isn't added to child_pids and is
+      # never shutdown
       def fork_it(&blk)
         pid = Kernel.fork do
           self.class.is_child = true
           $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
-          @connection = Connection.new(Backburner.configuration.beanstalk_url)
           blk.call
         end
         self.class.child_pids << pid
         pid
-      end
-
-      def connection
-        @connection || super
       end
     end
   end
