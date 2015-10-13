@@ -113,10 +113,12 @@ The key options available are:
 | `tube_namespace`      | Prefix used for all tubes related to this backburner queue.          |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
-| `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
 | `retry_delay`         | Integer defines the base time to wait (in secs) between job retries. |
 | `retry_delay_proc`    | Lambda calculates the delay used, allowing for exponential back-off. |
+| `default_priority`    | Integer The default priority of jobs                                 |
+| `respond_timeout`     | Integer defines how long a job has to complete its task              |
+| `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `logger`              | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`       | Primary queue used for a job when an alternate queue is not given.   |
 | `priority_labels`     | Hash of named priority definitions for your app.                     |
@@ -158,7 +160,7 @@ class NewsletterJob
 
   # optional, defaults to respond_timeout
   def self.queue_respond_timeout
-    300 # number of seconds before job times out, 0 to avoid timeout
+    300 # number of seconds before job times out, 0 to avoid timeout. NB: A timeout of 1 second will likely lead to race conditions between Backburner and beanstalkd and should be avoided
   end
 end
 ```
@@ -238,7 +240,7 @@ User.async(:queue => lambda { |user_klass| ["queue1","queue2"].sample(1).first }
 
 ### Using Async Asynchronously ###
 
-It's often useful to be able to configure your app in production such that every invocation of a method is asynchronous by default as seen in [delayed_job](https://github.com/collectiveidea/delayed_job#queuing-jobs). To accomplish this, the `Backburner::Performable` module exposes two `handle_asynchronously` convenience methods 
+It's often useful to be able to configure your app in production such that every invocation of a method is asynchronous by default as seen in [delayed_job](https://github.com/collectiveidea/delayed_job#queuing-jobs). To accomplish this, the `Backburner::Performable` module exposes two `handle_asynchronously` convenience methods
 which accept the same options as the `async` method:
 
 ```ruby
@@ -248,14 +250,14 @@ class User
   def send_welcome_email
     # ...
   end
-  
+
   # ---> For instance methods
   handle_asynchronously :send_welcome_email, queue: 'send-mail', pri: 5000, ttr: 60
 
   def self.update_recent_visitors
     # ...
   end
-  
+
   # ---> For class methods
   handle_static_asynchronously :update_recent_visitors, queue: 'long-tasks', ttr: 300
 end
@@ -471,7 +473,7 @@ end
 Note the default `max_job_retries` is 0, meaning that by default **jobs are not retried**.
 
 As jobs are retried, a progressively-increasing delay is added to give time for transient
-problems to resolve themselves. This may be configured using `retry_delay_proc`. It expects 
+problems to resolve themselves. This may be configured using `retry_delay_proc`. It expects
 an object that responds to `#call` and receives the value of `retry_delay` and the number
 of times the job has been retried already. The default is a cubic back-off, eg:
 

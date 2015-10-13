@@ -111,4 +111,37 @@ describe "Backburner::Job module" do
       @job.bury
     end # bury
   end # simple delegation
+
+  describe "timing out for various values of ttr" do
+    before do
+      @task_body = { "class" => "NestedDemo::TestJobC", "args" => [56] }
+    end
+
+    describe "when ttr == 0" do
+      it "should use 0 for the timeout" do
+        @task = stub(:body => @task_body, :delete => true, :ttr => 0)
+        @job = Backburner::Job.new(@task)
+        Timeout.expects(:timeout).with(0)
+        @job.process
+      end
+    end
+
+    describe "when ttr == 1" do
+      it "should use 1 for the timeout" do
+        @task = stub(:body => @task_body, :delete => true, :ttr => 1)
+        @job = Backburner::Job.new(@task)
+        Timeout.expects(:timeout).with(1)
+        @job.process
+      end
+    end
+
+    describe "when ttr > 1" do
+      it "should use ttr-1 for the timeout" do
+        @task = stub(:body => @task_body, :delete => true, :ttr => 2)
+        @job = Backburner::Job.new(@task)
+        Timeout.expects(:timeout).with(1)
+        @job.process
+      end
+    end
+  end
 end
