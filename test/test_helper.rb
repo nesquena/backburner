@@ -12,7 +12,7 @@ require File.expand_path('../helpers/templogger', __FILE__)
 
 # Configure Backburner
 Backburner.configure do |config|
-  config.beanstalk_url = "beanstalk://localhost"
+  config.beanstalk_url = "beanstalk://127.0.0.1"
   config.tube_namespace = "demo.test"
 end
 
@@ -25,7 +25,7 @@ module Kernel
   def capture_stdout
     if ENV['DEBUG'] # Skip if debug mode
       yield
-      ""
+      return ""
     end
 
     out = StringIO.new
@@ -87,20 +87,42 @@ class MiniTest::Spec
     Timeout::timeout(time) { capture_stdout(&block) }
   end
 
+  def beanstalk_connection
+    Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+  end
+
   # pop_one_job(tube_name)
-  def pop_one_job(tube_name=Backburner.configuration.primary_queue)
-    connection = Backburner::Worker.connection
-    tube_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
+  def pop_one_job(tube_name=Backburner.configuration.primary_queue, &block)
+    tube_name  = [Backburner.configuration.tube_namespace, tube_name].join(".")
+    connection = beanstalk_connection
     connection.tubes.watch!(tube_name)
     silenced(3) { @res = connection.tubes.reserve }
-    return @res, JSON.parse(@res.body)
+    yield @res, JSON.parse(@res.body)
+  ensure
+    connection.close if connection
   end
 
   # clear_jobs!('foo')
   def clear_jobs!(*tube_names)
+    connection = beanstalk_connection
     tube_names.each do |tube_name|
       expanded_name = [Backburner.configuration.tube_namespace, tube_name].join(".")
-      Backburner::Worker.connection.tubes.find(expanded_name).clear
+      connection.tubes.find(expanded_name).clear
     end
+  ensure
+    connection.close if connection
+  end
+
+  # Simulates a broken connection for any Beaneater::Connection. Will
+  # simulate a restored connection after `reconnects_after`. This is expected
+  # to be used when ensuring a Beaneater connection is open, therefore
+  def simulate_disconnect(connection, reconnects_after = 2)
+    connection.beanstalk.connection.connection.expects(:closed? => true)
+    returns = Array.new(reconnects_after - 1, stub('TCPSocket'))
+    returns.each do |socket|
+      result = (socket != returns.last)
+      socket.stubs(:closed? => result)
+    end
+    TCPSocket.expects(:new).times(returns.size).returns(*returns)
   end
 end # MiniTest::Spec

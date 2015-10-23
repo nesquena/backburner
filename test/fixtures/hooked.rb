@@ -114,3 +114,9 @@ class HookedObjectSuccess
     puts "This is the job running successfully!! #{x.inspect}"
   end
 end # HookedObjectSuccess
+
+class HookedWorker < Backburner::Worker
+  def on_reconnect
+    puts "!!on_reconnect!!"
+  end
+end
