@@ -19,7 +19,7 @@ describe "Backburner::Workers::Forking module" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection.tubes.watched.map(&:name)
       assert_match(/demo\.test\.foo/, out)
     end # multiple
 
@@ -27,7 +27,7 @@ describe "Backburner::Workers::Forking module" do
       worker = @worker_class.new("foo")
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
-      assert_same_elements ["demo.test.foo"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_same_elements ["demo.test.foo"], worker.connection.tubes.watched.map(&:name)
       assert_match(/demo\.test\.foo/, out)
     end # single
 
@@ -36,7 +36,7 @@ describe "Backburner::Workers::Forking module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection.tubes.watched.map(&:name)
       assert_match(/demo\.test\.foo/, out)
     end
 
@@ -45,7 +45,7 @@ describe "Backburner::Workers::Forking module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.bar"], @worker_class.connection.tubes.watched.map(&:name)
+      assert_same_elements ["demo.test.bar"], worker.connection.tubes.watched.map(&:name)
       assert_match(/demo\.test\.bar/, out)
     end # all assign
 
@@ -53,24 +53,21 @@ describe "Backburner::Workers::Forking module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
-      assert_contains @worker_class.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
-      assert_match(/demo\.test\.test-job/, out)
+      assert_contains worker.connection.tubes.watched.map(&:name), "demo.test.backburner-jobs"
+      assert_match(/demo\.test\.backburner-jobs/, out)
     end # all read
   end # prepare
 
   describe "for fork_one_job method" do
 
-    it "should fork, reconnect, work job, and exit" do
+    it "should fork, work job, and exit" do
       clear_jobs!("bar.foo")
       @worker_class.enqueue TestJobForking, [1, 2], :queue => "bar.foo"
 
       fake_pid = 45
-      Process.expects(:fork).returns(fake_pid) do |&block|
-        Connection.expects(:new).with(Backburner.configuration.beanstalk_url)
-        @worker_class.any_instance.expects(:work_one_job)
-        @worker_class.any_instance.expects(:coolest_exit)
-        block.call
-      end
+      Process.expects(:fork).returns(fake_pid).yields
+      @worker_class.any_instance.expects(:work_one_job)
+      @worker_class.any_instance.expects(:coolest_exit)
       Process.expects(:wait).with(fake_pid)
 
       silenced(2) do

@@ -11,65 +11,72 @@ describe "Backburner::Worker module" do
   describe "for enqueue class method" do
     it "should support enqueuing plain job" do
       Backburner::Worker.enqueue TestPlainJob, [7, 9], :ttr => 100, :pri => 2000
-      job, body = pop_one_job("test-plain")
-      assert_equal "TestPlainJob", body["class"]
-      assert_equal [7, 9], body["args"]
-      assert_equal 100, job.ttr
-      assert_equal 2000, job.pri
+      pop_one_job("test-plain") do |job, body|
+        assert_equal "TestPlainJob", body["class"]
+        assert_equal [7, 9], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 2000, job.pri
+      end
     end # plain
 
     it "should support enqueuing job with class queue priority" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100
-      job, body = pop_one_job
-      assert_equal "TestJob", body["class"]
-      assert_equal [3, 4], body["args"]
-      assert_equal 100, job.ttr
-      assert_equal 100, job.pri
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 100, job.pri
+      end
     end # queue priority
 
     it "should support enqueuing job with specified named priority" do
       Backburner::Worker.enqueue TestJob, [3, 4], :ttr => 100, :pri => 'high'
-      job, body = pop_one_job
-      assert_equal "TestJob", body["class"]
-      assert_equal [3, 4], body["args"]
-      assert_equal 100, job.ttr
-      assert_equal 0, job.pri
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 0, job.pri
+      end
     end # queue named priority
 
     it "should support enqueuing job with class queue respond_timeout" do
       Backburner::Worker.enqueue TestJob, [3, 4]
-      job, body = pop_one_job
-      assert_equal "TestJob", body["class"]
-      assert_equal [3, 4], body["args"]
-      assert_equal 300, job.ttr
-      assert_equal 100, job.pri
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 300, job.ttr
+        assert_equal 100, job.pri
+      end
     end # queue respond_timeout
 
     it "should support enqueuing job with custom queue" do
       Backburner::Worker.enqueue TestJob, [6, 7], :queue => "test.bar", :pri => 5000
-      job, body = pop_one_job("test.bar")
-      assert_equal "TestJob", body["class"]
-      assert_equal [6, 7], body["args"]
-      assert_equal 0, job.delay
-      assert_equal 5000, job.pri
-      assert_equal 300, job.ttr
+      pop_one_job("test.bar") do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal [6, 7], body["args"]
+        assert_equal 0, job.delay
+        assert_equal 5000, job.pri
+        assert_equal 300, job.ttr
+      end
     end # custom
 
     it "should support async job" do
       TestAsyncJob.async(:ttr => 100, :queue => "bar.baz.foo").foo(10, 5)
-      job, body = pop_one_job("bar.baz.foo")
-      assert_equal "TestAsyncJob", body["class"]
-      assert_equal [nil, "foo", 10, 5], body["args"]
-      assert_equal 100, job.ttr
-      assert_equal Backburner.configuration.default_priority, job.pri
+      pop_one_job("bar.baz.foo") do |job, body|
+        assert_equal "TestAsyncJob", body["class"]
+        assert_equal [nil, "foo", 10, 5], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal Backburner.configuration.default_priority, job.pri
+      end
     end # async
 
     it "should support enqueueing job with lambda queue" do
       expected_queue_name = TestLambdaQueueJob.calculated_queue_name
       Backburner::Worker.enqueue TestLambdaQueueJob, [6, 7], :queue => lambda { |klass| klass.calculated_queue_name }
-      job, body = pop_one_job(expected_queue_name)
-      assert_equal "TestLambdaQueueJob", body["class"]
-      assert_equal [6, 7], body["args"]
+      pop_one_job(expected_queue_name) do |job, body|
+        assert_equal "TestLambdaQueueJob", body["class"]
+        assert_equal [6, 7], body["args"]
+      end
     end
   end # enqueue
 
@@ -81,13 +88,6 @@ describe "Backburner::Worker module" do
       Backburner::Worker.start("foo")
     end
   end # start
-
-  describe "for connection class method" do
-    it "should return the beanstalk connection" do
-      assert_equal "beanstalk://localhost", Backburner::Worker.connection.url
-      assert_kind_of Beaneater, Backburner::Worker.connection.beanstalk
-    end
-  end # connection
 
   describe "for tube_names accessor" do
     before do

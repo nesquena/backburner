@@ -83,6 +83,13 @@ describe "Backburner::Hooks module" do
         assert_match(/!!on_bury_foo!! \[10\]/, out)
       end
     end
+
+    describe "with on_reconnect" do
+      it "should support successful invocation" do
+        out = silenced { @hooks.invoke_hook_events(HookedWorker.new, :on_reconnect)}
+        assert_match(/!!on_reconnect!!/, out)
+      end
+    end
   end # invoke_hook_events
 
   describe "for around_hook_events method" do

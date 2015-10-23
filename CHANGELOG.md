@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Version 1.2.0.pre (October 23 2015)
+
+ * FIX Replace static Beaneater connection with individual connections per worker instance/thread (@contentfree)
+ * FIX Beaneater connections try really hard to repair themselves if disconnected accidentally (@contentfree)
+ * NEW Event hook for workers: on_reconnect (@contentfree)
+
 ## Version 1.1.0 (September 14 2015)
 
  * NEW Ability to configure namespace separator (@bfolkens)

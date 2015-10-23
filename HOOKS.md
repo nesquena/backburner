@@ -1,9 +1,9 @@
 # Backburner Hooks
 
-You can customize Backburner or write plugins using its hook API. 
+You can customize Backburner or write plugins using its hook API.
 In many cases you can use a hook rather than mess around with Backburner's internals.
 
-## Job Hooks 
+## Job Hooks
 
 Hooks are transparently adapted from [Resque](https://github.com/defunkt/resque/blob/master/docs/HOOKS.md), so
 if you are familiar with their hook API, now you can use nearly the same ones with beanstalkd and backburner!
@@ -26,7 +26,7 @@ There are a variety of hooks available that are triggered during the lifecycle o
 	to perform the job (but is not required to do so). It may handle exceptions
 	thrown by perform, but uncaught exceptions will be treated like regular job exceptions.
 
-* `on_retry`: Called with the retry count, the delay and the job args whenever a job is retried. 
+* `on_retry`: Called with the retry count, the delay and the job args whenever a job is retried.
 
 * `on_bury`: Called with the job args when the job is buried.
 
@@ -49,7 +49,7 @@ class SomeJob
   def self.perform(*args)
     # ...
   end
-  
+
   def self.logger
     @_logger ||= Logger.new(STDOUT)
   end
@@ -60,5 +60,16 @@ You can also setup modules to create compose-able and reusable hooks for your jo
 
 ## Worker Hooks
 
-Coming soon. What do you need here? Just let me know!
+Currently, there is just one hook:
 
+* `on_reconnect`: Called on the worker whose connection has been reset. The connection
+  is given as the argument
+
+An example:
+
+```ruby
+class MyWorker < Backburner::Worker
+  def on_reconnect(conn)
+    prepare
+  end
+end

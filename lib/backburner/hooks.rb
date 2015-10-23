@@ -4,11 +4,11 @@ module Backburner
       # Triggers all method hooks that match the given event type with specified arguments.
       #
       # @example
-      #   invoke_hook_events(:before_enqueue, 'some', 'args')
-      #   invoke_hook_events(:after_perform, 5)
+      #   invoke_hook_events(hookable, :before_enqueue, 'some', 'args')
+      #   invoke_hook_events(hookable, :after_perform, 5)
       #
-      def invoke_hook_events(job, event, *args)
-        res = find_hook_events(job, event).map { |e| job.send(e, *args) }
+      def invoke_hook_events(hookable, event, *args)
+        res = find_hook_events(hookable, event).map { |e| hookable.send(e, *args) }
         return false if res.any? { |result| result == false }
         res
       end
@@ -20,16 +20,16 @@ module Backburner
       # original task after calling all other around blocks.
       #
       # @example
-      #   around_hook_events(:around_perform) { job.perform }
+      #   around_hook_events(hookable, :around_perform) { hookable.perform }
       #
-      def around_hook_events(job, event, *args, &block)
+      def around_hook_events(hookable, event, *args, &block)
         raise "Please pass a block to hook events!" unless block_given?
-        around_hooks = find_hook_events(job, event).reverse
+        around_hooks = find_hook_events(hookable, event).reverse
         aggregate_filter = Proc.new { |&blk| blk.call }
         around_hooks.each do |ah|
           prior_around_filter = aggregate_filter
           aggregate_filter = Proc.new do |&blk|
-            job.method(ah).call(*args) do
+            hookable.method(ah).call(*args) do
               prior_around_filter.call(&blk)
             end
           end
@@ -45,8 +45,8 @@ module Backburner
       #   find_hook_events(:before_enqueue)
       #   # => ['before_enqueue_foo', 'before_enqueue_bar']
       #
-      def find_hook_events(job, event)
-        (job.methods - Object.methods).grep(/^#{event}/).sort
+      def find_hook_events(hookable, event)
+        (hookable.methods - Object.methods).grep(/^#{event}/).sort
       end
     end
   end # Hooks

@@ -27,15 +27,24 @@ module Backburner
       pri   = resolve_priority(opts[:pri] || job_class)
       delay = [0, opts[:delay].to_i].max
       ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
-      res = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
+      res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
+
       return false unless res # stop if hook is false
+
       data = { :class => job_class.name, :args => args }
-      retryable_command do
-        queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
-        tube  = connection.tubes[expand_tube_name(queue || job_class)]
-        tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+      queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
+
+      begin
+        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+        connection.retryable do
+          tube = connection.tubes[expand_tube_name(queue || job_class)]
+          tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+        end
+        Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
+      ensure
+        connection.close if connection
       end
-      Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
+
       return true
     end
 
@@ -52,21 +61,15 @@ module Backburner
       end
     end
 
-    # Returns the worker connection.
-    # @example
-    #   Backburner::Worker.connection # => <Beaneater::Connection>
-    def self.connection
-      @connection ||= Connection.new(Backburner.configuration.beanstalk_url)
-    end
-
     # List of tube names to be watched and processed
-    attr_accessor :tube_names
+    attr_accessor :tube_names, :connection
 
     # Constructs a new worker for processing jobs within specified tubes.
     #
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
+      @connection = new_connection
       @tube_names = self.process_tube_names(tube_names)
       register_signal_handlers!
     end
@@ -116,27 +119,34 @@ module Backburner
       compact_tube_names(tube_names)
     end
 
-    # Reserves one job within the specified queues.
-    # Pops the job off and serializes the job to JSON.
-    # Each job is performed by invoking `perform` on the job class.
+    # Performs a job by reserving a job from beanstalk and processing it
     #
     # @example
     #   @worker.work_one_job
-    #
-    def work_one_job(conn = nil)
-      conn ||= self.connection
+    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
+    def work_one_job(conn = connection)
       begin
-        job = Backburner::Job.new(conn.tubes.reserve(Backburner.configuration.reserve_timeout))
+        job = reserve_job(conn)
       rescue Beaneater::TimedOutError => e
         return
       end
+
       self.log_job_begin(job.name, job.args)
       job.process
       self.log_job_end(job.name)
+
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
       self.log_error self.exception_message(e)
+
+      unless job
+        self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"
+        return
+      end
+
+      # NB: There's a slight chance here that the connection to beanstalkd has
+      # gone down between the time we reserved / processed the job and here.
       num_retries = job.stats.releases
       retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
       if num_retries < queue_config.max_job_retries # retry again
@@ -147,45 +157,22 @@ module Backburner
         job.bury
         self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
       end
+
       handle_error(e, job.name, job.args, job)
     end
 
-    # Retries the given command specified in the block several times if there is a connection error
-    # Used to execute beanstalkd commands in a retryable way
-    #
-    # @example
-    #   retryable_command { ... }
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    #
-    def self.retryable_command(max_tries=8, &block)
-      begin
-        yield
-      rescue Beaneater::NotConnected
-        retry_connection!(max_tries)
-        yield
-      end
-    end
-
-    # Retries to make a connection to beanstalkd if that connection failed.
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    #
-    def self.retry_connection!(max_tries=8)
-      retry_count = 0
-      begin
-        @connection = nil
-        self.connection.stats
-      rescue Beaneater::NotConnected => e
-        if retry_count < max_tries
-          retry_count += 1
-          sleep 1
-          retry
-        else # stop retrying
-          raise e
-        end
-      end
-    end # retry_connection!
 
     protected
+
+    # Return a new connection instance
+    def new_connection
+      Connection.new(Backburner.configuration.beanstalk_url) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    end
+
+    # Reserve a job from the watched queues
+    def reserve_job(conn, reserve_timeout = Backburner.configuration.reserve_timeout)
+      Backburner::Job.new(conn.tubes.reserve(reserve_timeout))
+    end
 
     # Returns a list of all tubes known within the system
     # Filtered for tubes that match the known prefix
@@ -195,10 +182,6 @@ module Backburner
       existing_tubes + known_queues + [queue_config.primary_queue]
     end
 
-    # Returns a reference to the beanstalk connection
-    def connection
-      self.class.connection
-    end
 
     # Handles an error according to custom definition
     # Used when processing a job that errors out
