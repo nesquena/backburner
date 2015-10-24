@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Version 1.2.0.pre (October 23 2015)
+## Version 1.2.0.pre (October 24 2015)
 
  * FIX Replace static Beaneater connection with individual connections per worker instance/thread (@contentfree)
  * FIX Beaneater connections try really hard to repair themselves if disconnected accidentally (@contentfree)
