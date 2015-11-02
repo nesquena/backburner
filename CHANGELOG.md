@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.2.0 (November 01 2015)
+
+* FIX Made connections to beanstalkd more resilient (@contentfree)
+
 ## Version 1.2.0.pre (October 24 2015)
 
  * FIX Replace static Beaneater connection with individual connections per worker instance/thread (@contentfree)
