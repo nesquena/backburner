@@ -29,23 +29,24 @@ module Backburner
       ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
       res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
 
-      return false unless res # stop if hook is false
+      return nil unless res # stop if hook is false
 
       data = { :class => job_class.name, :args => args }
       queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
 
       begin
+        response = nil
         connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
-          tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+          response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
         end
-        Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
+        return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       ensure
         connection.close if connection
       end
 
-      return true
+      response
     end
 
     # Starts processing jobs with the specified tube_names.
