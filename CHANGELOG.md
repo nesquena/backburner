@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.3.0 (February 05 2015)
+
+* Enqueue command now responds with beanstalk response details
+
 ## Version 1.2.0 (November 01 2015)
 
 * FIX Made connections to beanstalkd more resilient (@contentfree)
