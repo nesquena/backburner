@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Version 1.3.0 (February 05 2015)
+## Version 1.3.0 (February 05 2016)
 
 * Enqueue command now responds with beanstalk response details
 
