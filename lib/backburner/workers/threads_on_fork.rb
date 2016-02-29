@@ -69,7 +69,6 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
-        @mutex = Mutex.new
         super
         self.process_tube_options
       end
