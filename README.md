@@ -402,6 +402,7 @@ By default, Backburner comes with the following workers built-in:
 | `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
 | `Backburner::Workers::Forking` | Basic forking worker that manages crashes and memory bloat. |
 | `Backburner::Workers::ThreadsOnFork` | Forking worker that utilizes threads for concurrent processing. |
+| `Backburner::Workers::Threading` | Utilizes thread pools for concurrent processing. |
 
 You can select the default worker for processing with:
 

@@ -18,8 +18,10 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'beaneater', '~> 1.0'
   s.add_runtime_dependency 'dante', '> 0.1.5'
+  s.add_runtime_dependency 'concurrent-ruby', '~> 1.0.1'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest', '3.2.0'
   s.add_development_dependency 'mocha'
+  s.add_development_dependency 'byebug'
 end
