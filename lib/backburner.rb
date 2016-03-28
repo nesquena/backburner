@@ -13,6 +13,7 @@ require 'backburner/worker'
 require 'backburner/workers/simple'
 require 'backburner/workers/forking'
 require 'backburner/workers/threads_on_fork'
+require 'backburner/workers/threading'
 require 'backburner/queue'
 
 module Backburner

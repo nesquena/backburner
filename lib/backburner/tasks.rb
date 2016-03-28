@@ -27,6 +27,16 @@ namespace :backburner do
     end
   end # forking
 
+  namespace :threading do
+    # QUEUE=twitter:10,parse_page rake backburner:threads_on_fork:work
+    # twitter tube will have 10 threads, parse_page only 1 thread
+    desc "Starts backburner worker using threading processing"
+    task :work => :environment do
+      queues = (ENV["QUEUE"] ? ENV["QUEUE"].split(',') : nil) rescue nil
+      Backburner.work queues, :worker => Backburner::Workers::Threading
+    end
+  end # threading
+
   namespace :threads_on_fork do
     # QUEUE=twitter:10:5000:5,parse_page,send_mail,verify_bithday THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
     # twitter tube will have 10 threads, garbage after 5k executions and retry 5 times.
