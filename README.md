@@ -401,6 +401,7 @@ By default, Backburner comes with the following workers built-in:
 | ------- | -------------------------------                                            |
 | `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
 | `Backburner::Workers::Forking` | Basic forking worker that manages crashes and memory bloat. |
+| `Backburner::Workers::Threading` | Basic worker that can start a given number of threads per queue |
 | `Backburner::Workers::ThreadsOnFork` | Forking worker that utilizes threads for concurrent processing. |
 
 You can select the default worker for processing with:
@@ -426,6 +427,11 @@ $ QUEUE=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:th
 For more information on the threads_on_fork worker, check out the
 [ThreadsOnFork Worker](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker) documentation. Please note that the `ThreadsOnFork` worker does not work on Windows due to its lack of `fork`.
 
+```
+$ QUEUE=newsletter-sender:2,push-message rake backburner:threading:work
+```
+
+Will create two threads listening to newsletter-sender queue and one thread listening to push-message queue.
 
 Additional workers such as individual `threaded` and `forking` strategies will hopefully be contributed in the future.
 If you are interested in helping out, please let us know.
