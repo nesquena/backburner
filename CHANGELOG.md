@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.3.1 (April 21 2016)
+
+* Addition of thread-pool-based concurrency (@contentfree)
+
 ## Version 1.3.0 (February 05 2016)
 
 * Enqueue command now responds with beanstalk response details
