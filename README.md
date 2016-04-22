@@ -402,6 +402,7 @@ By default, Backburner comes with the following workers built-in:
 | `Backburner::Workers::Simple` | Single threaded, no forking worker. Simplest option. |
 | `Backburner::Workers::Forking` | Basic forking worker that manages crashes and memory bloat. |
 | `Backburner::Workers::ThreadsOnFork` | Forking worker that utilizes threads for concurrent processing. |
+| `Backburner::Workers::Threading` | Utilizes thread pools for concurrent processing. |
 
 You can select the default worker for processing with:
 
@@ -423,12 +424,23 @@ or through associated rake tasks with:
 $ QUEUE=newsletter-sender,push-message THREADS=2 GARBAGE=1000 rake backburner:threads_on_fork:work
 ```
 
+When running on MRI or another Ruby implementation with a Global Interpreter Lock (GIL), do not be surprised if you're unable to saturate multiple cores, even with the threads_on_fork worker. To utilize multiple cores, you must run multiple worker processes.
+
+Additional concurrency strategies will hopefully be contributed in the future.
+If you are interested in helping out, please let us know.
+
+#### More info: Threads on Fork Worker
+
 For more information on the threads_on_fork worker, check out the
 [ThreadsOnFork Worker](https://github.com/nesquena/backburner/wiki/ThreadsOnFork-worker) documentation. Please note that the `ThreadsOnFork` worker does not work on Windows due to its lack of `fork`.
 
+#### More info: Threading Worker (thread-pool-based)
 
-Additional workers such as individual `threaded` and `forking` strategies will hopefully be contributed in the future.
-If you are interested in helping out, please let us know.
+Configuration options for the Threading worker are similar to the threads_on_fork worker, sans the garbage option. When running via the `backburner` CLI, it's simplest to provide the queue names and maximum number of threads in the format "{queue name}:{max threads in pool}[,{name}:{threads}]":
+
+```
+$ bundle exec backburner -q queue1:4,queue2:4  # and then other options, like environment, pidfile, app root, etc. See docs for the CLI
+```
 
 ### Default Queues
 

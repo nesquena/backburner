@@ -2,7 +2,7 @@ require File.expand_path('../../test_helper', __FILE__)
 require File.expand_path('../../fixtures/test_jobs', __FILE__)
 require File.expand_path('../../fixtures/hooked', __FILE__)
 
-describe "Backburner::Workers::Basic module" do
+describe "Backburner::Workers::Simple module" do
   before do
     Backburner.default_queues.clear
     @worker_class = Backburner::Workers::Simple

@@ -54,7 +54,7 @@ module Backburner
         end
       end
 
-      # Returns or assigns queue parallel active jobs limit (only ThreadsOnFork Worker)
+      # Returns or assigns queue parallel active jobs limit (only ThreadsOnFork and Threading workers)
       #
       # @example
       #   queue_jobs_limit 5
@@ -82,7 +82,7 @@ module Backburner
         end
       end
 
-      # Returns or assigns queue retry limit (only ThreadsOnFork Worker)
+      # Returns or assigns queue retry limit (only ThreadsOnFork worker)
       #
       # @example
       #   queue_retry_limit 6
