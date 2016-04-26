@@ -126,8 +126,8 @@ The key options available are:
 
 ## Breaking Changes
 
-Since **v0.4.0**: Jobs used to be placed into default queues based on the name of the class enqueuing i.e NewsletterJob would
-be put into a 'newsletter-job' queue. After 0.4.0, all jobs are placed into a primary queue named "my.app.namespace.backburner-jobs"
+Before **v0.4.0**: Jobs were placed into default queues based on the name of the class creating the queue. i.e NewsletterJob would
+be put into a 'newsletter-job' queue. As of 0.4.0, all jobs are placed into a primary queue named "my.app.namespace.backburner-jobs"
 unless otherwise specified.
 
 ## Usage
