@@ -36,7 +36,7 @@ module Backburner
 
       begin
         response = nil
-        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+        connection = current_connection
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
@@ -48,6 +48,14 @@ module Backburner
       end
 
       response
+    end
+
+    def self.current_connection
+      conn = Thread.current[:beanstalkd_connection]
+      unless conn && conn.connected?
+        Thread.current[:beanstalkd_connection] = conn = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+      end
+      conn
     end
 
     # Starts processing jobs with the specified tube_names.
