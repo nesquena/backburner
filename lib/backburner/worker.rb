@@ -42,8 +42,8 @@ module Backburner
           response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
-      ensure
-        connection.close if connection
+      #ensure
+        #connection.close if connection
       end
 
       response
