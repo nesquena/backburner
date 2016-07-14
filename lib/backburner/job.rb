@@ -7,6 +7,19 @@ module Backburner
     class JobTimeout < RuntimeError; end
     class JobNotFound < RuntimeError; end
     class JobFormatInvalid < RuntimeError; end
+    class DroppedJobError < StandardError
+      attr_reader :error
+
+      def initialize(e)
+        @error = e
+        super e
+        set_backtrace e.backtrace
+      end
+
+      def message
+        "<<From #{@error.class.name}>> #{super}"
+      end
+    end
 
     attr_accessor :task, :body, :name, :args
 
@@ -59,6 +72,11 @@ module Backburner
     rescue => e
       @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
       raise e
+    end
+
+    def drop(e)
+      @hooks.invoke_hook_events(job_class, :on_drop, e, *args)
+      task.delete
     end
 
     def bury
