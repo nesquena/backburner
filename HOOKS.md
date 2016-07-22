@@ -5,7 +5,7 @@ In many cases you can use a hook rather than mess around with Backburner's inter
 
 ## Job Hooks
 
-Hooks are transparently adapted from [Resque](https://github.com/defunkt/resque/blob/master/docs/HOOKS.md), so
+Hooks are transparently adapted from [Resque](https://github.com/resque/resque/blob/master/docs/HOOKS.md), so
 if you are familiar with their hook API, now you can use nearly the same ones with beanstalkd and backburner!
 
 There are a variety of hooks available that are triggered during the lifecycle of a job:
