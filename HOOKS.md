@@ -56,7 +56,31 @@ class SomeJob
 end
 ```
 
-You can also setup modules to create compose-able and reusable hooks for your jobs.
+You can also setup modules to create compose-able and reusable hooks for your jobs. For example:
+
+```ruby
+module LoggedJob
+  def before_perform_log_job(*args)
+    Logger.info "About to perform #{self} with #{args.inspect}"
+  end
+end
+
+module BuriedJob
+  def on_failure_bury(e, *args)
+    Logger.info "Performing #{self} caused an exception (#{e}). Retrying..."
+    self.bury
+  end
+end
+
+class MyJob
+  extend LoggedJob
+  extend BuriedJob
+
+  def self.perform(*args)
+    # ...
+  end
+end
+```
 
 ## Worker Hooks
 
