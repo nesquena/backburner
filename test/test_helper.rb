@@ -123,6 +123,6 @@ class MiniTest::Spec
       result = (socket != returns.last)
       socket.stubs(:closed? => result)
     end
-    TCPSocket.expects(:new).times(returns.size).returns(*returns)
+    TCPTimeout::TCPSocket.expects(:new).times(returns.size).returns(*returns)
   end
 end # MiniTest::Spec

@@ -16,10 +16,11 @@ module Backburner
     # `url` can be a string i.e '127.0.0.1:3001' or an array of
     # addresses (however, only the first element in the array will
     # be used)
-    def initialize(url, &on_reconnect)
+    def initialize(url, options = {}, &on_reconnect)
       @url = url
       @beanstalk = nil
       @on_reconnect = on_reconnect
+      @options = options
       connect!
     end
 
@@ -34,7 +35,7 @@ module Backburner
     def connected?
       begin
         !!(@beanstalk && @beanstalk.connection && @beanstalk.connection.connection && !@beanstalk.connection.connection.closed?) # Would be nice if beaneater provided a connected? method
-      rescue => e
+      rescue
         false
       end
     end
@@ -93,7 +94,7 @@ module Backburner
     # Connects to a beanstalk queue
     # @raise Beaneater::NotConnected if the connection cannot be established
     def connect!
-      @beanstalk = Beaneater.new(beanstalk_addresses)
+      @beanstalk = Beaneater.new(beanstalk_addresses, @options)
       __setobj__(@beanstalk)
       @beanstalk
     end

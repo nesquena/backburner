@@ -189,11 +189,11 @@ module Backburner
           @threads_number.times do
             create_thread do
               begin
-                conn = new_connection
-                watch_tube(name, conn)
-                run_while_can(conn)
+                pool = new_connection_pool
+                watch_tube(name, pool)
+                run_while_can(pool)
               ensure
-                conn.close if conn
+                pool.close_all if pool
               end
             end
           end
@@ -204,17 +204,17 @@ module Backburner
       end
 
       # Run work_one_job while we can
-      def run_while_can(conn = connection)
+      def run_while_can(pool = connection_pool)
         while @garbage_after.nil? or @garbage_after > @runs
           @runs += 1 # FIXME: Likely race condition
-          work_one_job(conn)
+          work_one_job(pool)
         end
       end
 
       # Shortcut for watching a tube on our beanstalk connection
-      def watch_tube(name, conn = connection)
+      def watch_tube(name, pool = connection_pool)
         @watching_tube = name
-        conn.tubes.watch!(name)
+        pool.active_connections.each{|conn| conn.tubes.watch!(name)}
       end
 
       def on_reconnect(conn)

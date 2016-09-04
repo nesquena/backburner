@@ -176,7 +176,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
           worker.prepare
           worker.fork_inner('demo.test.bar')
         end
-        assert_same_elements %W(demo.test.bar), worker.connection.tubes.watched.map(&:name)
+        assert_same_elements %W(demo.test.bar), worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
       end
 
       it "should not create threads if the number of threads is 1" do
@@ -219,17 +219,17 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker_class.expects(:threads_number).returns(num_threads)
 
         invocations = Array(1..num_threads).map do |i|
-          conn = OpenStruct.new(:num => i)
-          conn.expects(:close)
-          conn
+          pool = OpenStruct.new(:num => i)
+          pool.expects(:close_all)
+          pool
         end
-        Backburner::Connection.expects(:new).times(num_threads).returns(*invocations)
+        Backburner::ConnectionPool.expects(:new).times(num_threads).returns(*invocations)
 
         # ensure each invocation of run_while_can is with a different connection
         num_conns = states('num_conns').starts_as(0)
-        invocations.each do |conn|
-          worker.expects(:watch_tube).with(name, conn)
-          worker.expects(:run_while_can).with(conn).when(num_conns.is(conn.num-1)).then(num_conns.is(conn.num))
+        invocations.each do |pool|
+          worker.expects(:watch_tube).with(name, pool)
+          worker.expects(:run_while_can).with(pool).when(num_conns.is(pool.num-1)).then(num_conns.is(pool.num))
         end
 
         def worker.create_thread(*args, &block); block.call(*args) end

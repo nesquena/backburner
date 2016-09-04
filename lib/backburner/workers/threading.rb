@@ -44,14 +44,14 @@ module Backburner
         @thread_pools.each do |tube_name, pool|
           pool.max_length.times do
             # Create a new connection and set it up to listen on this tube name
-            connection = new_connection.tap{ |conn| conn.tubes.watch!(tube_name) }
-            connection.on_reconnect = lambda { |conn| conn.tubes.watch!(tube_name) }
+            connection_pool = new_connection_pool.tap{ |conn_pool| conn_pool.active_connections.map{|conn| conn.tubes.watch!(tube_name)} }
+            connection_pool.on_reconnect = lambda { |conn_pool| conn_pool.active_connections.map{|conn| conn.tubes.watch!(tube_name)} }
 
             # Make it work jobs using its own connection per thread
-            pool.post(connection) { |connection|
+            pool.post(connection_pool) { |connection_pool|
               loop {
                 begin
-                  work_one_job(connection)
+                  work_one_job(connection_pool)
 
                 rescue => e
                   log_error("Exception caught in thread pool loop. Continuing. -> #{e.message}\nBacktrace: #{e.backtrace}")
