@@ -1,3 +1,4 @@
+require 'tcp_timeout'
 require 'backburner/job'
 
 module Backburner
@@ -36,26 +37,29 @@ module Backburner
 
       begin
         response = nil
-        connection = current_connection
+        connection = current_pool.pick_connection
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
           response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
-      #ensure
-        #connection.close if connection
+      rescue Beaneater::TimedOutError
+        retry
+      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected
+        pool.deactivate(connection)
+        retry
       end
 
       response
     end
 
-    def self.current_connection
-      conn = Thread.current[:beanstalkd_connection]
-      unless conn && conn.connected?
-        Thread.current[:beanstalkd_connection] = conn = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+    def self.current_pool
+      pool = Thread.current[:beanstalkd_connection_pool]
+      unless pool && pool.alive?
+        Thread.current[:beanstalkd_connection_pool] = pool = Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options)
       end
-      conn
+      pool
     end
 
     # Starts processing jobs with the specified tube_names.
@@ -72,14 +76,14 @@ module Backburner
     end
 
     # List of tube names to be watched and processed
-    attr_accessor :tube_names, :connection
+    attr_accessor :tube_names, :connection_pool
 
     # Constructs a new worker for processing jobs within specified tubes.
     #
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
-      @connection = new_connection
+      @connection_pool = new_connection_pool
       @tube_names = self.process_tube_names(tube_names)
       register_signal_handlers!
     end
@@ -134,10 +138,14 @@ module Backburner
     # @example
     #   @worker.work_one_job
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    def work_one_job(conn = connection)
+    def work_one_job(pool = connection_pool)
       begin
+        conn = pool.pick_connection
         job = reserve_job(conn)
       rescue Beaneater::TimedOutError => e
+        return
+      rescue ::TCPTimeout::SocketTimeout
+        pool.deactivate(conn)
         return
       end
 
@@ -179,8 +187,8 @@ module Backburner
     protected
 
     # Return a new connection instance
-    def new_connection
-      Connection.new(Backburner.configuration.beanstalk_url) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    def new_connection_pool
+      Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
     end
 
     # Reserve a job from the watched queues
@@ -192,7 +200,7 @@ module Backburner
     # Filtered for tubes that match the known prefix
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
+      existing_tubes  = self.connection_pool.active_connections.map{|conn| conn.tubes.all.map(&:name) }.flatten.select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
       existing_tubes + known_queues + [queue_config.primary_queue]
     end
 

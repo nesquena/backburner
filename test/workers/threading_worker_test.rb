@@ -60,6 +60,7 @@ describe "Backburner::Workers::Threading worker" do
     end
 
     it 'runs work_on_job per thread' do
+      $worker_test_count = 0
       clear_jobs!("foo")
       job_count=10
       # TestJob adds the given arguments together and then to $worker_test_count
