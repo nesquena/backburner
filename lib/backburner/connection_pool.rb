@@ -13,6 +13,7 @@ module Backburner
     attr_accessor :current_connection
 
     DEACTIVATE_TIME = 60 * 3
+    RECONNECT_FAILED_TIME = 60 * 10
 
     def initialize(beanstalk_urls, options = {}, &on_reconnect)
       @beanstalk_urls = beanstalk_urls
@@ -42,7 +43,7 @@ module Backburner
         end
       end
 
-      last_reconnect = Time.now
+      @last_reconnect = Time.now
 
       raise errors.first if @connections.count < 1
 
@@ -57,6 +58,7 @@ module Backburner
     def pick_connection
       @counter += 1
       reactivate_connections
+      reconnect_failed_connections if (@last_reconnect + RECONNECT_FAILED_TIME) < Time.now
       idx = @counter % active_connections.size
       self.current_connection = active_connections[idx]
       raise NoActiveConnection unless self.current_connection
@@ -77,7 +79,7 @@ module Backburner
       end
     end
 
-    def reconnect_railed_connections
+    def reconnect_failed_connections
       urls = @failed_connections
       @failed_connections = []
       urls.each do |url|
@@ -89,7 +91,7 @@ module Backburner
           @failed_connections << url
         end
       end
-      last_reconnect = Time.now
+      @last_reconnect = Time.now
     end
 
     def alive?
