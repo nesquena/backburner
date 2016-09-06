@@ -46,8 +46,8 @@ module Backburner
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       rescue Beaneater::TimedOutError
         retry
-      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected
-        pool.deactivate(connection)
+      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
+        current_pool.deactivate(connection)
         retry
       end
 
@@ -147,6 +147,12 @@ module Backburner
       rescue ::TCPTimeout::SocketTimeout
         pool.deactivate(conn)
         return
+      rescue Beaneater::NotConnected
+        pool.deactivate(conn)
+        return
+      rescue Backburner::ConnectionPool::NoActiveConnection
+        pool.reconnect_with_backoff
+        return
       end
 
       self.log_job_begin(job.name, job.args)
@@ -156,31 +162,36 @@ module Backburner
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
-      e = Backburner::Job::DroppedJobError.new(e) if queue_config.max_job_buries >= 0 && job&.stats&.buries.to_i >= queue_config.max_job_buries
-      self.log_error self.exception_message(e)
+      begin
+        e = Backburner::Job::DroppedJobError.new(e) if queue_config.max_job_buries >= 0 && job&.stats&.buries.to_i >= queue_config.max_job_buries
+        self.log_error self.exception_message(e)
 
-      unless job
-        self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"
+        unless job
+          self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"
+          return
+        end
+
+        # NB: There's a slight chance here that the connection to beanstalkd has
+        # gone down between the time we reserved / processed the job and here.
+        num_retries = job.stats.releases
+        retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
+        if num_retries < queue_config.max_job_retries # retry again
+          delay = queue_config.retry_delay_proc.call(queue_config.retry_delay, num_retries) rescue queue_config.retry_delay
+          job.retry(num_retries + 1, delay)
+          self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
+        elsif queue_config.max_job_buries >= 0 && job.stats.buries >= queue_config.max_job_buries # too many buries, drop the job
+          job.drop(e)
+          self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping") if job_started_at
+        else # retries failed, bury
+          job.bury
+          self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+        end
+        handle_error(e, job.name, job.args, job)
+      rescue Exception => e
+        puts e
         return
       end
 
-      # NB: There's a slight chance here that the connection to beanstalkd has
-      # gone down between the time we reserved / processed the job and here.
-      num_retries = job.stats.releases
-      retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
-      if num_retries < queue_config.max_job_retries # retry again
-        delay = queue_config.retry_delay_proc.call(queue_config.retry_delay, num_retries) rescue queue_config.retry_delay
-        job.retry(num_retries + 1, delay)
-        self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
-      elsif queue_config.max_job_buries >= 0 && job.stats.buries >= queue_config.max_job_buries # too many buries, drop the job
-        job.drop(e)
-        self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping") if job_started_at
-      else # retries failed, bury
-        job.bury
-        self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
-      end
-
-      handle_error(e, job.name, job.args, job)
     end
 
 
