@@ -1,7 +1,7 @@
 require 'delegate'
 
 module Backburner
-  class Connection < SimpleDelegator
+  class Connection
     class BadURL < RuntimeError; end
 
     attr_accessor :url, :beanstalk
@@ -28,7 +28,6 @@ module Backburner
     def close
       @beanstalk.close if @beanstalk
       @beanstalk = nil
-      __setobj__(@beanstalk)
     end
 
     # Determines if the connection to Beanstalk is currently open
@@ -62,7 +61,7 @@ module Backburner
     #   :retry_delay       Float   The amount to sleep before retrying. Defaults to 1.0
     # @raise Beaneater::NotConnected If a connection is unable to be re-established
     def retryable(options = {}, &block)
-      options = {:max_retries => 4, :on_retry => nil, :retry_delay => 1.0}.merge!(options)
+      options = {:max_retries => 1, :on_retry => nil, :retry_delay => 1.0}.merge!(options)
       retry_count = options[:max_retries]
 
       begin
@@ -72,7 +71,6 @@ module Backburner
         if retry_count > 0
           reconnect!
           retry_count -= 1
-          sleep options[:retry_delay]
           options[:on_retry].call if options[:on_retry].respond_to?(:call)
           retry
         else # stop retrying
@@ -81,21 +79,25 @@ module Backburner
       end
     end
 
+    def tubes
+      ensure_connected!
+      @beanstalk.tubes
+    end
+
     protected
 
     # Attempt to ensure we're connected to Beanstalk if the missing method is
     # present in the delegate and we haven't shut down the connection on purpose
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect after multiple attempts.
-    def method_missing(m, *args, &block)
-      ensure_connected! if respond_to_missing?(m, false)
-      super
-    end
+    #def method_missing(m, *args, &block)
+      #ensure_connected! if respond_to_missing?(m, false)
+      #@beanstalk.send m, *args, &block
+    #end
 
     # Connects to a beanstalk queue
     # @raise Beaneater::NotConnected if the connection cannot be established
     def connect!
       @beanstalk = Beaneater.new(beanstalk_addresses, @options)
-      __setobj__(@beanstalk)
       @beanstalk
     end
 
@@ -115,7 +117,6 @@ module Backburner
       rescue Beaneater::NotConnected => e
         if max_retries > 0
           max_retries -= 1
-          sleep retry_delay
           retry
         else # stop retrying
           raise e

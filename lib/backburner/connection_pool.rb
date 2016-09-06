@@ -34,6 +34,7 @@ module Backburner
 
       @beanstalk_urls.each do |url|
         begin
+          puts "connect to #{url}"
           conn = Backburner::Connection.new(url, @options)
           @connections << conn
           @active_connections << conn if conn.connected?
@@ -56,6 +57,7 @@ module Backburner
     end
 
     def pick_connection
+      raise NoActiveConnection if active_connections.size.zero?
       @counter += 1
       reactivate_connections
       reconnect_failed_connections if (@last_reconnect + RECONNECT_FAILED_TIME) < Time.now
@@ -72,11 +74,22 @@ module Backburner
 
     def reactivate_connections
       inactive_connections.each do |ts, conn|
-        if (ts + DEACTIVATE_TIME) > Time.now.to_f
+        if (ts + DEACTIVATE_TIME) < Time.now.to_f
           active_connections << conn
           inactive_connections.delete ts
         end
       end
+    end
+
+    def reconnect_with_backoff
+      @reconnect_backoff ||= 0
+      sleep_time = @reconnect_backoff < 10 ? @reconnect_backoff : 10
+      sleep sleep_time
+
+      reconnect!
+      @reconnect_backoff = 0 if self.alive?
+    rescue Beaneater::NotConnected
+      @reconnect_backoff += 1
     end
 
     def reconnect_failed_connections
