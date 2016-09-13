@@ -49,8 +49,8 @@ module Backburner
         @thread_pools.each do |tube_name, pool|
           pool.max_length.times do
             # Create a new connection and set it up to listen on this tube name
-            connection_pool = new_connection_pool.tap{ |conn_pool| conn_pool.active_connections.map{|conn| conn.tubes.watch!(tube_name)} }
-            connection_pool.on_reconnect = lambda { |conn_pool| conn_pool.active_connections.map{|conn| conn.tubes.watch!(tube_name)} }
+            connection_pool = new_connection_pool.tap{ |conn_pool| conn_pool.connections.map{|conn| conn.tubes.watch!(tube_name)} }
+            connection_pool.on_reconnect = lambda { |conn| conn.tubes.watch!(tube_name)}
 
             # Make it work jobs using its own connection per thread
             pool.post(connection_pool) do |memo_connection|

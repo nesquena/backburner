@@ -57,7 +57,10 @@ module Backburner
     def self.current_pool
       pool = Thread.current[:beanstalkd_connection_pool]
       unless pool && pool.alive?
-        Thread.current[:beanstalkd_connection_pool] = pool = Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options)
+        pool = Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options) do |conn|
+          Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn)
+        end
+        Thread.current[:beanstalkd_connection_pool] = pool
       end
       pool
     end
@@ -188,7 +191,6 @@ module Backburner
         end
         handle_error(e, job.name, job.args, job)
       rescue Exception => e
-        puts e
         return
       end
 
@@ -211,7 +213,7 @@ module Backburner
     # Filtered for tubes that match the known prefix
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection_pool.active_connections.map{|conn| conn.tubes.all.map(&:name) }.flatten.select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
+      existing_tubes  = self.connection_pool.connections.map{|conn| conn.tubes.all.map(&:name) }.flatten.select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
       existing_tubes + known_queues + [queue_config.primary_queue]
     end
 

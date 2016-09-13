@@ -20,7 +20,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new(["foo", "bar"])
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection_pool.active_connections.map {|conn| conn.tubes.watched.map(&:name) }.flatten
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection_pool.connections.map {|conn| conn.tubes.watched.map(&:name) }.flatten
       assert_match(/demo\.test\.foo/, out)
     end # multiple
 
@@ -28,7 +28,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new("foo")
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
-      assert_same_elements ["demo.test.foo"], worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
+      assert_same_elements ["demo.test.foo"], worker.connection_pool.connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
       assert_match(/demo\.test\.foo/, out)
     end # single
 
@@ -37,7 +37,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo", "demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
+      assert_same_elements ["demo.test.foo", "demo.test.bar"], worker.connection_pool.connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
       assert_match(/demo\.test\.foo/, out)
     end
 
@@ -46,7 +46,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_equal ["demo.test.bar"], worker.tube_names
-      assert_same_elements ["demo.test.bar"], worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name)}.flatten
+      assert_same_elements ["demo.test.bar"], worker.connection_pool.connections.map{|conn| conn.tubes.watched.map(&:name)}.flatten
       assert_match(/demo\.test\.bar/, out)
     end # all assign
 
@@ -54,7 +54,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new
       out = capture_stdout { worker.prepare }
       assert_contains worker.tube_names, "demo.test.backburner-jobs"
-      assert_contains worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name)}.flatten, "demo.test.backburner-jobs"
+      assert_contains worker.connection_pool.connections.map{|conn| conn.tubes.watched.map(&:name)}.flatten, "demo.test.backburner-jobs"
       assert_match(/demo\.test\.backburner-jobs/, out)
     end # all read
   end # prepare
@@ -287,7 +287,7 @@ describe "Backburner::Workers::Simple module" do
         HookedObjectBeforeEnqueueFail.async(:queue => 'foo.bar.events.retry2').foo(5)
       end
       expanded_tube = [Backburner.configuration.tube_namespace, 'foo.bar.events.retry2'].join(".")
-      assert_nil worker.connection_pool.active_connections.map{|conn| conn.tubes[expanded_tube].peek(:ready) }.first
+      assert_nil worker.connection_pool.connections.map{|conn| conn.tubes[expanded_tube].peek(:ready) }.first
     end # stopping enqueue
 
     it "should support event hooks with stopping perform" do

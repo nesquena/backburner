@@ -182,7 +182,10 @@ module Backburner
         @runs = 0
 
         if @threads_number == 1
-          watch_tube(name)
+          pool = self.connection_pool
+          pool.connections.each do |conn|
+            watch_tube(name, conn)
+          end
           run_while_can
         else
           threads_count = Thread.list.count
@@ -190,7 +193,9 @@ module Backburner
             create_thread do
               begin
                 pool = new_connection_pool
-                watch_tube(name, pool)
+                pool.connections.each do |conn|
+                  watch_tube(name, conn)
+                end
                 run_while_can(pool)
               ensure
                 pool.close_all if pool
@@ -212,9 +217,9 @@ module Backburner
       end
 
       # Shortcut for watching a tube on our beanstalk connection
-      def watch_tube(name, pool = connection_pool)
+      def watch_tube(name, conn)
         @watching_tube = name
-        pool.active_connections.each{|conn| conn.tubes.watch!(name)}
+        conn.tubes.watch!(name)
       end
 
       def on_reconnect(conn)

@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'tempfile'
 require 'minitest/autorun'
+require 'pry'
 begin
   require 'mocha/setup'
 rescue LoadError
@@ -118,7 +119,7 @@ class MiniTest::Spec
   # to be used when ensuring a Beaneater connection is open, therefore
   def simulate_disconnect(connection, reconnects_after = 2)
     connection.beanstalk.connection.connection.expects(:closed? => true)
-    returns = Array.new(reconnects_after - 1, stub('TCPSocket'))
+    returns = Array.new(reconnects_after - 1, stub('TCPTimeout::TCPSocket'))
     returns.each do |socket|
       result = (socket != returns.last)
       socket.stubs(:closed? => result)
