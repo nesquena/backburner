@@ -176,7 +176,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
           worker.prepare
           worker.fork_inner('demo.test.bar')
         end
-        assert_same_elements %W(demo.test.bar), worker.connection_pool.active_connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
+        assert_same_elements %W(demo.test.bar), worker.connection_pool.connections.map{|conn| conn.tubes.watched.map(&:name) }.flatten
       end
 
       it "should not create threads if the number of threads is 1" do
@@ -220,6 +220,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
         invocations = Array(1..num_threads).map do |i|
           pool = OpenStruct.new(:num => i)
+          conn = OpenStruct.new()
+          pool.expects(:connections).returns([conn])
           pool.expects(:close_all)
           pool
         end
@@ -228,8 +230,13 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         # ensure each invocation of run_while_can is with a different connection
         num_conns = states('num_conns').starts_as(0)
         invocations.each do |pool|
-          worker.expects(:watch_tube).with(name, pool)
+          conns = []
+          pool.connections.each do |conn|
+            conns << conn
+            worker.expects(:watch_tube).with(name, conn)
+          end
           worker.expects(:run_while_can).with(pool).when(num_conns.is(pool.num-1)).then(num_conns.is(pool.num))
+          pool.expects(:connections).returns(conns)
         end
 
         def worker.create_thread(*args, &block); block.call(*args) end
@@ -382,7 +389,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
         silenced do
           @response_worker = @worker_class.new('response')
-          @response_worker.watch_tube('demo.test.response')
+          @response_worker.watch_tube('demo.test.response', @worker_class.current_pool.connections.first)
         end
 
         @ignore_forks = true
@@ -407,10 +414,13 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
         @worker_class.enqueue TestJobFork, [1, 2], :queue => "foo.bar.1"
 
+        @response_worker.work_one_job
         silenced do
           @templogger.wait_for_match(/Completed TestJobFork/m)
           @response_worker.work_one_job
+          @response_worker.work_one_job
         end
+
         assert_equal 3, $worker_test_count
       end # enqueue
 
@@ -454,7 +464,9 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker = @worker_class.new('foo.bar.5')
         @worker.start(false)
         @worker_class.enqueue TestRetryJobFork, ["bam", "foo"], :queue => 'foo.bar.5'
-        silenced(2) do
+        @response_worker.work_one_job
+        @response_worker.work_one_job
+        silenced(10) do
           @templogger.wait_for_match(/Completed TestRetryJobFork/m)
           3.times { @response_worker.work_one_job }
         end
@@ -474,6 +486,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker.start(false)
 
         silenced do
+          @response_worker.work_one_job
           @templogger.wait_for_match(/Completed TestJobMultithreadFork/m)
           num_jobs.times { @response_worker.work_one_job }
         end

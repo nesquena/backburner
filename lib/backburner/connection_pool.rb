@@ -3,8 +3,6 @@ module Backburner
     class NoActiveConnection < RuntimeError; end
 
     attr_accessor :connections
-    attr_accessor :active_connections
-    attr_accessor :inactive_connections
     attr_accessor :failed_connections
     attr_accessor :last_reconnect
 
@@ -12,8 +10,7 @@ module Backburner
 
     attr_accessor :current_connection
 
-    DEACTIVATE_TIME = 60 * 3
-    RECONNECT_FAILED_TIME = 60 * 10
+    RECONNECT_FAILED_TIME = 15
 
     def initialize(beanstalk_urls, options = {}, &on_reconnect)
       @beanstalk_urls = beanstalk_urls
@@ -26,18 +23,14 @@ module Backburner
 
     def connect!
       @connections = []
-      @active_connections = []
-      @inactive_connections = {}
       @failed_connections = []
 
       errors = []
 
       @beanstalk_urls.each do |url|
         begin
-          puts "connect to #{url}"
-          conn = Backburner::Connection.new(url, @options)
+          conn = Backburner::Connection.new(url, @options, &@on_reconnect)
           @connections << conn
-          @active_connections << conn if conn.connected?
         rescue Exception => e
           errors << e
           @failed_connections << url
@@ -53,32 +46,19 @@ module Backburner
     def reconnect!
       close_all
       connect!
-      @on_reconnect.call(self) if @on_reconnect.respond_to?(:call)
+      connections.each do |conn|
+        @on_reconnect.call(conn) if @on_reconnect.respond_to?(:call)
+      end
     end
 
     def pick_connection
-      raise NoActiveConnection if active_connections.size.zero?
       @counter += 1
-      reactivate_connections
       reconnect_failed_connections if (@last_reconnect + RECONNECT_FAILED_TIME) < Time.now
-      idx = @counter % active_connections.size
-      self.current_connection = active_connections[idx]
-      raise NoActiveConnection unless self.current_connection
+      raise NoActiveConnection if connections.size.zero?
+      idx = @counter % connections.size
+      self.current_connection = connections[idx]
+      raise NoActiveConnection if connections.size.zero?
       return self.current_connection
-    end
-
-    def deactivate(conn)
-      active_connections.delete conn
-      inactive_connections[Time.now.to_f] = conn
-    end
-
-    def reactivate_connections
-      inactive_connections.each do |ts, conn|
-        if (ts + DEACTIVATE_TIME) < Time.now.to_f
-          active_connections << conn
-          inactive_connections.delete ts
-        end
-      end
     end
 
     def reconnect_with_backoff
@@ -92,14 +72,19 @@ module Backburner
       @reconnect_backoff += 1
     end
 
+    def deactivate(conn)
+      connections.delete conn
+      failed_connections << conn.url
+    end
+
     def reconnect_failed_connections
       urls = @failed_connections
       @failed_connections = []
       urls.each do |url|
         begin
-          conn = Backburner::Connection.new(url, @options)
+          conn = Backburner::Connection.new(url, @options, &@on_reconnect)
+          @on_reconnect.call(conn) if @on_reconnect.respond_to? :call
           @connections << conn
-          @active_connections << conn if conn.connected?
         rescue
           @failed_connections << url
         end
@@ -108,7 +93,7 @@ module Backburner
     end
 
     def alive?
-      active_connections.any? do |conn|
+      connections.any? do |conn|
         conn.connected?
       end
     end

@@ -61,7 +61,7 @@ module Backburner
     #   :retry_delay       Float   The amount to sleep before retrying. Defaults to 1.0
     # @raise Beaneater::NotConnected If a connection is unable to be re-established
     def retryable(options = {}, &block)
-      options = {:max_retries => 1, :on_retry => nil, :retry_delay => 1.0}.merge!(options)
+      options = {:max_retries => 4, :on_retry => nil, :retry_delay => 1.0}.merge!(options)
       retry_count = options[:max_retries]
 
       begin
@@ -82,6 +82,15 @@ module Backburner
     def tubes
       ensure_connected!
       @beanstalk.tubes
+    end
+
+    def stats
+      ensure_connected!
+      @beanstalk.stats
+    end
+
+    def connection
+      @beanstalk.connection
     end
 
     protected
