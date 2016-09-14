@@ -159,7 +159,7 @@ module Backburner
 
       self.log_job_begin(job.name, job.args, conn)
       job.process
-      self.log_job_end(job.name, conn)
+      self.log_job_end(job.name, nil, conn)
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
@@ -180,13 +180,13 @@ module Backburner
         if num_retries < queue_config.max_job_retries # retry again
           delay = queue_config.retry_delay_proc.call(queue_config.retry_delay, num_retries) rescue queue_config.retry_delay
           job.retry(num_retries + 1, delay)
-          self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
+          self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s", conn) if job_started_at
         elsif queue_config.max_job_buries >= 0 && job.stats.buries >= queue_config.max_job_buries # too many buries, drop the job
           job.drop(e)
-          self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping") if job_started_at
+          self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping", conn) if job_started_at
         else # retries failed, bury
           job.bury
-          self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+          self.log_job_end(job.name, "#{retry_status}, burying", conn) if job_started_at
         end
         handle_error(e, job.name, job.args, job)
       rescue Exception => e
