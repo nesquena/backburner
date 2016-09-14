@@ -164,6 +164,9 @@ module Backburner
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
+    rescue Beaneater::NotFoundError
+      pool.deactivate(conn)
+      return
     rescue => e # Error occurred processing job
       begin
         e = Backburner::Job::DroppedJobError.new(e) if queue_config.max_job_buries >= 0 && job&.stats&.buries.to_i >= queue_config.max_job_buries
