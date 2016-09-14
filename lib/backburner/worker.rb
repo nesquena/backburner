@@ -157,9 +157,9 @@ module Backburner
         return
       end
 
-      self.log_job_begin(job.name, job.args)
+      self.log_job_begin(job.name, job.args, conn)
       job.process
-      self.log_job_end(job.name)
+      self.log_job_end(job.name, conn)
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
