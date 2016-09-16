@@ -17,7 +17,7 @@ module Backburner
       end
 
       def message
-        "<<From #{@error.class.name}>> #{super}"
+        "[JOB DROPPED] #{super}"
       end
     end
 
