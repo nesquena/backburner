@@ -109,7 +109,7 @@ describe "Backburner::Connection class" do
 
     describe "ensuring the connection is open" do
       it "should reattempt the connection to beanstalk several times" do
-        stats = @connection.stats
+        @connection.stats
         simulate_disconnect(@connection)
         new_connection = Beaneater.new('127.0.0.1:11300')
         Beaneater.expects(:new).twice.raises(Beaneater::NotConnected).then.returns(new_connection)

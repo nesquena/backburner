@@ -1,3 +1,4 @@
+require 'tcp_timeout'
 require 'backburner/job'
 
 module Backburner
@@ -36,25 +37,31 @@ module Backburner
 
       begin
         response = nil
-        connection = current_connection
+        connection = current_pool.pick_connection
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
-      #ensure
-        #connection.close if connection
+      rescue Beaneater::TimedOutError
+        retry
+      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
+        current_pool.deactivate(connection)
+        retry
       end
 
       response
     end
 
-    def self.current_connection
-      conn = Thread.current[:beanstalkd_connection]
-      unless conn && conn.connected?
-        Thread.current[:beanstalkd_connection] = conn = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+    def self.current_pool
+      pool = Thread.current[:beanstalkd_connection_pool]
+      unless pool && pool.alive?
+        pool = Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options) do |conn|
+          Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn)
+        end
+        Thread.current[:beanstalkd_connection_pool] = pool
       end
-      conn
+      pool
     end
 
     # Starts processing jobs with the specified tube_names.
@@ -71,14 +78,14 @@ module Backburner
     end
 
     # List of tube names to be watched and processed
-    attr_accessor :tube_names, :connection
+    attr_accessor :tube_names, :connection_pool
 
     # Constructs a new worker for processing jobs within specified tubes.
     #
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
-      @connection = new_connection
+      @connection_pool = new_connection_pool
       @tube_names = self.process_tube_names(tube_names)
       register_signal_handlers!
     end
@@ -133,53 +140,70 @@ module Backburner
     # @example
     #   @worker.work_one_job
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    def work_one_job(conn = connection)
+    def work_one_job(pool = connection_pool)
       begin
+        conn = pool.pick_connection
         job = reserve_job(conn)
       rescue Beaneater::TimedOutError => e
         return
-      end
-
-      self.log_job_begin(job.name, job.args)
-      job.process
-      self.log_job_end(job.name)
-
-    rescue Backburner::Job::JobFormatInvalid => e
-      self.log_error self.exception_message(e)
-    rescue => e # Error occurred processing job
-      e = Backburner::Job::DroppedJobError.new(e) if queue_config.max_job_buries >= 0 && job&.stats&.buries.to_i >= queue_config.max_job_buries
-      self.log_error self.exception_message(e)
-
-      unless job
-        self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"
+      rescue ::TCPTimeout::SocketTimeout
+        pool.deactivate(conn)
+        return
+      rescue Beaneater::NotConnected
+        pool.deactivate(conn)
+        return
+      rescue Backburner::ConnectionPool::NoActiveConnection
+        pool.reconnect_with_backoff
         return
       end
 
-      # NB: There's a slight chance here that the connection to beanstalkd has
-      # gone down between the time we reserved / processed the job and here.
-      num_retries = job.stats.releases
-      retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
-      if num_retries < queue_config.max_job_retries # retry again
-        delay = queue_config.retry_delay_proc.call(queue_config.retry_delay, num_retries) rescue queue_config.retry_delay
-        job.retry(num_retries + 1, delay)
-        self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
-      elsif queue_config.max_job_buries >= 0 && job.stats.buries >= queue_config.max_job_buries # too many buries, drop the job
-        job.drop(e)
-        self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping") if job_started_at
-      else # retries failed, bury
-        job.bury
-        self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+      self.log_job_begin(job.name, job.args, conn)
+      job.process
+      self.log_job_end(job.name, nil, conn)
+
+    rescue Backburner::Job::JobFormatInvalid => e
+      self.log_error self.exception_message(e)
+    rescue Beaneater::NotFoundError
+      pool.deactivate(conn)
+      return
+    rescue => e # Error occurred processing job
+      begin
+        e = Backburner::Job::DroppedJobError.new(e) if queue_config.max_job_buries >= 0 && job&.stats&.buries.to_i >= queue_config.max_job_buries
+        self.log_error self.exception_message(e)
+
+        unless job
+          self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"
+          return
+        end
+
+        # NB: There's a slight chance here that the connection to beanstalkd has
+        # gone down between the time we reserved / processed the job and here.
+        num_retries = job.stats.releases
+        retry_status = "failed: attempt #{num_retries+1} of #{queue_config.max_job_retries+1}"
+        if num_retries < queue_config.max_job_retries # retry again
+          delay = queue_config.retry_delay_proc.call(queue_config.retry_delay, num_retries) rescue queue_config.retry_delay
+          job.retry(num_retries + 1, delay)
+          self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s", conn) if job_started_at
+        elsif queue_config.max_job_buries >= 0 && job.stats.buries >= queue_config.max_job_buries # too many buries, drop the job
+          job.drop(e)
+          self.log_job_end(job.name, "failed: bury limit (#{queue_config.max_job_buries}) exceeded, dropping", conn) if job_started_at
+        else # retries failed, bury
+          job.bury
+          self.log_job_end(job.name, "#{retry_status}, burying", conn) if job_started_at
+        end
+        handle_error(e, job.name, job.args, job)
+      rescue Exception => e
+        return
       end
 
-      handle_error(e, job.name, job.args, job)
     end
 
 
     protected
 
     # Return a new connection instance
-    def new_connection
-      Connection.new(Backburner.configuration.beanstalk_url) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    def new_connection_pool
+      Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
     end
 
     # Reserve a job from the watched queues
@@ -191,7 +215,7 @@ module Backburner
     # Filtered for tubes that match the known prefix
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
+      existing_tubes  = self.connection_pool.connections.map{|conn| conn.tubes.all.map(&:name) }.flatten.select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
       existing_tubes + known_queues + [queue_config.primary_queue]
     end
 

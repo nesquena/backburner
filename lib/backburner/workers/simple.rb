@@ -11,7 +11,7 @@ module Backburner
       def prepare
         self.tube_names.map! { |name| expand_tube_name(name)  }.uniq!
         log_info "Working #{tube_names.size} queues: [ #{tube_names.join(', ')} ]"
-        self.connection.tubes.watch!(*self.tube_names)
+        self.connection_pool.connections.map {|conn| conn.tubes.watch!(*self.tube_names) }.flatten
       end
 
       # Starts processing new jobs indefinitely.
@@ -23,6 +23,10 @@ module Backburner
       def start
         prepare
         loop { work_one_job }
+      end
+
+      def on_reconnect(conn)
+        conn.tubes.watch!(*self.tube_names)
       end
     end # Basic
   end # Workers
