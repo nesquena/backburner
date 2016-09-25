@@ -10,11 +10,14 @@ module Backburner
 
     attr_accessor :current_connection
 
+    attr_accessor :success
+
     RECONNECT_FAILED_TIME = 15
+    CONSECUTIVE_SUCCESS_TUBE = 20
 
     def initialize(beanstalk_urls, options = {}, &on_reconnect)
       @beanstalk_urls = beanstalk_urls
-      @counter = rand(beanstalk_urls.size)
+      @counter = rand(beanstalk_urls.size * CONSECUTIVE_SUCCESS_TUBE)
       @options = options
       @on_reconnect = on_reconnect
       connect!
@@ -52,10 +55,12 @@ module Backburner
     end
 
     def pick_connection
-      @counter += 1
+      inc = @success ? 1 : CONSECUTIVE_SUCCESS_TUBE
+      @counter += inc
+      @success = false
       reconnect_failed_connections if (@last_reconnect + RECONNECT_FAILED_TIME) < Time.now
       raise NoActiveConnection if connections.size.zero?
-      idx = @counter % connections.size
+      idx = (@counter / CONSECUTIVE_SUCCESS_TUBE) % connections.size
       self.current_connection = connections[idx]
       raise NoActiveConnection if connections.size.zero?
       return self.current_connection
