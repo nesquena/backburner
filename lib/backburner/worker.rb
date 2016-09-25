@@ -160,11 +160,14 @@ module Backburner
       self.log_job_begin(job.name, job.args, conn)
       job.process
       self.log_job_end(job.name, nil, conn)
+      pool.success = true
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue Beaneater::NotFoundError
       pool.deactivate(conn)
+      return
+    rescue Beaneater::TimedOutError => e
       return
     rescue => e # Error occurred processing job
       begin
