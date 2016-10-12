@@ -54,6 +54,8 @@ describe "Backburner::Workers::Threading worker" do
     before do
       @worker = @worker_class.new(["foo:3"])
       capture_stdout { @worker.prepare }
+      $worker_test_count = 0
+      $worker_success = false
     end
 
     it 'runs work_on_job per thread' do
