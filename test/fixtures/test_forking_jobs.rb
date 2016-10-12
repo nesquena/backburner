@@ -1,3 +1,6 @@
+$worker_test_count = 0
+$worker_success = false
+
 class ResponseForkingJob
   include Backburner::Queue
   queue_priority 1000
