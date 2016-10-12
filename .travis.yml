@@ -9,11 +9,14 @@ before_install:
   - make
   - ./beanstalkd &
   - cd $TRAVIS_BUILD_DIR
+  - gem update --system
+  - gem update bundler
+install:
+  - bundle install
 matrix:
   allow_failures:
     - rvm: rbx-2
 script:
-  - bundle install
   - bundle exec rake test
 gemfile: Gemfile
 notifications:

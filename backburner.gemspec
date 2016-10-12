@@ -23,5 +23,4 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest', '3.2.0'
   s.add_development_dependency 'mocha'
-  s.add_development_dependency 'byebug'
 end
