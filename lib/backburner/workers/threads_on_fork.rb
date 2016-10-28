@@ -74,12 +74,12 @@ module Backburner
       end
 
       # Process the special tube_names of ThreadsOnFork worker
-      # The idea is tube_name:custom_threads_limit:custom_garbage_limit:custom_retries
+      # The idea is tube_name:custom_threads_limit:custom_garbage_limit:custom_retries:custom_buries
       # Any custom can be ignore. So if you want to set just the custom_retries
       # you will need to write this 'tube_name:::10'
       #
       # @example
-      #    process_tube_names(['foo:10:5:1', 'bar:2::3', 'lol'])
+      #    process_tube_names(['foo:10:5:1:3', 'bar:2::3', 'lol'])
       #    => ['foo', 'bar', 'lol']
       def process_tube_names(tube_names)
         names = compact_tube_names(tube_names)
@@ -92,10 +92,12 @@ module Backburner
             threads_number = data[1].empty? ? nil : data[1].to_i rescue nil
             garbage_number = data[2].empty? ? nil : data[2].to_i rescue nil
             retries_number = data[3].empty? ? nil : data[3].to_i rescue nil
+            buries_number  = data[4].empty? ? nil : data[4].to_i rescue nil
             @tubes_data[expand_tube_name(tube_name)] = {
                 :threads => threads_number,
                 :garbage => garbage_number,
-                :retries => retries_number
+                :retries => retries_number,
+                :buries => buries_number
             }
             tube_name
           end
@@ -113,7 +115,8 @@ module Backburner
           queue_settings = {
               :threads => queue.queue_jobs_limit,
               :garbage => queue.queue_garbage_limit,
-              :retries => queue.queue_retry_limit
+              :retries => queue.queue_retry_limit,
+              :buries => queue.queue_bury_limit
           }
           @tubes_data[expand_tube_name(queue)].merge!(queue_settings){|k, v1, v2| v2.nil? ? v1 : v2 }
         end
@@ -173,6 +176,7 @@ module Backburner
       def fork_inner(name)
         if @tubes_data[name]
           queue_config.max_job_retries = @tubes_data[name][:retries] if @tubes_data[name][:retries]
+          queue_config.max_job_buries = @tubes_data[name][:buries] if @tubes_data[name][:buries]
         else
           @tubes_data[name] = {}
         end
