@@ -92,12 +92,12 @@ class MiniTest::Spec
   end
 
   # pop_one_job(tube_name)
-  def pop_one_job(tube_name=Backburner.configuration.primary_queue, &block)
+  def pop_one_job(tube_name=Backburner.configuration.primary_queue)
     tube_name  = [Backburner.configuration.tube_namespace, tube_name].join(".")
     connection = beanstalk_connection
     connection.tubes.watch!(tube_name)
     silenced(3) { @res = connection.tubes.reserve }
-    yield @res, JSON.parse(@res.body)
+    yield @res, Backburner.configuration.job_parser_proc.call(@res.body)
   ensure
     connection.close if connection
   end

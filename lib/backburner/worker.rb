@@ -39,7 +39,8 @@ module Backburner
         connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
-          response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+          serialized_data = Backburner.configuration.job_serializer_proc.call(data)
+          response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       ensure
