@@ -102,6 +102,9 @@ Backburner.configure do |config|
   config.primary_queue       = "backburner-jobs"
   config.priority_labels     = { :custom => 50, :useless => 1000 }
   config.reserve_timeout     = nil
+  config.job_serializer_proc = lambda { |body| JSON.dump(body) }
+  config.job_parser_proc     = lambda { |body| JSON.parse(body) }
+
 end
 ```
 
@@ -123,6 +126,8 @@ The key options available are:
 | `primary_queue`       | Primary queue used for a job when an alternate queue is not given.   |
 | `priority_labels`     | Hash of named priority definitions for your app.                     |
 | `reserve_timeout`     | Duration to wait for work from a single server, or nil for forever.  |
+| `job_serializer_proc` | Lambda serializes a job body to a string to write to the task        |
+| `job_parser_proc`     | Lambda parses a task body string to a hash                           |
 
 ## Breaking Changes
 
