@@ -21,8 +21,9 @@ module Backburner
     def initialize(task)
       @hooks = Backburner::Hooks
       @task = task
-      @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
-      @name, @args = body["class"], body["args"]
+      @body = task.body.is_a?(Hash) ? task.body : Backburner.configuration.job_parser_proc.call(task.body)
+      @name = body["class"] || body[:class]
+      @args = body["args"] || body[:args]
     rescue => ex # Job was not valid format
       self.bury
       raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"

@@ -125,4 +125,33 @@ describe "Backburner::Worker module" do
       assert_equal ['baz', 'bam'], worker.tube_names
     end
   end # tube_names
+
+  describe "for custom serialization" do
+    before do
+      Backburner.configure do |config|
+        @old_parser = config.job_parser_proc
+        @old_serializer = config.job_serializer_proc
+        config.job_parser_proc = lambda { |body| Marshal.load(body) }
+        config.job_serializer_proc = lambda { |body| Marshal.dump(body) }
+      end
+    end
+
+    after do
+      clear_jobs!('test-plain')
+      Backburner.configure do |config|
+        config.job_parser_proc = @old_parser
+        config.job_serializer_proc = @old_serializer
+      end
+    end
+
+    it "should support enqueuing a job" do
+      Backburner::Worker.enqueue TestPlainJob, [7, 9], :ttr => 100, :pri => 2000
+      pop_one_job("test-plain") do |job, body|
+        assert_equal "TestPlainJob", body[:class]
+        assert_equal [7, 9], body[:args]
+        assert_equal 100, job.ttr
+        assert_equal 2000, job.pri
+      end
+    end
+  end # custom serialization
 end # Backburner::Worker

@@ -17,6 +17,8 @@ module Backburner
     attr_accessor :primary_queue       # the general queue
     attr_accessor :priority_labels     # priority labels
     attr_accessor :reserve_timeout     # duration to wait to reserve on a single server
+    attr_accessor :job_serializer_proc # proc to write the job body to a string
+    attr_accessor :job_parser_proc     # proc to parse a job body from a string
 
     def initialize
       @beanstalk_url       = "beanstalk://127.0.0.1"
@@ -34,6 +36,8 @@ module Backburner
       @primary_queue       = "backburner-jobs"
       @priority_labels     = PRIORITY_LABELS
       @reserve_timeout     = nil
+      @job_serializer_proc = lambda { |body| body.to_json }
+      @job_parser_proc     = lambda { |body| JSON.parse(body) }
     end
 
     def namespace_separator=(val)
