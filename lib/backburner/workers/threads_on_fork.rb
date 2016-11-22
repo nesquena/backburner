@@ -192,7 +192,7 @@ module Backburner
           @threads_number.times do
             create_thread do
               begin
-                pool = new_connection_pool
+                pool = new_connection_pool(true)
                 pool.connections.each do |conn|
                   watch_tube(name, conn)
                 end
