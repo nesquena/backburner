@@ -10,5 +10,6 @@ class TestJobSettingsOverride
   queue_jobs_limit 10
   queue_garbage_limit 1000
   queue_retry_limit 2
+  queue_bury_limit 3
   def self.perform; end
 end
