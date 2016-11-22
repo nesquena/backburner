@@ -65,5 +65,9 @@ module Backburner
     def beanstalk_url
       Array(@beanstalk_url)
     end
+
+    def beanstalk_worker_url
+      @beanstalk_worker_url ? Array(@beanstalk_worker_url) : beanstalk_url
+    end
   end # Configuration
 end # Backburner
