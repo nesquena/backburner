@@ -88,7 +88,7 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 
 ```ruby
 Backburner.configure do |config|
-  config.beanstalk_url       = ["beanstalk://127.0.0.1", "..."]
+  config.beanstalk_url       = "beanstalk://127.0.0.1"
   config.tube_namespace      = "some.app.production"
   config.namespace_separator = "."
   config.on_error            = lambda { |e| puts e }
@@ -112,7 +112,7 @@ The key options available are:
 
 | Option                | Description                                                          |
 | -----------------     | -------------------------------                                      |
-| `beanstalk_url`       | Address such as 'beanstalk://127.0.0.1' or an array of addresses.    |
+| `beanstalk_url`       | Address for beanstalkd connection i.e 'beanstalk://127.0.0.1'        |
 | `tube_namespace`      | Prefix used for all tubes related to this backburner queue.          |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
