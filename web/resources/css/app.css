@@ -1,0 +1,26 @@
+.navbar-inverse .brand {
+    color: #00A3C9;
+}
+
+a:link { color: #00A3C9; }
+a:visited { color: #00A3C9; }
+a:hover { color: #00A3C9; }
+a:active { color: #00A3C9; }
+
+#footer_credit {
+    padding-top: 20px;
+    text-align: center;
+}
+
+#stats {
+    height: 260px;
+}
+
+.stats_table {
+    width: 100%;
+}
+.stats_name {
+}.stats_value {
+    text-align: right;
+    font-weight: bold;
+}
