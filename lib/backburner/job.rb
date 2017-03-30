@@ -72,6 +72,30 @@ module Backburner
       task.release(delay: delay)
     end
 
+    # Locate a job that is already enqueued based on it's job id
+    def self.find_by_id(job_id)
+      begin
+        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+        job = connection.jobs.find(job_id)
+        raise JobNotFound, "No job found with id: #{job_id}." if job.nil?
+      ensure
+        connection.close if connection
+      end
+      job
+    end
+
+    def self.cancel(job_id)
+      begin
+        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+        job = connection.jobs.find(job_id)
+        raise JobNotFound, "No job found with id: #{job_id}." if job.nil?
+        response = job.delete
+      ensure
+        connection.close if connection
+      end
+      response
+    end
+
     protected
 
     # Returns the class for the job handler

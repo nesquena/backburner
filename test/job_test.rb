@@ -1,4 +1,5 @@
-require File.expand_path('../test_helper', __FILE__)
+require_relative 'test_helper'
+require_relative 'fixtures/test_jobs'
 
 module NestedDemo
   class TestJobC
@@ -154,6 +155,56 @@ describe "Backburner::Job module" do
         @job = Backburner::Job.new(@task)
         Timeout.expects(:timeout).with(1)
         @job.process
+      end
+    end
+  end
+
+  describe 'for finding job with id' do
+    before do
+      job = Backburner::Worker.enqueue TestPlainJob, [7, 9]
+      @job_id = job[:id].to_i
+    end
+
+    describe 'with invalid job id' do
+      it 'raises an exception' do
+        invalid_job_id = @job_id + 41
+        assert_raises(Backburner::Job::JobNotFound) { Backburner::Job.find_by_id(invalid_job_id) }
+      end
+    end
+
+    describe 'with valid job id' do
+      it 'returns job as enqueued' do
+        job = Backburner::Job.find_by_id(@job_id)
+        job_body = JSON.parse(job.body)
+        assert_equal "TestPlainJob", job_body['class']
+        assert_equal [7, 9], job_body['args']
+        assert_equal @job_id, job.id.to_i
+      end
+    end
+  end
+
+  describe 'for cancelling job with id' do
+    before do
+      job = Backburner::Worker.enqueue TestPlainJob, [7, 9]
+      @job_id = job[:id].to_i
+    end
+
+    describe 'with invalid job id' do
+      it 'raises an exception' do
+        invalid_job_id = @job_id + 2000
+        assert_raises(Backburner::Job::JobNotFound) { Backburner::Job.cancel invalid_job_id }
+      end
+    end
+
+    describe 'with valid job id' do
+      it 'returns status deleted upon cancellation' do
+        response = Backburner::Job.cancel(@job_id)
+        assert_equal 'DELETED', response[:status]
+      end
+
+      it 'cannot find job after cancelation' do
+        Backburner::Job.cancel(@job_id)
+        assert_raises(Backburner::Job::JobNotFound) { Backburner::Job.find_by_id @job_id }
       end
     end
   end

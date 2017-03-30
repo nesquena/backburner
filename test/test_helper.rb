@@ -6,9 +6,8 @@ begin
 rescue LoadError
   require 'mocha'
 end
-$:.unshift File.expand_path("../../lib")
-require 'backburner'
-require File.expand_path('../helpers/templogger', __FILE__)
+require_relative '../lib/backburner'
+require_relative 'helpers/templogger'
 
 # Configure Backburner
 Backburner.configure do |config|

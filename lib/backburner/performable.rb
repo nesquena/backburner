@@ -1,4 +1,4 @@
-require 'backburner/async_proxy'
+require_relative 'async_proxy'
 
 module Backburner
   module Performable
