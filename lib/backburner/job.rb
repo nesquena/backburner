@@ -94,7 +94,7 @@ module Backburner
       begin
         Timeout::timeout(secs) { yield }
       rescue Timeout::Error => e
-        raise JobTimeout, "#{name} hit #{secs}s timeout.\nbacktrace: #{e.backtrace}"
+        raise JobTimeout, "#{name}(#{(@args||[]).join(', ')}) hit #{secs}s timeout.\nbacktrace: #{e.backtrace}"
       end
     end
 
