@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Version 1.4.0 (May 13 2017)
+
+* Fix unit tests to be more consistent (@eltone)
+* Ensure job supports body hash with symbol keys (@eltone)
+* Add support for custom serialization formats (@eltone)
+* Log the params when a job timeout occurs (@nathantsoi)
+
 ## Version 1.3.1 (April 21 2016)
 
 * Addition of thread-pool-based concurrency (@contentfree)
