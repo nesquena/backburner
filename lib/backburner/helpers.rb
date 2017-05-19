@@ -114,7 +114,7 @@ module Backburner
         resolve_priority(pri.queue_priority)
       elsif pri.is_a?(String) || pri.is_a?(Symbol) # named priority
         resolve_priority(Backburner.configuration.priority_labels[pri.to_sym])
-      elsif pri.is_a?(Fixnum) # numerical
+      elsif pri.is_a?(Integer) # numerical
         pri
       else # default
         Backburner.configuration.default_priority
@@ -131,7 +131,7 @@ module Backburner
     def resolve_respond_timeout(ttr)
       if ttr.respond_to?(:queue_respond_timeout)
         resolve_respond_timeout(ttr.queue_respond_timeout)
-      elsif ttr.is_a?(Fixnum) # numerical
+      elsif ttr.is_a?(Integer) # numerical
         ttr
       else # default
         Backburner.configuration.respond_timeout
