@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.4.1 (June 10 2017)
+
+* Fix warning for constant ::Fixnum is deprecated (@amatsuda)
+
 ## Version 1.4.0 (May 13 2017)
 
 * Fix unit tests to be more consistent (@eltone)
