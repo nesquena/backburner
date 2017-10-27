@@ -160,11 +160,14 @@ module Backburner
       self.log_job_begin(job.name, job.args, conn)
       job.process
       self.log_job_end(job.name, nil, conn)
+      pool.success = true
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue Beaneater::NotFoundError
       pool.deactivate(conn)
+      return
+    rescue Beaneater::TimedOutError => e
       return
     rescue => e # Error occurred processing job
       begin
@@ -202,8 +205,9 @@ module Backburner
     protected
 
     # Return a new connection instance
-    def new_connection_pool
-      Backburner::ConnectionPool.new(Backburner.configuration.beanstalk_url, Backburner.configuration.timeout_options) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    def new_connection_pool(worker = false)
+      urls = worker ? Backburner.configuration.beanstalk_worker_url : Backburner.configuration.beanstalk_url
+      Backburner::ConnectionPool.new(urls, Backburner.configuration.timeout_options) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
     end
 
     # Reserve a job from the watched queues

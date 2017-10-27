@@ -7,6 +7,7 @@ module Backburner
       base.instance_variable_set(:@queue_jobs_limit, nil)
       base.instance_variable_set(:@queue_garbage_limit, nil)
       base.instance_variable_set(:@queue_retry_limit, nil)
+      base.instance_variable_set(:@queue_bury_limit, nil)
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base
     end
@@ -93,6 +94,20 @@ module Backburner
           @queue_retry_limit = limit
         else #accessor
           @queue_retry_limit
+        end
+      end
+
+      # Returns or assigns queue bury limit (only ThreadsOnFork worker)
+      #
+      # @example
+      #   queue_bury_limit 6
+      #   @klass.queue_bury_limit # => 6
+      #
+      def queue_bury_limit(limit=nil)
+        if limit
+          @queue_bury_limit = limit
+        else #accessor
+          @queue_bury_limit
         end
       end
     end # ClassMethods
