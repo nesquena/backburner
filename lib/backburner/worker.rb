@@ -143,7 +143,9 @@ module Backburner
     def work_one_job(pool = connection_pool)
       begin
         conn = pool.pick_connection
+        start_reserve = Time.now
         job = reserve_job(conn)
+        time_to_reserve = Time.now - start_reserve
       rescue Beaneater::TimedOutError => e
         return
       rescue ::TCPTimeout::SocketTimeout
@@ -160,7 +162,7 @@ module Backburner
       self.log_job_begin(job.name, job.args, conn)
       job.process
       self.log_job_end(job.name, nil, conn)
-      pool.success = true
+      pool.success = true if time_to_reserve < 0.01
 
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
