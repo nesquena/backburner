@@ -173,7 +173,7 @@ module Backburner
     private
 
     def build_circuit_breaker
-      Resilient::CircuitBreaker.get(
+      ::Resilient::CircuitBreaker.get(
         "resilient::circuit::connection::beanstalk::#{@url}",
         {
           sleep_window_seconds: 5,
