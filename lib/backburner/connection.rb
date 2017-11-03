@@ -99,15 +99,15 @@ module Backburner
     end
 
     def allow_request?
-      @circuit_breaker.allow_request?
+      @circuit_breaker && @circuit_breaker.allow_request?
     end
 
     def fail!
-      @circuit_breaker.failure
+      @circuit_breaker && @circuit_breaker.failure
     end
 
     def success!
-      @circuit_breaker.success
+      @circuit_breaker && @circuit_breaker.success
     end
 
     protected
