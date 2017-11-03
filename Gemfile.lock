@@ -1,0 +1,55 @@
+GIT
+  remote: https://github.com/bukalapak/beaneater.git
+  revision: 9e95cc265080c2bd6996a8a9348119a467894bc0
+  specs:
+    beaneater (1.0.0)
+
+GIT
+  remote: https://github.com/bukalapak/tcp_timeout.git
+  revision: 73dccaaf077e78e07b28522e0a53238cede0d0cd
+  specs:
+    tcp_timeout (0.1.1)
+
+PATH
+  remote: .
+  specs:
+    backburner (1.3.1)
+      beaneater (~> 1.0)
+      concurrent-ruby (~> 1.0.1)
+      dante (> 0.1.5)
+      resilient
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    byebug (9.1.0)
+    coderay (1.1.2)
+    concurrent-ruby (1.0.5)
+    dante (0.2.0)
+    metaclass (0.0.4)
+    method_source (0.9.0)
+    minitest (3.2.0)
+    mocha (1.3.0)
+      metaclass (~> 0.0.1)
+    pry (0.11.2)
+      coderay (~> 1.1.0)
+      method_source (~> 0.9.0)
+    rake (12.2.1)
+    resilient (0.5.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  backburner!
+  beaneater!
+  byebug
+  minitest (= 3.2.0)
+  mocha
+  pry
+  rake
+  resilient
+  tcp_timeout!
+
+BUNDLED WITH
+   1.15.4

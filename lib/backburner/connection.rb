@@ -1,4 +1,5 @@
 require 'delegate'
+require 'resilient'
 
 module Backburner
   class Connection
