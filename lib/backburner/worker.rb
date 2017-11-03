@@ -45,7 +45,7 @@ module Backburner
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
-          connection.success
+          connection.success!
         end
 
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
