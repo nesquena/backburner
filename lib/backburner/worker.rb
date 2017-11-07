@@ -53,7 +53,7 @@ module Backburner
         retry
       rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
         @connection.fail!
-        current_pool.deactivate(connection)
+        current_pool.deactivate(@connection)
         retry
       end
 
