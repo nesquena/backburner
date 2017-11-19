@@ -6,3 +6,5 @@ gem 'pry'
 
 # Specify your gem's dependencies in backburner.gemspec
 gemspec
+
+gem 'resilient'

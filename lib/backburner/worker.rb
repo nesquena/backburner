@@ -37,16 +37,23 @@ module Backburner
 
       begin
         response = nil
-        connection = current_pool.pick_connection
-        connection.retryable do
-          tube = connection.tubes[expand_tube_name(queue || job_class)]
+        @connection = current_pool.pick_connection
+
+        raise "Circuit is open! At beanstalk #{connection.url}" unless @connection.allow_request?
+
+        @connection.retryable do
+          tube = @connection.tubes[expand_tube_name(queue || job_class)]
           response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+          @connection.success!
         end
+
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       rescue Beaneater::TimedOutError
+        @connection.fail!
         retry
       rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
-        current_pool.deactivate(connection)
+        @connection.fail!
+        current_pool.deactivate(@connection)
         retry
       end
 

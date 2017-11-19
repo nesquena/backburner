@@ -1,4 +1,5 @@
 require 'delegate'
+require 'resilient'
 
 module Backburner
   class Connection
@@ -12,6 +13,8 @@ module Backburner
     #   connection.on_reconnect = lambda { |conn| puts 'reconnected!' }
     attr_accessor :on_reconnect
 
+    attr_accessor :circuit_breaker
+
     # Constructs a backburner connection
     # `url` can be a string i.e '127.0.0.1:3001' or an array of
     # addresses (however, only the first element in the array will
@@ -21,11 +24,13 @@ module Backburner
       @beanstalk = nil
       @on_reconnect = on_reconnect
       @options = options
+      @circuit_breaker = build_circuit_breaker
       connect!
     end
 
     # Close the connection, if it exists
     def close
+      @circuit_breaker = nil
       @beanstalk.close if @beanstalk
       @beanstalk = nil
     end
@@ -33,7 +38,7 @@ module Backburner
     # Determines if the connection to Beanstalk is currently open
     def connected?
       begin
-        !!(@beanstalk && @beanstalk.connection && @beanstalk.connection.connection && !@beanstalk.connection.connection.closed?) # Would be nice if beaneater provided a connected? method
+        !!(@beanstalk && @beanstalk.connection && @beanstalk.connection.connection && !@beanstalk.connection.connection.closed? && @circuit_breaker.allow_request?) # Would be nice if beaneater provided a connected? method
       rescue
         false
       end
@@ -91,6 +96,18 @@ module Backburner
 
     def connection
       @beanstalk.connection
+    end
+
+    def allow_request?
+      @circuit_breaker && @circuit_breaker.allow_request?
+    end
+
+    def fail!
+      @circuit_breaker && @circuit_breaker.failure
+    end
+
+    def success!
+      @circuit_breaker && @circuit_breaker.success
     end
 
     protected
@@ -152,6 +169,18 @@ module Backburner
       uri = URI.parse(uri_string)
       raise(BadURL, uri_string) if uri.scheme != 'beanstalk'.freeze
       "#{uri.host}:#{uri.port || 11300}"
+    end
+
+    private
+
+    def build_circuit_breaker
+      ::Resilient::CircuitBreaker.get(
+        "resilient::circuit::connection::beanstalk::#{@url}",
+        {
+          sleep_window_seconds: 5,
+          error_threshold_percentage: 20,
+        }
+      )
     end
   end # Connection
 end # Backburner
