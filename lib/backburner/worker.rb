@@ -39,7 +39,7 @@ module Backburner
         response = nil
         @connection = current_pool.pick_connection
 
-        raise "Circuit is open! At beanstalk #{connection.url}" unless @connection.allow_request?
+        raise "Circuit is open! At beanstalk #{@connection.url}" unless @connection.allow_request?
 
         @connection.retryable do
           tube = @connection.tubes[expand_tube_name(queue || job_class)]
