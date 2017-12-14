@@ -37,8 +37,17 @@ module Backburner
 
       begin
         response = nil
-        @connection = current_pool.pick_connection
+        max_retry = 10
+        retry_count = 1
 
+        @connection = current_pool.pick_connection
+        until @connection.allow_request? || retry_count > max_retry
+          current_pool.deactivate(@connection)
+          @connection = current_pool.pick_connection
+          retry_count = retry_count + 1
+        end
+
+        # raise if trying more than 10 times but still get broken connection
         raise "Circuit is open! At beanstalk #{@connection.url}" unless @connection.allow_request?
 
         @connection.retryable do
