@@ -2,6 +2,11 @@
 rvm:
   - 1.9.3
   - 2.0.0
+  - 2.1
+  - 2.2
+  - 2.3
+  - 2.4
+  - 2.5
   - rbx-2
 before_install:
   - curl -L https://github.com/kr/beanstalkd/archive/v1.9.tar.gz | tar xz -C /tmp
@@ -11,8 +16,6 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
   - gem update --system
   - gem update bundler
-install:
-  - bundle install
 matrix:
   allow_failures:
     - rvm: rbx-2
