@@ -16,7 +16,7 @@ module Backburner
     CONSECUTIVE_SUCCESS_TUBE = 20
 
     def initialize(beanstalk_urls, options = {}, &on_reconnect)
-      @beanstalk_urls = beanstalk_urls
+      @beanstalk_urls = beanstalk_urls.shuffle
       @counter = rand(beanstalk_urls.size * CONSECUTIVE_SUCCESS_TUBE)
       @options = options
       @on_reconnect = on_reconnect
