@@ -34,7 +34,7 @@ The real question then is... "Why Beanstalk?".
 
 Illya has an excellent blog post
 [Scalable Work Queues with Beanstalk](http://www.igvita.com/2010/05/20/scalable-work-queues-with-beanstalk/) and
-Adam Wiggins posted [an excellent comparison](http://adam.heroku.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend/).
+Adam Wiggins posted [an excellent comparison](http://adam.herokuapp.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend/).
 
 You will quickly see that **beanstalkd** is an underrated but incredible project that is extremely well-suited as a job queue.
 Significantly better suited for this task than Redis or a database. Beanstalk is a simple,
