@@ -48,10 +48,10 @@ module Backburner
             connection.on_reconnect = lambda { |conn| conn.tubes.watch!(tube_name) }
 
             # Make it work jobs using its own connection per thread
-            pool.post(connection) { |connection|
+            pool.post(connection) { |memo_connection|
               loop {
                 begin
-                  work_one_job(connection)
+                  work_one_job(memo_connection)
 
                 rescue => e
                   log_error("Exception caught in thread pool loop. Continuing. -> #{e.message}\nBacktrace: #{e.backtrace}")
