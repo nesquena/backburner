@@ -34,7 +34,7 @@ module Backburner
     def connected?
       begin
         !!(@beanstalk && @beanstalk.connection && @beanstalk.connection.connection && !@beanstalk.connection.connection.closed?) # Would be nice if beaneater provided a connected? method
-      rescue => e
+      rescue
         false
       end
     end
