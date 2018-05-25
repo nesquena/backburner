@@ -43,10 +43,10 @@ module Backburner
     #
     def process
       # Invoke before hook and stop if false
-      res = @hooks.invoke_hook_events(job_class, :before_perform, *args)
+      res = @hooks.invoke_hook_events(job_name, :before_perform, *args)
       return false unless res
       # Execute the job
-      @hooks.around_hook_events(job_class, :around_perform, *args) do
+      @hooks.around_hook_events(job_name, :around_perform, *args) do
         # We subtract one to ensure we timeout before beanstalkd does, except if:
         #  a) ttr == 0, to support never timing out
         #  b) ttr == 1, so that we don't accidentally set it to never time out
@@ -56,19 +56,19 @@ module Backburner
       end
       task.delete
       # Invoke after perform hook
-      @hooks.invoke_hook_events(job_class, :after_perform, *args)
+      @hooks.invoke_hook_events(job_name, :after_perform, *args)
     rescue => e
-      @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
+      @hooks.invoke_hook_events(job_name, :on_failure, e, *args)
       raise e
     end
 
     def bury
-      @hooks.invoke_hook_events(job_class, :on_bury, *args)
+      @hooks.invoke_hook_events(job_name, :on_bury, *args)
       task.bury
     end
 
     def retry(count, delay)
-      @hooks.invoke_hook_events(job_class, :on_retry, count, delay, *args)
+      @hooks.invoke_hook_events(job_name, :on_retry, count, delay, *args)
       task.release(delay: delay)
     end
 
@@ -80,9 +80,24 @@ module Backburner
     #   job_class # => NewsletterSender
     #
     def job_class
-      handler = constantize(self.name) rescue nil
+      handler = try_job_class
       raise(JobNotFound, self.name) unless handler
       handler
+    end
+
+    # Attempts to return a constantized job name, otherwise reverts to the name string
+    #
+    # @example
+    #   job_name # => "SomeUnknownJob"
+    def job_name
+      handler = try_job_class
+      handler ? handler : self.name
+    end
+
+    def try_job_class
+      constantize(self.name)
+    rescue NameError
+      nil
     end
 
     # Timeout job within specified block after given time.

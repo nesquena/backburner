@@ -113,16 +113,41 @@ describe "Backburner::Job module" do
   end # process
 
   describe "for simple delegation method" do
-    before do
-      @task_body =  { "class" => "NestedDemo::TestJobC", "args" => [56] }
-      @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
-      @task.expects(:bury).once
+    describe "with valid class" do
+      before do
+        @task_body =  { "class" => "NestedDemo::TestJobC", "args" => [56] }
+        @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
+        @task.expects(:bury).once
+      end
+
+      it "should call bury for task" do
+        @job = Backburner::Job.new(@task)
+        @job.bury
+      end # bury
     end
 
-    it "should call bury for task" do
-      @job = Backburner::Job.new(@task)
-      @job.bury
-    end # bury
+    describe "with invalid class" do
+      before do
+        @task_body = { "class" => "AnUnknownClass", "args" => [] }
+        @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true, :release => true)
+      end
+
+      it "should call bury for task" do
+        @task.expects(:bury).once
+        @job = Backburner::Job.new(@task)
+        Backburner::Hooks.expects(:invoke_hook_events)
+          .with("AnUnknownClass", :on_bury, anything)
+        @job.bury
+      end
+
+      it "should call retry for task" do
+        @task.expects(:release).once
+        @job = Backburner::Job.new(@task)
+        Backburner::Hooks.expects(:invoke_hook_events)
+          .with("AnUnknownClass", :on_retry, 0, is_a(Integer), anything)
+        @job.retry(0, 0)
+      end
+    end
   end # simple delegation
 
   describe "timing out for various values of ttr" do
