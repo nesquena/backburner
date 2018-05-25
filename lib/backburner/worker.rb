@@ -1,4 +1,4 @@
-require 'backburner/job'
+require_relative 'job'
 
 module Backburner
   #
