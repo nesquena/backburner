@@ -1,5 +1,4 @@
 require 'backburner/job'
-
 module Backburner
   #
   # @abstract Subclass and override {#process_tube_names}, {#prepare} and {#start} to implement
@@ -36,18 +35,28 @@ module Backburner
 
       begin
         response = nil
-        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
-        connection.retryable do
-          tube = connection.tubes[expand_tube_name(queue || job_class)]
-          serialized_data = Backburner.configuration.job_serializer_proc.call(data)
-          response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
+        connection_pool.with do |connection|
+          connection.retryable do
+            tube = connection.tubes[expand_tube_name(queue || job_class)]
+            serialized_data = Backburner.configuration.job_serializer_proc.call(data)
+            response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
+          end
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
-      ensure
-        connection.close if connection
       end
 
       response
+    end
+
+    def self.connection_pool
+      pool = Thread.current[:beanstalkd_connection_pool]
+
+      unless pool
+        pool = ConnectionPool.new(Backburner.configuration.connection_pool_options) { Backburner::Connection.new(Backburner.configuration.beanstalk_url) }
+        Thread.current[:beanstalkd_connection_pool] = pool
+      end
+
+      pool
     end
 
     # Starts processing jobs with the specified tube_names.
