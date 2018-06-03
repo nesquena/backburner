@@ -11,19 +11,19 @@ describe "Backburner::Workers::Threading worker" do
   describe "for prepare method" do
     it "should make tube names array always unique to avoid duplication" do
       worker = @worker_class.new(["foo", "demo.test.foo"])
-      worker.prepare
+      capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
     end
 
     it 'creates a thread pool per queue' do
       worker = @worker_class.new(%w(foo bar))
-      out = capture_stdout { worker.prepare }
+      capture_stdout { worker.prepare }
       assert_equal 2, worker.instance_variable_get("@thread_pools").keys.size
     end
 
     it 'uses Concurrent.processor_count if no custom thread count is provided' do
       worker = @worker_class.new("foo")
-      out = capture_stdout { worker.prepare }
+      capture_stdout { worker.prepare }
       assert_equal ::Concurrent.processor_count, worker.instance_variable_get("@thread_pools")["demo.test.foo"].max_length
     end
   end # prepare
@@ -61,9 +61,12 @@ describe "Backburner::Workers::Threading worker" do
     it 'runs work_on_job per thread' do
       clear_jobs!("foo")
       job_count=10
-      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "foo" } # TestJob adds the given arguments together and then to $worker_test_count
-      @worker.start(false) # don't wait for shutdown
-      sleep 0.5 # Wait for threads to do their work
+      # TestJob adds the given arguments together and then to $worker_test_count
+      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "foo" }
+      capture_stdout do
+        @worker.start(false) # don't wait for shutdown
+        sleep 0.5 # Wait for threads to do their work
+      end
       assert_equal job_count, $worker_test_count
     end
   end # working a queue

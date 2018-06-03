@@ -11,7 +11,7 @@ describe "Backburner::Workers::Simple module" do
   describe "for prepare method" do
     it "should make tube names array always unique to avoid duplication" do
       worker = @worker_class.new(["foo", "demo.test.foo"])
-      worker.prepare
+      capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
     end
 
@@ -309,7 +309,7 @@ describe "Backburner::Workers::Simple module" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')
       worker.expects(:reserve_job).with(connection).returns(stub_everything('job'))
-      worker.work_one_job(connection)
+      capture_stdout { worker.work_one_job(connection) }
     end
 
     after do

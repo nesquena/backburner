@@ -11,7 +11,7 @@ describe "Backburner::Workers::Forking module" do
   describe "for prepare method" do
     it "should make tube names array always unique to avoid duplication" do
       worker = @worker_class.new(["foo", "demo.test.foo"])
-      worker.prepare
+      capture_stdout { worker.prepare }
       assert_equal ["demo.test.foo"], worker.tube_names
     end
 
