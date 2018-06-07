@@ -10,7 +10,7 @@ module Backburner
     # Print out when a job is about to begin
     def log_job_begin(name, args)
       log_info "Work job #{name} with #{args.inspect}"
-      @job_started_at = Time.now
+      Thread.current[:job_started_at] = Time.now
     end
 
     # Print out when a job completed
@@ -24,7 +24,7 @@ module Backburner
 
     # Returns true if the job logging started
     def job_started_at
-      @job_started_at
+      Thread.current[:job_started_at]
     end
 
     # Print a message to stdout
