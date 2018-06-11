@@ -3,9 +3,13 @@ require 'concurrent'
 module Backburner
   module Workers
     class Threading < Worker
+      attr_accessor :self_read, :self_write, :exit_on_shutdown
+
+      @shutdown_timeout = 10
+
       class << self
-        attr_accessor :shutdown
         attr_accessor :threads_number
+        attr_accessor :shutdown_timeout
       end
 
       # Custom initializer just to set @tubes_data
@@ -13,6 +17,7 @@ module Backburner
         @tubes_data = {}
         super
         self.process_tube_options
+        @exit_on_shutdown = true
       end
 
       # Used to prepare job queues before processing jobs.
@@ -48,16 +53,19 @@ module Backburner
             connection.on_reconnect = lambda { |conn| conn.tubes.watch!(tube_name) }
 
             # Make it work jobs using its own connection per thread
-            pool.post(connection) { |memo_connection|
-              loop {
+            pool.post(connection) do |memo_connection|
+              # TODO: use read-write lock?
+              loop do
                 begin
+                  break if @in_shutdown
                   work_one_job(memo_connection)
-
                 rescue => e
                   log_error("Exception caught in thread pool loop. Continuing. -> #{e.message}\nBacktrace: #{e.backtrace}")
                 end
-              }
-            }
+              end
+
+              connection.close
+            end
           end
         end
 
@@ -111,18 +119,33 @@ module Backburner
 
       # Wait for the shutdown signel
       def wait_for_shutdown!
-        while !self.class.shutdown do
-          sleep 0.5
-        end
+        raise Interrupt while IO.select([self_read])
+      rescue Interrupt
+        shutdown
+      end
 
-        # Shutting down
-        # FIXME: Shut down each thread's connection
-        @thread_pools.each { |name, pool| pool.kill }
+      def shutdown_threadpools
+        @thread_pools.each { |_name, pool| pool.shutdown }
+        shutdown_time = Time.now
+        @in_shutdown = true
+        all_shutdown = @thread_pools.all? do |_name, pool|
+          time_to_wait = self.class.shutdown_timeout - (Time.now - shutdown_time).to_i
+          pool.wait_for_termination(time_to_wait) if time_to_wait > 0
+        end
+        @thread_pools.each { |_name, pool| pool.kill unless pool.shutdown? } unless all_shutdown
       end
 
       def shutdown
-        Backburner::Workers::Threading.shutdown = true
-        super
+        shutdown_threadpools
+        super if @exit_on_shutdown
+      end
+
+      # Registers signal handlers TERM and INT to trigger
+      def register_signal_handlers!
+        @self_read, @self_write = IO.pipe
+        %w[TERM INT].each do |sig|
+          trap(sig) { self_write.puts(sig) }
+        end
       end
     end # Threading
   end # Workers
