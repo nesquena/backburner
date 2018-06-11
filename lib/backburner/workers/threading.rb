@@ -132,10 +132,18 @@ module Backburner
           time_to_wait = self.class.shutdown_timeout - (Time.now - shutdown_time).to_i
           pool.wait_for_termination(time_to_wait) if time_to_wait > 0
         end
-        @thread_pools.each { |_name, pool| pool.kill unless pool.shutdown? } unless all_shutdown
+      rescue Interrupt
+        log_info "graceful shutdown aborted, shutting down immediately"
+      ensure
+        kill unless all_shutdown
+      end
+
+      def kill
+        @thread_pools.each { |_name, pool| pool.kill unless pool.shutdown? }
       end
 
       def shutdown
+        log_info "beginning graceful worker shutdown"
         shutdown_threadpools
         super if @exit_on_shutdown
       end
@@ -144,7 +152,10 @@ module Backburner
       def register_signal_handlers!
         @self_read, @self_write = IO.pipe
         %w[TERM INT].each do |sig|
-          trap(sig) { self_write.puts(sig) }
+          trap(sig) do
+            raise Interrupt if @in_shutdown
+            self_write.puts(sig)
+          end
         end
       end
     end # Threading
