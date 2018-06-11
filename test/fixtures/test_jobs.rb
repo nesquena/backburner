@@ -13,6 +13,24 @@ class TestJob
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 
+class TestSlowJob
+  include Backburner::Queue
+  queue_priority :medium
+  queue_respond_timeout 300
+  def self.perform(x, y); sleep 1; $worker_test_count += x + y; end
+end
+
+class TestStuckJob
+  include Backburner::Queue
+  queue_priority :medium
+  queue_respond_timeout 300
+  def self.perform(_x, _y)
+    loop do
+      sleep 0.5
+    end
+  end
+end
+
 class TestFailJob
   include Backburner::Queue
   def self.perform(x, y); raise RuntimeError; end

@@ -6,6 +6,7 @@ describe "Backburner::Workers::Threading worker" do
   before do
     Backburner.default_queues.clear
     @worker_class = Backburner::Workers::Threading
+    @worker_class.shutdown_timeout = 2
   end
 
   describe "for prepare method" do
@@ -70,4 +71,34 @@ describe "Backburner::Workers::Threading worker" do
       assert_equal job_count, $worker_test_count
     end
   end # working a queue
+
+  describe 'shutting down' do
+    before do
+      @thread_count = 3
+      @worker = @worker_class.new(["threaded-shutdown:#{@thread_count}"])
+      @worker.exit_on_shutdown = false
+      $worker_test_count = 0
+      clear_jobs!("threaded-shutdown")
+    end
+
+    it 'gracefully exits and completes all in-flight jobs' do
+      6.times { @worker_class.enqueue TestSlowJob, [1, 0], :queue => "threaded-shutdown" }
+      Thread.new { sleep 0.1; @worker.self_write.puts("TERM") }
+      capture_stdout do
+        @worker.start
+      end
+
+      assert_equal @thread_count, $worker_test_count
+    end
+
+    it 'forces an exit when a job is stuck' do
+      6.times { @worker_class.enqueue TestStuckJob, [1, 0], :queue => "threaded-shutdown" }
+      Thread.new { sleep 0.1; @worker.self_write.puts("TERM") }
+      capture_stdout do
+        @worker.start
+      end
+
+      assert_equal 0, $worker_test_count
+    end
+  end
 end

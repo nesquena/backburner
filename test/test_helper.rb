@@ -6,7 +6,7 @@ begin
 rescue LoadError
   require 'mocha'
 end
-$:.unshift File.expand_path("../../lib")
+$LOAD_PATH.unshift File.expand_path("lib")
 require 'backburner'
 require File.expand_path('../helpers/templogger', __FILE__)
 
