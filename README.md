@@ -513,6 +513,9 @@ end
 
 Now all backburner queue errors will appear on airbrake for deeper inspection.
 
+If you wish to retry a job without logging an error (for example when handling transient issues in a cloud or service oriented environment), 
+simply raise a `Backburner::Job::RetryJob` error.
+
 ### Logging
 
 Logging in backburner is rather simple. When a job is run, the log records that. When a job
