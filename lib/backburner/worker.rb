@@ -140,7 +140,7 @@ module Backburner
     rescue Backburner::Job::JobFormatInvalid => e
       self.log_error self.exception_message(e)
     rescue => e # Error occurred processing job
-      self.log_error self.exception_message(e)
+      self.log_error self.exception_message(e) unless e.is_a?(Backburner::Job::RetryJob)
 
       unless job
         self.log_error "Error occurred before we were able to assign a job. Giving up without retrying!"

@@ -7,6 +7,7 @@ module Backburner
     class JobTimeout < RuntimeError; end
     class JobNotFound < RuntimeError; end
     class JobFormatInvalid < RuntimeError; end
+    class RetryJob < RuntimeError; end
 
     attr_accessor :task, :body, :name, :args
 
