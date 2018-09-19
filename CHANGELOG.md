@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.5.0 (September 10 2018)
+
+* TBD
+
 ## Version 1.4.1 (June 10 2017)
 
 * Fix warning for constant ::Fixnum is deprecated (@amatsuda)
