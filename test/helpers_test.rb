@@ -179,4 +179,35 @@ describe "Backburner::Helpers module" do
       assert_equal 300, resolve_respond_timeout(nil)
     end
   end # resolve_respond_timeout
+
+  describe "for resolve_retry_delay method" do
+    before do
+      @original_retry_delay = Backburner.configuration.retry_delay
+      Backburner.configure { |config| config.retry_delay = 300 }
+    end
+    after { Backburner.configure { |config| config.retry_delay = @original_retry_delay } }
+
+    it "supports fix num retry_delay" do
+      assert_equal 500, resolve_retry_delay(500)
+    end
+
+    it "supports classes which respond to queue_retry_delay" do
+      job = stub(:queue_retry_delay => 600)
+      assert_equal 600, resolve_retry_delay(job)
+    end
+
+    it "supports classes which returns null queue_retry_delay" do
+      job = stub(:queue_retry_delay => nil)
+      assert_equal 300, resolve_retry_delay(job)
+    end
+
+    it "supports classes which don't respond to queue_retry_delay" do
+      job = stub(:fake => true)
+      assert_equal 300, resolve_retry_delay(job)
+    end
+
+    it "supports default ttr for null values" do
+      assert_equal 300, resolve_retry_delay(nil)
+    end
+  end # resolve_retry_delay
 end

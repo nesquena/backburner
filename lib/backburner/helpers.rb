@@ -138,5 +138,22 @@ module Backburner
       end
     end
 
+    # Resolves retry delay based on the value given. Can be integer, a class or nothing
+    #
+    # @example
+    #  resolve_retry_delay(5) => 5
+    #  resolve_retry_delay(FooBar) => <queue respond_timeout>
+    #  resolve_retry_delay(nil) => <default respond_timeout>
+    #
+    def resolve_retry_delay(delay)
+      if delay.respond_to?(:queue_retry_delay)
+        resolve_retry_delay(delay.queue_retry_delay)
+      elsif delay.is_a?(Integer) # numerical
+        delay
+      else # default
+        Backburner.configuration.retry_delay
+      end
+    end
+
   end # Helpers
 end # Backburner

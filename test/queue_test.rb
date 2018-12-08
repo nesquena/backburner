@@ -44,4 +44,11 @@ describe "Backburner::Queue module" do
       assert_equal 300, NestedDemo::TestJobB.queue_respond_timeout
     end
   end # queue_respond_timeout
+
+  describe "for queue_retry_delay assignment method" do
+    it "should allow queue retry_delay to be assigned" do
+      NestedDemo::TestJobB.queue_retry_delay(300)
+      assert_equal 300, NestedDemo::TestJobB.queue_retry_delay
+    end
+  end # queue_retry_delay
 end # Backburner::Queue
