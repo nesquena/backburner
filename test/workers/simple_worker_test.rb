@@ -229,6 +229,33 @@ describe "Backburner::Workers::Simple module" do
       assert_equal true, $worker_success
     end
 
+    it "should allow queue override of retries" do
+      max_job_retries = TestRetryWithQueueOverridesJob.queue_max_job_retries
+      clear_jobs!('foo.bar')
+      Backburner.configure do |config|
+         # Config should be overridden by queue overrides
+        config.max_job_retries = 20
+        config.retry_delay = 60
+        #config.retry_delay_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) } # default retry_delay_proc
+      end
+      @worker_class.enqueue TestRetryWithQueueOverridesJob, [max_job_retries], :queue => 'foo.bar'
+      out = []
+      (max_job_retries + 1).times do
+        out << silenced(5) do
+          worker = @worker_class.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+      end
+      assert_match(/attempt 1 of 4, retrying in 0/, out.first)
+      assert_match(/attempt 2 of 4, retrying in 1/, out[1])
+      assert_match(/attempt 3 of 4, retrying in 4/, out[2])
+      assert_match(/Completed TestRetryWithQueueOverridesJob/m, out.last)
+      refute_match(/failed/, out.last)
+      assert_equal 4, $worker_test_count
+      assert_equal true, $worker_success
+    end
+
     it "should support event hooks without retry" do
       $hooked_fail_count = 0
       clear_jobs!('foo.bar.events')

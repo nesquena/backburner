@@ -163,9 +163,24 @@ class NewsletterJob
     1000 # most urgent priority is 0
   end
 
-  # optional, defaults to respond_timeout
+  # optional, defaults to respond_timeout in config
   def self.queue_respond_timeout
     300 # number of seconds before job times out, 0 to avoid timeout. NB: A timeout of 1 second will likely lead to race conditions between Backburner and beanstalkd and should be avoided
+  end
+
+  # optional, defaults to retry_delay_proc in config
+  def self.queue_retry_delay_proc
+    lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 5) }
+  end
+
+  # optional, defaults to retry_delay in config
+  def self.queue_retry_delay
+    5
+  end
+
+  # optional, defaults to max_job_retries in config
+  def self.queue_max_job_retries
+    5
   end
 end
 ```

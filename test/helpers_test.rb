@@ -180,6 +180,37 @@ describe "Backburner::Helpers module" do
     end
   end # resolve_respond_timeout
 
+  describe "for resolve_max_job_retries method" do
+    before do
+      @original_max_job_retries = Backburner.configuration.max_job_retries
+      Backburner.configure { |config| config.max_job_retries = 300 }
+    end
+    after { Backburner.configure { |config| config.max_job_retries = @original_max_job_retries } }
+
+    it "supports fix num max_job_retries" do
+      assert_equal 500, resolve_max_job_retries(500)
+    end
+
+    it "supports classes which respond to queue_max_job_retries" do
+      job = stub(:queue_max_job_retries => 600)
+      assert_equal 600, resolve_max_job_retries(job)
+    end
+
+    it "supports classes which return null queue_max_job_retries" do
+      job = stub(:queue_max_job_retries => nil)
+      assert_equal 300, resolve_max_job_retries(job)
+    end
+
+    it "supports classes which don't respond to queue_max_job_retries" do
+      job = stub(:fake => true)
+      assert_equal 300, resolve_max_job_retries(job)
+    end
+
+    it "supports default max_job_retries for null values" do
+      assert_equal 300, resolve_max_job_retries(nil)
+    end
+  end # resolve_max_job_retries
+
   describe "for resolve_retry_delay method" do
     before do
       @original_retry_delay = Backburner.configuration.retry_delay
@@ -196,7 +227,7 @@ describe "Backburner::Helpers module" do
       assert_equal 600, resolve_retry_delay(job)
     end
 
-    it "supports classes which returns null queue_retry_delay" do
+    it "supports classes which return null queue_retry_delay" do
       job = stub(:queue_retry_delay => nil)
       assert_equal 300, resolve_retry_delay(job)
     end
@@ -206,8 +237,42 @@ describe "Backburner::Helpers module" do
       assert_equal 300, resolve_retry_delay(job)
     end
 
-    it "supports default ttr for null values" do
+    it "supports default retry_delay for null values" do
       assert_equal 300, resolve_retry_delay(nil)
     end
   end # resolve_retry_delay
+
+  describe "for resolve_retry_delay_proc method" do
+    before do
+      @config_retry_delay_proc = lambda { |x, y| x + y } # Default config proc adds two values
+      @override_delay_proc = lambda { |x, y| x - y } # Overriden proc subtracts values
+      @original_retry_delay_proc = Backburner.configuration.retry_delay_proc
+      Backburner.configure { |config| config.retry_delay_proc = @config_retry_delay_proc }
+    end
+    after { Backburner.configure { |config| config.retry_delay_proc = @original_retry_delay_proc } }
+
+    # Rather than compare Procs execute them and compare the output
+    it "supports proc retry_delay_proc" do
+      assert_equal @override_delay_proc.call(2, 1), resolve_retry_delay_proc(@override_delay_proc).call(2, 1)
+    end
+
+    it "supports classes which respond to queue_retry_delay_proc" do
+      job = stub(:queue_retry_delay_proc => @override_delay_proc)
+      assert_equal @override_delay_proc.call(2, 1), resolve_retry_delay_proc(job).call(2, 1)
+    end
+
+    it "supports classes which return null queue_retry_delay_proc" do
+      job = stub(:queue_retry_delay_proc => nil)
+      assert_equal @original_retry_delay_proc.call(2, 1), resolve_retry_delay_proc(job).call(2, 1)
+    end
+
+    it "supports classes which don't respond to queue_retry_delay_proc" do
+      job = stub(:fake => true)
+      assert_equal @original_retry_delay_proc.call(2, 1), resolve_retry_delay_proc(job).call(2, 1)
+    end
+
+    it "supports default retry_delay_proc for null values" do
+      assert_equal @original_retry_delay_proc.call(2, 1), resolve_retry_delay_proc(nil).call(2, 1)
+    end
+  end # resolve_retry_delay_proc
 end

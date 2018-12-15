@@ -45,10 +45,25 @@ describe "Backburner::Queue module" do
     end
   end # queue_respond_timeout
 
+  describe "for queue_max_job_retries assignment method" do
+    it "should allow queue max_job_retries to be assigned" do
+      NestedDemo::TestJobB.queue_max_job_retries(5)
+      assert_equal 5, NestedDemo::TestJobB.queue_max_job_retries
+    end
+  end # queue_max_job_retries
+
   describe "for queue_retry_delay assignment method" do
     it "should allow queue retry_delay to be assigned" do
       NestedDemo::TestJobB.queue_retry_delay(300)
       assert_equal 300, NestedDemo::TestJobB.queue_retry_delay
     end
   end # queue_retry_delay
+
+  describe "for queue_retry_delay_proc assignment method" do
+    it "should allow queue retry_delay_proc to be assigned" do
+      retry_delay_proc = lambda { |x, y| x - y }
+      NestedDemo::TestJobB.queue_retry_delay_proc(retry_delay_proc)
+      assert_equal retry_delay_proc.call(2, 1), NestedDemo::TestJobB.queue_retry_delay_proc.call(2, 1)
+    end
+  end # queue_retry_delay_proc
 end # Backburner::Queue
