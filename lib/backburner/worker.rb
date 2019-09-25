@@ -156,7 +156,7 @@ module Backburner
         job.retry(num_retries + 1, delay)
         self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
       else # retries failed, bury
-        job.bury
+        job.bury if job.stats.state != "buried"
         self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
       end
 

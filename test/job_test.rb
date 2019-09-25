@@ -147,6 +147,14 @@ describe "Backburner::Job module" do
           .with("AnUnknownClass", :on_retry, 0, is_a(Integer), anything)
         @job.retry(0, 0)
       end
+
+      it "should call touch for task" do
+        @task.expects(:touch).once
+        @job = Backburner::Job.new(@task)
+        Backburner::Hooks.expects(:invoke_hook_events)
+          .with("AnUnknownClass", :on_touch, anything)
+        @job.touch
+      end
     end
   end # simple delegation
 
