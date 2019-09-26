@@ -106,7 +106,7 @@ module Backburner
       nil
     end
 
-    # Start the specified block.
+    # Start the specified block using the same timeout as beaneater.
     #
     # @example
     #   start_job { do_something! }
@@ -124,11 +124,13 @@ module Backburner
           current_thread.raise e
         end
       end
-      job_timer(block_thread)
+      timer_thread = job_timer(block_thread)
       block_thread.join
+      timer_thread.kill
     end
 
-    # Start a thread burying the job and raising an error if the job has timed out
+    # Start a thread checking the time left of the job from beanstalk.
+    # If timed out, bury the job and raise an error on the job's thread to make it stop.
     #
     # @example
     #   job_timer(thread)
@@ -140,6 +142,7 @@ module Backburner
         end
 
         if watched_thread.alive?
+          # If we don't bury the job here, beaneater return a NOT_FOUND error when work_one_job tries to bury it
           task.bury
           watched_thread.raise JobTimeout.new
         end
