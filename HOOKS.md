@@ -33,6 +33,8 @@ There are a variety of hooks available that are triggered during the lifecycle o
 * `on_failure`: Called with the exception and job args if any exception occurs
   while performing the job (or hooks).
 
+* `on_touch`: Called with the job args when the job is touched.
+
 Hooks are just methods prefixed with the hook type. For example:
 
 ```ruby

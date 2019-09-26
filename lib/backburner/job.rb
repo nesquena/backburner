@@ -53,7 +53,7 @@ module Backburner
         #  b) ttr == 1, so that we don't accidentally set it to never time out
         #  NB: A ttr of 1 will likely result in race conditions between
         #  Backburner and beanstalkd and should probably be avoided
-        timeout_job_after(task.ttr > 1 ? task.ttr - 1 : task.ttr) { job_class.perform(*args) }
+        start_job { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook
@@ -71,6 +71,11 @@ module Backburner
     def retry(count, delay)
       @hooks.invoke_hook_events(job_name, :on_retry, count, delay, *args)
       task.release(delay: delay)
+    end
+
+    def touch
+      @hooks.invoke_hook_events(job_name, :on_touch, *args)
+      task.touch
     end
 
     protected
@@ -101,16 +106,46 @@ module Backburner
       nil
     end
 
-    # Timeout job within specified block after given time.
+    # Start the specified block using the same timeout as beaneater.
     #
     # @example
-    #   timeout_job_after(3) { do_something! }
+    #   start_job { do_something! }
     #
-    def timeout_job_after(secs, &block)
-      begin
-        Timeout::timeout(secs) { yield }
-      rescue Timeout::Error => e
-        raise JobTimeout, "#{name}(#{(@args||[]).join(', ')}) hit #{secs}s timeout.\nbacktrace: #{e.backtrace}"
+    def start_job(&block)
+      return yield if task.stats.ttr == 0
+
+      current_thread = Thread.current
+      block_thread = Thread.start do
+        begin
+          yield
+        rescue JobTimeout => e
+          current_thread.raise JobTimeout, "#{name}(#{(@args||[]).join(', ')}) hit #{task.stats.ttr}s timeout.\nbacktrace: #{e.backtrace}"
+        rescue => e
+          current_thread.raise e
+        end
+      end
+      timer_thread = job_timer(block_thread)
+      block_thread.join
+      timer_thread.kill
+    end
+
+    # Start a thread checking the time left of the job from beanstalk.
+    # If timed out, bury the job and raise an error on the job's thread to make it stop.
+    #
+    # @example
+    #   job_timer(thread)
+    #
+    def job_timer(watched_thread)
+      Thread.start do
+        while(task.stats.time_left > 0) do
+          sleep(task.stats.time_left)
+        end
+
+        if watched_thread.alive?
+          # If we don't bury the job here, beaneater return a NOT_FOUND error when work_one_job tries to bury it
+          task.bury
+          watched_thread.raise JobTimeout.new
+        end
       end
     end
 

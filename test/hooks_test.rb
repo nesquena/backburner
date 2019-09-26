@@ -84,6 +84,13 @@ describe "Backburner::Hooks module" do
       end
     end
 
+    describe 'with on_touch' do
+      it "should support successful invocation" do
+        out = silenced { @hooks.invoke_hook_events(HookedObjectSuccess, :on_touch, 10) }
+        assert_match(/!!on_touch_foo!! \[10\]/, out)
+      end
+    end
+
     describe "with on_reconnect" do
       it "should support successful invocation" do
         out = silenced { @hooks.invoke_hook_events(HookedWorker.new, :on_reconnect)}
