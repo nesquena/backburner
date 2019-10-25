@@ -40,13 +40,13 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       tubes = %W(foo1:1:2:3 foo2:4:5 foo3:6 foo4 foo5::7:8 foo6:::9 foo7::10)
       worker = @worker_class.new(tubes)
       assert_equal({
-        "demo.test.foo1" => { :threads => 1,   :garbage => 2,   :retries => 3   },
-        "demo.test.foo2" => { :threads => 4,   :garbage => 5,   :retries => nil },
-        "demo.test.foo3" => { :threads => 6,   :garbage => nil, :retries => nil },
-        "demo.test.foo4" => { :threads => nil, :garbage => nil, :retries => nil },
-        "demo.test.foo5" => { :threads => nil, :garbage => 7,   :retries => 8   },
-        "demo.test.foo6" => { :threads => nil, :garbage => nil, :retries => 9   },
-        "demo.test.foo7" => { :threads => nil, :garbage => 10,  :retries => nil }
+        "demo.test.foo1" => { :threads => 1,   :garbage => 2,   :retries => 3,   :buries => nil },
+        "demo.test.foo2" => { :threads => 4,   :garbage => 5,   :retries => nil, :buries => nil },
+        "demo.test.foo3" => { :threads => 6,   :garbage => nil, :retries => nil, :buries => nil },
+        "demo.test.foo4" => { :threads => nil, :garbage => nil, :retries => nil, :buries => nil },
+        "demo.test.foo5" => { :threads => nil, :garbage => 7,   :retries => 8,   :buries => nil },
+        "demo.test.foo6" => { :threads => nil, :garbage => nil, :retries => 9,   :buries => nil },
+        "demo.test.foo7" => { :threads => nil, :garbage => 10,  :retries => nil, :buries => nil }
       }, worker.instance_variable_get("@tubes_data"))
     end
   end
