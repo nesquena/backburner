@@ -54,12 +54,12 @@ describe "Backburner::Workers::ThreadsOnFork module" do
   describe "for process_tube_settings" do
     it "should set the settings specified by queue name in class" do
       worker = @worker_class.new
-      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings'],  { :threads => 5,   :garbage => 10,   :retries => 6 })
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings'],  { :threads => 5,   :garbage => 10,   :retries => 6, :buries => nil })
     end
 
     it 'should override the tube settings if they are specified directly at class level' do
       worker = @worker_class.new
-      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings-override'], { :threads => 10,   :garbage => 1000,   :retries => 2 })
+      assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings-override'], { :threads => 10,   :garbage => 1000,   :retries => 2, :buries => 3 })
     end
   end
 

@@ -308,10 +308,15 @@ describe "Backburner::Workers::Simple module" do
 
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
-      pool = mock('pool')
       connection = mock('connection')
+      connection.expects(:url).returns('127.0.0.1').at_least_once
+
+      pool = mock('connection_pool')
       pool.expects(:pick_connection).returns(connection)
+      pool.expects(:success=).at_least_once
+
       worker.expects(:reserve_job).with(connection).returns(stub_everything('job'))
+
       capture_stdout { worker.work_one_job(pool) }
     end
 
