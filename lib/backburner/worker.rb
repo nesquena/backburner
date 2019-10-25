@@ -46,7 +46,7 @@ module Backburner
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       rescue Beaneater::TimedOutError
         retry
-      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
+      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected
         current_pool.deactivate(connection)
         retry
       end

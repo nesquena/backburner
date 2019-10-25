@@ -18,6 +18,7 @@ module Backburner
         super
         self.process_tube_options
         @exit_on_shutdown = true
+        @in_shutdown = false
       end
 
       # Used to prepare job queues before processing jobs.
