@@ -3,6 +3,7 @@ module Backburner
     PRIORITY_LABELS = { :high => 0, :medium => 100, :low => 200 }
 
     attr_writer   :beanstalk_url       # beanstalk url connection
+    attr_writer   :beanstalk_worker_url   # beanstalk url connection
     attr_accessor :tube_namespace      # namespace prefix for every queue
     attr_reader   :namespace_separator # namespace separator
     attr_accessor :default_priority    # default job priority
