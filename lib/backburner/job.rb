@@ -73,8 +73,6 @@ module Backburner
       task.release(delay: delay)
     end
 
-    protected
-
     # Returns the class for the job handler
     #
     # @example
@@ -85,6 +83,8 @@ module Backburner
       raise(JobNotFound, self.name) unless handler
       handler
     end
+
+    protected
 
     # Attempts to return a constantized job name, otherwise reverts to the name string
     #

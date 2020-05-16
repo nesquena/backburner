@@ -4,6 +4,9 @@ module Backburner
       base.instance_variable_set(:@queue_name, nil)
       base.instance_variable_set(:@queue_priority, nil)
       base.instance_variable_set(:@queue_respond_timeout, nil)
+      base.instance_variable_set(:@queue_max_job_retries, nil)
+      base.instance_variable_set(:@queue_retry_delay, nil)
+      base.instance_variable_set(:@queue_retry_delay_proc, nil)
       base.instance_variable_set(:@queue_jobs_limit, nil)
       base.instance_variable_set(:@queue_garbage_limit, nil)
       base.instance_variable_set(:@queue_retry_limit, nil)
@@ -51,6 +54,48 @@ module Backburner
           @queue_respond_timeout = ttr
         else # accessor
           @queue_respond_timeout
+        end
+      end
+
+      # Returns or assigns queue max_job_retries for this job
+      #
+      # @example
+      #   queue_max_job_retries 120
+      #   @klass.queue_max_job_retries # => 120
+      #
+      def queue_max_job_retries(delay=nil)
+        if delay
+          @queue_max_job_retries = delay
+        else # accessor
+          @queue_max_job_retries
+        end
+      end
+
+      # Returns or assigns queue retry_delay for this job
+      #
+      # @example
+      #   queue_retry_delay 120
+      #   @klass.queue_retry_delay # => 120
+      #
+      def queue_retry_delay(delay=nil)
+        if delay
+          @queue_retry_delay = delay
+        else # accessor
+          @queue_retry_delay
+        end
+      end
+
+      # Returns or assigns queue retry_delay_proc for this job
+      #
+      # @example
+      #   queue_retry_delay_proc lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 2) }
+      #   @klass.queue_retry_delay_proc # => lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 2) }
+      #
+      def queue_retry_delay_proc(proc=nil)
+        if proc
+          @queue_retry_delay_proc = proc
+        else # accessor
+          @queue_retry_delay_proc
         end
       end
 

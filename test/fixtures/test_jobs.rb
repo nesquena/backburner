@@ -54,6 +54,27 @@ class TestConfigurableRetryJob
   end
 end
 
+class TestRetryWithQueueOverridesJob
+  include Backburner::Queue
+  def self.perform(retry_count)
+    $worker_test_count += 1
+    raise RuntimeError unless $worker_test_count > retry_count
+    $worker_success = true
+  end
+
+  def self.queue_max_job_retries
+    3
+  end
+
+  def self.queue_retry_delay
+    0
+  end
+
+  def self.queue_retry_delay_proc
+    lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 2) }
+  end
+end
+
 class TestAsyncJob
   include Backburner::Performable
   def self.foo(x, y); $worker_test_count = x * y; end

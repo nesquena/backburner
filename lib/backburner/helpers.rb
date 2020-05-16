@@ -138,5 +138,56 @@ module Backburner
       end
     end
 
+    # Resolves max retries based on the value given. Can be integer, a class or nothing
+    #
+    # @example
+    #  resolve_max_job_retries(5) => 5
+    #  resolve_max_job_retries(FooBar) => <queue max_job_retries>
+    #  resolve_max_job_retries(nil) => <default max_job_retries>
+    #
+    def resolve_max_job_retries(retries)
+      if retries.respond_to?(:queue_max_job_retries)
+        resolve_max_job_retries(retries.queue_max_job_retries)
+      elsif retries.is_a?(Integer) # numerical
+        retries
+      else # default
+        Backburner.configuration.max_job_retries
+      end
+    end
+
+    # Resolves retry delay based on the value given. Can be integer, a class or nothing
+    #
+    # @example
+    #  resolve_retry_delay(5) => 5
+    #  resolve_retry_delay(FooBar) => <queue retry_delay>
+    #  resolve_retry_delay(nil) => <default retry_delay>
+    #
+    def resolve_retry_delay(delay)
+      if delay.respond_to?(:queue_retry_delay)
+        resolve_retry_delay(delay.queue_retry_delay)
+      elsif delay.is_a?(Integer) # numerical
+        delay
+      else # default
+        Backburner.configuration.retry_delay
+      end
+    end
+
+    # Resolves retry delay proc based on the value given. Can be proc, a class or nothing
+    #
+    # @example
+    #  resolve_retry_delay_proc(proc) => proc
+    #  resolve_retry_delay_proc(FooBar) => <queue retry_delay_proc>
+    #  resolve_retry_delay_proc(nil) => <default retry_delay_proc>
+    #
+    def resolve_retry_delay_proc(proc)
+      if proc.respond_to?(:queue_retry_delay_proc)
+        resolve_retry_delay_proc(proc.queue_retry_delay_proc)
+      elsif proc.is_a?(Proc)
+        proc
+      else # default
+        Backburner.configuration.retry_delay_proc
+      end
+    end
+
   end # Helpers
 end # Backburner
