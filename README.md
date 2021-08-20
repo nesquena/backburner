@@ -1,6 +1,6 @@
 # Backburner [![Build Status](https://travis-ci.org/nesquena/backburner.svg?branch=master)](https://travis-ci.org/nesquena/backburner)
 
-Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue that can handle a very high volume of jobs.
+Backburner is a [beanstalkd](https://beanstalkd.github.io/)-powered job queue that can handle a very high volume of jobs.
 You create background jobs and place them on multiple work queues to be processed later.
 
 Processing background jobs reliably has never been easier than with beanstalkd and Backburner. This gem works with any ruby-based
@@ -65,7 +65,7 @@ In the end, **beanstalk is the ideal job queue** while also being ridiculously e
 
 ## Installation
 
-First, you probably want to [install beanstalkd](http://kr.github.com/beanstalkd/download.html), which powers the job queues.
+First, you probably want to [install beanstalkd](https://beanstalkd.github.io/download.html), which powers the job queues.
 Depending on your platform, this should be as simple as (for Ubuntu):
 
     $ sudo apt-get install beanstalkd
