@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.6.0 (December 30 2021)
+
+* TBD (please help backfill)
+
 ## Version 1.5.0 (September 10 2018)
 
 * TBD
