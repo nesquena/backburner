@@ -18,7 +18,7 @@ custom logging, and extensible plugin hooks.
 
 Backburner is well tested and has a familiar, no-nonsense approach to job processing, but that is of secondary importance.
 Let's face it, there are a lot of options for background job processing. [DelayedJob](https://github.com/collectiveidea/delayed_job),
-and [Resque](https://github.com/defunkt/resque) are the first that come to mind immediately. So, how do we make sense
+and [Resque](https://github.com/resque/resque) are the first that come to mind immediately. So, how do we make sense
 of which one to use? And why use Backburner over other alternatives?
 
 The key to understanding the differences lies in understanding the different projects and protocols that power these popular queue
