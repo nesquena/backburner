@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Version 1.6.1 (Jan 16 2023)
+Change File.exists? to File.exist? as latest ruby versions have removed support.
+
 ## Version 1.6.0 (December 30 2021)
 
 * TBD (please help backfill)
