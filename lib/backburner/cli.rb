@@ -28,7 +28,7 @@ module Backburner
 
       def self.load_environment(file = nil, environment = nil)
         file ||= "."
-        if File.directory?(file) && File.exists?(File.expand_path("#{file}/config/environment.rb"))
+        if File.directory?(file) && File.exist?(File.expand_path("#{file}/config/environment.rb"))
           ENV["RAILS_ENV"] = environment if environment && ENV["RAILS_ENV"].nil?
           require "rails"
           require File.expand_path("#{file}/config/environment.rb")
@@ -40,7 +40,7 @@ module Backburner
             $rails_rake_task = false
             ::Rails::Initializer.run :load_application_classes
           end
-        elsif File.directory?(file) && File.exists?(File.expand_path("#{file}/config/boot.rb"))
+        elsif File.directory?(file) && File.exist?(File.expand_path("#{file}/config/boot.rb"))
           ENV["RACK_ENV"] = environment if environment && ENV["RACK_ENV"].nil?
           ENV["PADRINO_ROOT"] = file
           require File.expand_path("#{file}/config/boot.rb")
