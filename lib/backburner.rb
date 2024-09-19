@@ -15,6 +15,7 @@ require 'backburner/workers/forking'
 require 'backburner/workers/threads_on_fork'
 require 'backburner/workers/threading'
 require 'backburner/queue'
+require 'active_job/queue_adapters/backburner_adapter' if defined?(ActiveJob)
 
 module Backburner
   class << self

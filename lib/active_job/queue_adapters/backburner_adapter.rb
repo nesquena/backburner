@@ -5,7 +5,7 @@ module ActiveJob
     # To use Backburner set the queue_adapter config to +:backburner+.
     #
     #   Rails.application.config.active_job.queue_adapter = :backburner
-    class BackburnerAdapter < AbstractAdapter
+    class BackburnerAdapter < ::ActiveJob::QueueAdapters::AbstractAdapter
       def enqueue(job)
         response = Backburner::Worker.enqueue(JobWrapper, [job.serialize], queue: job.queue_name, pri: job.priority)
         job.provider_job_id = response[:id] if response.is_a?(Hash)
