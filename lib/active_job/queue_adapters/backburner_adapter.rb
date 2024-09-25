@@ -1,5 +1,8 @@
 module ActiveJob
   module QueueAdapters
+    # Explicitly remove the implementation existing in older rails'.
+    remove_const(:BackburnerAdapter) if defined?(:BackburnerAdapter)
+
     # = Backburner adapter for Active Job
     #
     # To use Backburner set the queue_adapter config to +:backburner+.

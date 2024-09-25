@@ -21,6 +21,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.0', '>= 1.0.1'
 
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'minitest', '3.2.0'
+  s.add_development_dependency 'minitest', '5.1.0'
   s.add_development_dependency 'mocha'
+  s.add_development_dependency 'activejob', '>= 6.0'
+  s.add_development_dependency 'activesupport', '>= 6.0'
 end
