@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 1.7.0 (Jan 2 2026)
+
+* Changes to ActiveJob Rails adapter to remove default adapter and associated tests
+
 ## Version 1.6.1 (Jan 16 2023)
 
 * Change `File.exists?`` to `File.exist?` as latest ruby versions have removed support (@ShrutiSaagar).
