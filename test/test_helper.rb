@@ -1,11 +1,8 @@
 require 'rubygems'
 require 'tempfile'
 require 'minitest/autorun'
-begin
-  require 'mocha/setup'
-rescue LoadError
-  require 'mocha'
-end
+require 'mocha/minitest'
+
 $LOAD_PATH.unshift File.expand_path("lib")
 require 'backburner'
 require File.expand_path('../helpers/templogger', __FILE__)
