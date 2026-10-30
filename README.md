@@ -622,9 +622,9 @@ After several retries, if the connection is still not able to be made, a `Beanea
 Workers log the exception and try again on their next reserve, and watch their tubes again once the connection is back.
 Elsewhere (when enqueuing, for example) you can catch the exception and retry the call yourself.
 
-Enqueueing reuses a small pool of connections (up to 5 idle per process), so the first enqueue after beanstalkd
-goes away finds out on a pooled connection and takes about 2 seconds of retries before raising `Beaneater::NotConnected`;
-the ones after it fail at once while beanstalkd stays down.
+Enqueueing reuses a small pool of connections (up to 5 idle per process). While beanstalkd is down, each enqueue
+that picks up one of those idle connections takes about 2 seconds of retries before raising `Beaneater::NotConnected`;
+once they are used up, enqueues fail at once until beanstalkd is back.
 
 ### Web Front-end
 
