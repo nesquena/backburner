@@ -185,7 +185,7 @@ module Backburner
     # Returns a list of all tubes known within the system
     # Filtered for tubes that match the known prefix
     def all_existing_queues
-      known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
+      known_queues    = Backburner::Worker.known_queue_classes.select(&:name).map(&:queue) # an anonymous class can't be a job
       existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace || ''}/ }
       existing_tubes + known_queues + [queue_config.primary_queue]
     end

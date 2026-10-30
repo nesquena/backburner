@@ -108,7 +108,7 @@ module Backburner
       # If the tube is known by existing beanstalkd queue, but not by class - skip it
       #
       def process_tube_options
-        Backburner::Worker.known_queue_classes.each do |queue|
+        Backburner::Worker.known_queue_classes.select(&:name).each do |queue|
           next if @tubes_data[expand_tube_name(queue)].nil?
           queue_settings = {
             :threads => queue.queue_jobs_limit

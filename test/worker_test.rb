@@ -295,6 +295,18 @@ describe "Backburner::Worker module" do
     end
   end # start
 
+  describe "with an anonymous subclass of a queue class" do
+    before { @anonymous = Class.new(TestNamedQueueJob) }
+    after { Backburner::Worker.known_queue_classes.delete(@anonymous) }
+
+    it "should leave it out of the known queues of a worker given no tubes" do
+      [Backburner::Workers::Simple, Backburner::Workers::Threading, Backburner::Workers::ThreadsOnFork].each do |worker_class|
+        assert_contains worker_class.new(nil).tube_names.map { |name| Backburner::Worker.expand_tube_name(name) },
+          Backburner::Worker.expand_tube_name("testnamedqueuejob"), worker_class.name
+      end
+    end
+  end # anonymous subclass
+
   describe "for tube_names accessor" do
     before do
       Backburner.default_queues << "baz"

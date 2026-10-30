@@ -23,6 +23,12 @@ end
 
 class TestChildQueueJob < TestParentQueueJob; end
 
+class TestNamedQueueJob
+  include Backburner::Queue
+  queue lambda { |klass| klass.name.downcase }
+  def self.perform; end
+end
+
 class TestSlowJob
   include Backburner::Queue
   queue_priority :medium
