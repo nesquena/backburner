@@ -13,6 +13,7 @@
 * Allow `config.tube_namespace = nil` (or `false` or `''`) for tubes without a prefix: jobs go to `backburner-jobs`, `newsletter-sender` and so on. `nil` and `false` used to raise `NoMethodError` and `''` gave tube names with a leading `.` (@forresty in #94)
 * Fix `config.default_priority` set to a priority label (such as `:high`) failing every enqueue with `Beaneater::BadFormatError`: the label now resolves like a job's priority label (reported by @rewritten in #52, tracked in #54)
 * Fix `require 'backburner'` on Ruby 4.0 in a bundle without ActiveSupport (`cannot load such file -- logger`): `logger` is no longer a default gem, so the gemspec now depends on it
+* Require Ruby 2.7 or newer (the gemspec now says so; CI covers 2.7 to 4.0)
 
 ## Version 1.7.0 (Jan 2 2026)
 

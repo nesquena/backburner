@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.version       = Backburner::VERSION
   s.license       = 'MIT'
+  s.required_ruby_version = '>= 2.7'
 
   s.add_runtime_dependency 'beaneater', '~> 1.0'
   s.add_runtime_dependency 'dante', '> 0.1.5'
