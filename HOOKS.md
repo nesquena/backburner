@@ -88,15 +88,17 @@ end
 Currently, there is just one hook:
 
 * `on_reconnect`: Called on the worker whose connection has been reset. The connection
-  is given as the argument. The built-in workers define it to watch their tubes again,
-  so call `super` when you override it.
+  is given as the argument. Every method whose name starts with `on_reconnect` is called,
+  so add your own as `on_reconnect_<something>`. The Simple, Forking and ThreadsOnFork
+  workers define `on_reconnect` itself to watch their tubes again; if you override
+  `on_reconnect` in a subclass of one of them, call `super`.
 
 An example:
 
 ```ruby
-class MyWorker < Backburner::Worker
-  def on_reconnect(conn)
-    super
-    prepare
+class MyWorker < Backburner::Workers::Simple
+  def on_reconnect_log(conn)
+    log_info "reconnected to beanstalkd"
   end
 end
+```
