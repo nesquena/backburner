@@ -128,6 +128,7 @@ The key options available are:
 | `reserve_timeout`     | Duration to wait for work from a single server, or nil for forever.  |
 | `job_serializer_proc` | Lambda serializes a job body to a string to write to the task        |
 | `job_parser_proc`     | Lambda parses a task body string to a hash                           |
+| `enqueue_connection_max_idle` | Seconds an idle enqueue connection is reused for before it is replaced (default 60, `nil` for no limit). |
 
 ## Breaking Changes
 
@@ -615,6 +616,10 @@ In Backburner, if the beanstalkd connection is temporarily severed, several retr
 After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
 Workers log the exception and try again on their next reserve, and watch their tubes again once the connection is back.
 Elsewhere (when enqueuing, for example) you can catch the exception and retry the call yourself.
+
+Enqueueing reuses a small pool of connections (up to 5 idle per process), so the first enqueue after beanstalkd
+goes away finds out on a pooled connection and takes about 2 seconds of retries before raising `Beaneater::NotConnected`;
+the ones after it fail at once while beanstalkd stays down.
 
 ### Web Front-end
 

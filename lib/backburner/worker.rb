@@ -35,7 +35,7 @@ module Backburner
       queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
 
       response = nil
-      with_enqueue_connection do |connection|
+      Backburner::EnqueuePool.current.with_connection do |connection|
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
@@ -46,33 +46,6 @@ module Backburner
 
       response
     end
-
-    # Yields the connection this thread enqueues with, opening it on first use and keeping it
-    # open for the thread's later enqueues (one TCP connection per job ran out of ports, #125).
-    # It is keyed by process and URL, so a forked child or a new beanstalk_url gets a connection
-    # of its own, and it is closed and dropped if the block raises, since it may hold an unread reply.
-    # ceiling: a thread's connection is only closed once the thread is garbage collected;
-    # a shared pool would suit apps where many short-lived threads enqueue.
-    def self.with_enqueue_connection
-      url = Backburner.configuration.beanstalk_url
-      key, connection = Thread.current[:backburner_enqueue_connection]
-      unless key == [Process.pid, url]
-        Thread.current[:backburner_enqueue_connection] = nil
-        # A forked child leaves its parent's socket alone; a changed URL closes the old connection
-        (connection.close rescue nil) if connection && key[0] == Process.pid
-        connection = Backburner::Connection.new(url)
-        Thread.current[:backburner_enqueue_connection] = [[Process.pid, url], connection]
-      end
-
-      begin
-        yield connection
-      rescue Exception
-        Thread.current[:backburner_enqueue_connection] = nil
-        connection.close rescue nil
-        raise
-      end
-    end
-    private_class_method :with_enqueue_connection
 
     # Starts processing jobs with the specified tube_names.
     #
