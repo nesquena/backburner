@@ -6,6 +6,7 @@
 * Fix workers never recovering after beanstalkd is down for more than a few seconds: a failed reconnect no longer leaves the connection unusable (`undefined method 'tubes'` in a busy loop), and the simple worker watches its tubes again after reconnecting (reported by @activestylus in #137)
 * Fix `Connection#retryable` raising `NameError` instead of `Beaneater::NotConnected` once its retries are used up
 * Fix a job that outlives its TTR stopping the worker: when beanstalkd has already taken the job back, the `NOT_FOUND` from the retry or bury is now logged instead of escaping `work_one_job` (reported by @boncey in #82)
+* Fix a job whose `before_perform` hook returns false staying reserved and being handed out again after every TTR: the aborted job is now deleted (reported by @inoce1e in #145)
 
 ## Version 1.7.0 (Jan 2 2026)
 

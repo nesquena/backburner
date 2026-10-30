@@ -332,6 +332,19 @@ describe "Backburner::Workers::Simple module" do
       refute_match(/HookFailError/, out)
     end # stopping perform
 
+    it "should delete a job whose before_perform hook stopped it" do
+      clear_jobs!('foo.bar.events.retry3')
+      worker = @worker_class.new('foo.bar.events.retry3')
+      silenced(2) do
+        HookedObjectBeforePerformFail.async(:queue => 'foo.bar.events.retry3').foo(10)
+        worker.prepare
+        worker.work_one_job
+      end
+      stats = worker.connection.tubes['demo.test.foo.bar.events.retry3'].stats
+      assert_equal 0, stats.current_jobs_reserved, "the aborted job is still reserved"
+      assert_equal 0, stats.current_jobs_ready + stats.current_jobs_delayed + stats.current_jobs_buried
+    end # stopping perform deletes
+
     it "should keep working when the TTR ran out before the job could be buried" do
       clear_jobs!("foo.bar.ttr")
       @worker_class.enqueue TestOverTTRJob, [], :queue => "foo.bar.ttr"

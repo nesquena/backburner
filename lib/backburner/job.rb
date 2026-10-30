@@ -45,7 +45,10 @@ module Backburner
     def process
       # Invoke before hook and stop if false
       res = @hooks.invoke_hook_events(job_name, :before_perform, *args)
-      return false unless res
+      unless res
+        task.delete # aborted: don't leave it reserved, or beanstalkd hands it out again after its TTR
+        return false
+      end
       # Execute the job
       @hooks.around_hook_events(job_name, :around_perform, *args) do
         # We subtract one to ensure we timeout before beanstalkd does, except if:
