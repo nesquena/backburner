@@ -191,6 +191,17 @@ module Backburner
     end
 
 
+    # Known queue classes whose queue_jobs_limit, queue_garbage_limit and queue_retry_limit
+    # set their tube's options: named classes, leaving out a subclass that shares its
+    # parent's tube (that tube's options are the parent's)
+    def tube_settings_classes
+      Backburner::Worker.known_queue_classes.select do |queue|
+        parent = queue.respond_to?(:superclass) && queue.superclass
+        next false unless queue.name
+        !(parent.is_a?(Backburner::Queue::ClassMethods) && parent.name && expand_tube_name(parent) == expand_tube_name(queue))
+      end
+    end
+
     # Handles an error according to custom definition
     # Used when processing a job that errors out
     def handle_error(e, name, args, job)

@@ -61,6 +61,13 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       worker = @worker_class.new
       assert_equal(worker.instance_variable_get("@tubes_data")['demo.test.job-settings-override'], { :threads => 10,   :garbage => 1000,   :retries => 2 })
     end
+
+    it "should take a shared tube's settings from the class that owns the tube, not from subclasses" do
+      tubes_data = @worker_class.new.instance_variable_get("@tubes_data")
+      assert_equal({ :threads => 5, :garbage => 100, :retries => 3 }, tubes_data['demo.test.tube-limits'])
+      assert_equal({ :threads => 3, :garbage => nil, :retries => nil }, tubes_data['demo.test.tube-limits-testtubelimitslambdajob'])
+      assert_equal({ :threads => 4, :garbage => nil, :retries => nil }, tubes_data['demo.test.tube-limits-testtubelimitslambdachildjob'])
+    end
   end
 
   describe "for prepare method" do

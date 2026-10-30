@@ -1,6 +1,7 @@
 require File.expand_path('../../test_helper', __FILE__)
 require File.expand_path('../../fixtures/test_jobs', __FILE__)
 require File.expand_path('../../fixtures/hooked', __FILE__)
+require File.expand_path('../../fixtures/test_queue_settings', __FILE__)
 
 describe "Backburner::Workers::Threading worker" do
   before do
@@ -50,6 +51,16 @@ describe "Backburner::Workers::Threading worker" do
       }, worker.instance_variable_get("@tubes_data"))
     end
   end # process_tube_names
+
+  describe "for process_tube_options method" do
+    it "should take a shared tube's limit from the class that owns the tube, not from subclasses" do
+      worker = @worker_class.new(%w(tube-limits tube-limits-testtubelimitslambdachildjob))
+      assert_equal({
+        "demo.test.tube-limits" => { :threads => 5 },
+        "demo.test.tube-limits-testtubelimitslambdachildjob" => { :threads => 4 }
+      }, worker.instance_variable_get("@tubes_data"))
+    end
+  end # process_tube_options
 
   describe 'working a queue' do
     before do
