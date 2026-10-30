@@ -25,19 +25,23 @@ module Backburner
       @idle = [] # [connection, idle since], most recently used last
     end
 
-    # Yields a connection to the configured beanstalk_url. If the block raises, the connection
-    # is closed instead of checked back in, since an interrupted command may have left a reply
-    # unread on it.
+    # Yields a connection to the configured beanstalk_url. If the block doesn't finish (it raises,
+    # or its thread is killed, or it is left with throw), the connection is closed instead of
+    # checked back in, since an interrupted command may have left a reply unread on it.
     def with_connection
       url, connection = checkout
+      finished = false
       begin
         result = yield connection
-      rescue Exception
-        connection.close rescue nil
-        raise
+        finished = true
+        result
+      ensure
+        if finished
+          checkin(url, connection)
+        else
+          connection.close rescue nil
+        end
       end
-      checkin(url, connection)
-      result
     end
 
     private

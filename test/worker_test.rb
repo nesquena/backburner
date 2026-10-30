@@ -158,7 +158,7 @@ describe "Backburner::Worker module" do
       assert_equal 0, total_connections - before_count
     end
 
-    it "should keep at most #{Backburner::EnqueuePool::MAX_IDLE_CONNECTIONS} idle connections after concurrent enqueues" do
+    it "should keep at most 5 idle connections after concurrent enqueues" do
       fresh_pool # one idle connection
       before_total, before_open = total_connections, open_connections
       threads, inside = 8, Queue.new
@@ -172,7 +172,7 @@ describe "Backburner::Worker module" do
       workers.each(&:join)
       Backburner.configuration.job_serializer_proc = serializer
       assert_equal threads - 1, total_connections - before_total, "one reused, the rest opened"
-      kept = Backburner::EnqueuePool::MAX_IDLE_CONNECTIONS
+      kept = 5
       wait_for(5) { open_connections - before_open == kept - 1 }
       assert_equal kept - 1, open_connections - before_open, "only #{kept} stay open"
     ensure
@@ -207,6 +207,26 @@ describe "Backburner::Worker module" do
       assert_equal 1, total_connections - before_total, "the next enqueue should open a new connection"
     ensure
       Backburner.configuration.job_serializer_proc = serializer if serializer
+    end
+
+    it "should close a connection whose enqueue was killed" do
+      gc_was_disabled = GC.disable # so a leaked connection isn't closed by garbage collection instead
+      fresh_pool # one idle connection
+      before_total, before_open = total_connections, open_connections
+      serializer = Backburner.configuration.job_serializer_proc
+      inside = Queue.new
+      Backburner.configuration.job_serializer_proc = lambda { |body| inside << 1; sleep }
+      thread = Thread.new { enqueue(2) }
+      inside.pop
+      thread.kill.join
+      Backburner.configuration.job_serializer_proc = serializer
+      wait_for(5) { open_connections == before_open - 1 }
+      assert_equal before_open - 1, open_connections, "the killed enqueue's connection should be closed"
+      assert_equal "INSERTED", enqueue(3)[:status]
+      assert_equal 1, total_connections - before_total, "the next enqueue should open a new connection"
+    ensure
+      Backburner.configuration.job_serializer_proc = serializer if serializer
+      GC.enable unless gc_was_disabled
     end
 
     it "should replace a connection idle for longer than enqueue_connection_max_idle" do
