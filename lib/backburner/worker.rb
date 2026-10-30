@@ -191,15 +191,27 @@ module Backburner
     end
 
 
-    # Known queue classes whose queue_jobs_limit, queue_garbage_limit and queue_retry_limit
-    # set their tube's options: named classes, leaving out a subclass that shares its
-    # parent's tube (that tube's options are the parent's)
-    def tube_settings_classes
-      Backburner::Worker.known_queue_classes.select do |queue|
-        parent = queue.respond_to?(:superclass) && queue.superclass
-        next false unless queue.name
-        !(parent.is_a?(Backburner::Queue::ClassMethods) && parent.name && expand_tube_name(parent) == expand_tube_name(queue))
+    # Merges the options the block gives for each known queue class (its queue_jobs_limit and so on)
+    # into its tube's entry in tubes_data, for tubes that are there. A class that declares its tube
+    # overrides the tube's options; a subclass sharing its parent's tube only fills in the ones still
+    # unset. Anonymous classes are skipped.
+    def merge_tube_settings(tubes_data)
+      owners, sharers = Backburner::Worker.known_queue_classes.select(&:name).partition { |queue| !shares_parent_tube?(queue) }
+      [[owners, true], [sharers, false]].each do |classes, override|
+        classes.each do |queue|
+          data = tubes_data[expand_tube_name(queue)]
+          next if data.nil?
+          data.merge!(yield(queue)) { |_key, current, setting| (override ? setting.nil? : !current.nil?) ? current : setting }
+        end
       end
+    end
+
+    # Whether a queue class uses the same tube as its closest named Backburner::Queue ancestor
+    def shares_parent_tube?(queue)
+      return false unless queue.respond_to?(:superclass)
+      parent = queue.superclass
+      parent = parent.superclass while parent.is_a?(Backburner::Queue::ClassMethods) && parent.name.nil?
+      parent.is_a?(Backburner::Queue::ClassMethods) && expand_tube_name(parent) == expand_tube_name(queue)
     end
 
     # Handles an error according to custom definition

@@ -38,3 +38,17 @@ end
 class TestTubeLimitsLambdaChildJob < TestTubeLimitsLambdaJob
   queue_jobs_limit 4
 end
+
+class TestTubeFewLimitsJob
+  include Backburner::Queue
+  queue "tube-few-limits"
+  queue_retry_limit 2
+  def self.perform; end
+end
+
+# Shares its parent's tube and fills in the limits the parent leaves unset
+class TestTubeFewLimitsChildJob < TestTubeFewLimitsJob
+  queue_jobs_limit 3
+  queue_garbage_limit 50
+  queue_retry_limit 9
+end

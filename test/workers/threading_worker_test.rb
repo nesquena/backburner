@@ -60,6 +60,11 @@ describe "Backburner::Workers::Threading worker" do
         "demo.test.tube-limits-testtubelimitslambdachildjob" => { :threads => 4 }
       }, worker.instance_variable_get("@tubes_data"))
     end
+
+    it "should fill in a shared tube's limit from a subclass when the tube's class sets none" do
+      worker = @worker_class.new(%w(tube-few-limits))
+      assert_equal({ "demo.test.tube-few-limits" => { :threads => 3 } }, worker.instance_variable_get("@tubes_data"))
+    end
   end # process_tube_options
 
   describe 'working a queue' do

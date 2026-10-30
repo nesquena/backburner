@@ -202,7 +202,9 @@ end
 ```
 
 A subclass of such a job uses its parent's settings (including its tube) unless it sets its own.
-It can't unset one: the setters ignore `nil` and `false`.
+It can't unset one: the setters ignore `nil` and `false`. For the Threading and ThreadsOnFork workers, a shared
+tube's limits (`queue_jobs_limit`, `queue_garbage_limit`, `queue_retry_limit`) come from the class that declares the
+tube; subclasses only fill in the limits it leaves unset.
 
 Jobs can be enqueued with:
 

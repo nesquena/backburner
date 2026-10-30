@@ -68,6 +68,11 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       assert_equal({ :threads => 3, :garbage => nil, :retries => nil }, tubes_data['demo.test.tube-limits-testtubelimitslambdajob'])
       assert_equal({ :threads => 4, :garbage => nil, :retries => nil }, tubes_data['demo.test.tube-limits-testtubelimitslambdachildjob'])
     end
+
+    it "should fill in the settings a shared tube's class leaves unset from its subclasses" do
+      tubes_data = @worker_class.new.instance_variable_get("@tubes_data")
+      assert_equal({ :threads => 3, :garbage => 50, :retries => 2 }, tubes_data['demo.test.tube-few-limits'])
+    end
   end
 
   describe "for prepare method" do
