@@ -12,6 +12,7 @@
 * Fix every enqueue opening a new TCP connection to beanstalkd (closed sockets piled up in `TIME_WAIT` until enqueueing failed with `Beaneater::NotConnected`): each thread now keeps one connection for its enqueues, a forked child opens its own, and a connection that an error interrupted is closed rather than reused. An app now holds one open beanstalkd connection per thread that has enqueued (reported by @xinuc in #125, confirmed by @funkyboy)
 * Allow `config.tube_namespace = nil` (or `false` or `''`) for tubes without a prefix: jobs go to `backburner-jobs`, `newsletter-sender` and so on. `nil` and `false` used to raise `NoMethodError` and `''` gave tube names with a leading `.` (@forresty in #94)
 * Fix `config.default_priority` set to a priority label (such as `:high`) failing every enqueue with `Beaneater::BadFormatError`: the label now resolves like a job's priority label (reported by @rewritten in #52, tracked in #54)
+* Fix `require 'backburner'` on Ruby 4.0 in a bundle without ActiveSupport (`cannot load such file -- logger`): `logger` is no longer a default gem, so the gemspec now depends on it
 
 ## Version 1.7.0 (Jan 2 2026)
 
