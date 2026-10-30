@@ -44,7 +44,9 @@ module Backburner
     # completely new connection)
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect
     def reconnect!
-      close
+      # Close the socket but keep the delegate: if connecting fails, the next call
+      # must still reach ensure_connected! and try again (unlike after #close)
+      @beanstalk.close if @beanstalk
       connect!
       @on_reconnect.call(self) if @on_reconnect.respond_to?(:call)
     end
@@ -67,7 +69,7 @@ module Backburner
       begin
         yield
 
-      rescue Beaneater::NotConnected
+      rescue Beaneater::NotConnected => e
         if retry_count > 0
           reconnect!
           retry_count -= 1

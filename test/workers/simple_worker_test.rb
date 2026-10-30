@@ -347,4 +347,70 @@ describe "Backburner::Workers::Simple module" do
       end
     end
   end # work_one_job
+
+  describe "when beanstalkd is down for longer than the reconnect window" do
+    before do
+      @beanstalkd_bin = ENV['BEANSTALKD_BIN'] || ENV['PATH'].split(File::PATH_SEPARATOR).
+        map { |dir| File.join(dir, 'beanstalkd') }.find { |file| File.executable?(file) }
+      skip "needs a beanstalkd binary on PATH or in BEANSTALKD_BIN" unless @beanstalkd_bin
+      server = TCPServer.new('127.0.0.1', 0)
+      @port = server.addr[1]
+      server.close
+      @templogger = Templogger.new('/tmp')
+      @beanstalk_url = Backburner.configuration.beanstalk_url
+      Backburner.configure do |config|
+        config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
+        config.logger = @templogger.logger
+      end
+      start_beanstalkd
+      $worker_test_count = 0
+    end
+
+    after do
+      @worker_thread.kill if @worker_thread
+      stop_beanstalkd
+      if @templogger
+        Backburner.configure do |config|
+          config.beanstalk_url = @beanstalk_url
+          config.logger = nil
+        end
+        @templogger.close
+      end
+    end
+
+    def start_beanstalkd
+      @beanstalkd_pid = Process.spawn(@beanstalkd_bin, '-l', '127.0.0.1', '-p', @port.to_s, [:out, :err] => File::NULL)
+      wait_for { (TCPSocket.new('127.0.0.1', @port).close; true) rescue false }
+    end
+
+    def stop_beanstalkd
+      return unless @beanstalkd_pid
+      Process.kill(:KILL, @beanstalkd_pid)
+      Process.wait(@beanstalkd_pid)
+      @beanstalkd_pid = nil
+    end
+
+    def wait_for(seconds = 15)
+      deadline = Time.now + seconds
+      sleep 0.1 until yield || Time.now > deadline
+    end
+
+    it "should reconnect, watch its tubes again and resume working" do
+      worker = @worker_class.new('foo.bar.outage')
+      worker.prepare
+      @worker_thread = Thread.new { loop { worker.work_one_job } }
+      sleep 0.5 # let the worker block in reserve
+
+      stop_beanstalkd
+      # beaneater's own reconnect attempts fail, then Connection#ensure_connected! gives up too
+      wait_for { @templogger.body.scan(/Exception Beaneater::NotConnected/).size >= 2 }
+      start_beanstalkd
+      @worker_class.enqueue TestJob, [1, 2], :queue => 'foo.bar.outage'
+      wait_for(10) { $worker_test_count == 3 }
+
+      errors = @templogger.body.scan(/ERROR -- /).size
+      assert_operator errors, :<, 20, "the worker logged #{errors} errors (busy loop?)"
+      assert_equal 3, $worker_test_count
+    end
+  end # beanstalkd outage
 end # Worker
