@@ -5,6 +5,7 @@
 * Fix ThreadsOnFork with one thread per tube: each forked child now opens its own beanstalkd connection instead of sharing the parent's socket, which mixed up replies between children (`undefined method 'ttr' for nil`, lost jobs) (reported by @Haerezis in #169 and @supremoUL in #175)
 * Fix workers never recovering after beanstalkd is down for more than a few seconds: a failed reconnect no longer leaves the connection unusable (`undefined method 'tubes'` in a busy loop), and the simple worker watches its tubes again after reconnecting (reported by @activestylus in #137)
 * Fix `Connection#retryable` raising `NameError` instead of `Beaneater::NotConnected` once its retries are used up
+* Fix a job that outlives its TTR stopping the worker: when beanstalkd has already taken the job back, the `NOT_FOUND` from the retry or bury is now logged instead of escaping `work_one_job` (reported by @boncey in #82)
 
 ## Version 1.7.0 (Jan 2 2026)
 

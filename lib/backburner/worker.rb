@@ -149,17 +149,23 @@ module Backburner
 
       # NB: There's a slight chance here that the connection to beanstalkd has
       # gone down between the time we reserved / processed the job and here.
-      num_retries = job.stats.releases
-      max_job_retries = resolve_max_job_retries(job.job_class)
-      retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
-      if num_retries < max_job_retries # retry again
-        retry_delay = resolve_retry_delay(job.job_class)
-        delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
-        job.retry(num_retries + 1, delay)
-        self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
-      else # retries failed, bury
-        job.bury
-        self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+      begin
+        num_retries = job.stats.releases
+        max_job_retries = resolve_max_job_retries(job.job_class)
+        retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
+        if num_retries < max_job_retries # retry again
+          retry_delay = resolve_retry_delay(job.job_class)
+          delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
+          job.retry(num_retries + 1, delay)
+          self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
+        else # retries failed, bury
+          job.bury
+          self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
+        end
+      rescue Beaneater::NotFoundError
+        # Its TTR ran out first: beanstalkd has already taken the job back and will hand it out again.
+        # (An error raised in a rescue clause isn't caught by the method's other rescues, hence this one.)
+        self.log_error "#{job.name} was no longer reserved (its TTR ran out?), so it was neither retried nor buried"
       end
 
       handle_error(e, job.name, job.args, job)

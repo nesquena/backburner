@@ -85,3 +85,10 @@ class TestLambdaQueueJob
   queue lambda { |klass| klass.calculated_queue_name }
   def self.calculated_queue_name; 'lambda-queue' end
 end
+
+class TestOverTTRJob
+  include Backburner::Queue
+  queue_respond_timeout 2
+  # Outlives its TTR without Timeout being able to interrupt it (like a blocking C call)
+  def self.perform; Thread.handle_interrupt(Object => :never) { sleep 3 }; end
+end

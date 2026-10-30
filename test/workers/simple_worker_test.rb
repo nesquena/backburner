@@ -332,6 +332,33 @@ describe "Backburner::Workers::Simple module" do
       refute_match(/HookFailError/, out)
     end # stopping perform
 
+    it "should keep working when the TTR ran out before the job could be buried" do
+      clear_jobs!("foo.bar.ttr")
+      @worker_class.enqueue TestOverTTRJob, [], :queue => "foo.bar.ttr"
+      worker = @worker_class.new('foo.bar.ttr')
+      out = silenced(6) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestOverTTRJob.* hit 1s timeout/, out)
+      assert_match(/TestOverTTRJob was no longer reserved/, out)
+      # beanstalkd took the job back when its TTR ran out and hands it out again
+      pop_one_job("foo.bar.ttr") { |job, body| assert_equal "TestOverTTRJob", body["class"]; job.delete }
+    end
+
+    it "should keep working when the TTR ran out before the job could be retried" do
+      Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+      clear_jobs!("foo.bar.ttr")
+      @worker_class.enqueue TestOverTTRJob, [], :queue => "foo.bar.ttr"
+      worker = @worker_class.new('foo.bar.ttr')
+      out = silenced(6) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestOverTTRJob was no longer reserved/, out)
+      pop_one_job("foo.bar.ttr") { |job, body| assert_equal "TestOverTTRJob", body["class"]; job.delete }
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')
