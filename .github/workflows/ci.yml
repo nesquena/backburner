@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: ['2.7', '3.0', '3.1', '3.2', '3.3', '3.4', '4.0']
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download & Extract beanstalkd
+      run: curl -fsSL https://github.com/beanstalkd/beanstalkd/archive/refs/tags/v1.13.tar.gz | tar xz
+    - name: Make beanstalkd
+      run: make
+      working-directory: beanstalkd-1.13
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Daemonize beanstalkd
+      run: ./beanstalkd-1.13/beanstalkd -l 127.0.0.1 -p 11300 &
+    - name: Run tests
+      run: bundle exec rake test

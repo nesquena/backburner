@@ -96,7 +96,7 @@ describe "Backburner::Workers::Forking module" do
 
     after do
       @templogger.close
-      Backburner.configuration.logger = nil
+      Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5; config.logger = nil }
       clear_jobs!('response')
       clear_jobs!('bar.foo.1', 'bar.foo.2', 'bar.foo.3', 'bar.foo.4', 'bar.foo.5')
     end

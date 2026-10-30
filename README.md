@@ -1,4 +1,4 @@
-# Backburner [![Build Status](https://travis-ci.org/nesquena/backburner.svg?branch=master)](https://travis-ci.org/nesquena/backburner)
+# Backburner [![CI](https://github.com/nesquena/backburner/actions/workflows/ci.yml/badge.svg)](https://github.com/nesquena/backburner/actions/workflows/ci.yml)
 
 Backburner is a [beanstalkd](https://beanstalkd.github.io/)-powered job queue that can handle a very high volume of jobs.
 You create background jobs and place them on multiple work queues to be processed later.

@@ -218,8 +218,9 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         worker = @worker_class.new(%(foo))
         @worker_class.expects(:threads_number).returns(num_threads)
 
+        fake_conn = Struct.new(:num)
         invocations = Array(1..num_threads).map do |i|
-          conn = OpenStruct.new(:num => i)
+          conn = fake_conn.new(i)
           conn.expects(:close)
           conn
         end
