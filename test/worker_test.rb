@@ -5,7 +5,7 @@ require File.expand_path('../fixtures/hooked', __FILE__)
 describe "Backburner::Worker module" do
   before do
     Backburner.default_queues.clear
-    clear_jobs!(Backburner.configuration.primary_queue, "test-plain", "test.bar", "bar.baz.foo")
+    clear_jobs!(Backburner.configuration.primary_queue, "test-plain", "test.bar", "bar.baz.foo", "test-parent")
   end
 
   describe "for enqueue class method" do
@@ -48,6 +48,16 @@ describe "Backburner::Worker module" do
         assert_equal 100, job.pri
       end
     end # queue respond_timeout
+
+    it "should enqueue a subclass job on its superclass queue with its settings" do
+      Backburner::Worker.enqueue TestChildQueueJob, [3, 4]
+      pop_one_job("test-parent") do |job, body|
+        assert_equal "TestChildQueueJob", body["class"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 250, job.ttr
+        assert_equal 0, job.pri
+      end
+    end # subclass queue
 
     it "should support enqueuing job with custom queue" do
       Backburner::Worker.enqueue TestJob, [6, 7], :queue => "test.bar", :pri => 5000

@@ -8,6 +8,7 @@
 * Fix a job that outlives its TTR stopping the worker: when beanstalkd has already taken the job back, the `NOT_FOUND` from the retry or bury is now logged instead of escaping `work_one_job` (reported by @boncey in #82)
 * Fix a job whose `before_perform` hook returns false staying reserved and being handed out again after every TTR: the aborted job is now deleted (reported by @inoce1e in #145)
 * Fix docs: a TTR of 0 does not disable the timeout, beanstalkd stores it as 1 (reported by @pnabutovsky in #126); the HOOKS.md failure-hook examples no longer call `self.bury`, which raised `NoMethodError` and hid the original error (reported by @contentfree in #172); the README no longer points to the removed `retry_connection!` (reported by @att14 in #62)
+* Fix queue settings not being inherited: a subclass of a `Backburner::Queue` job class now uses its parent's `queue`, `queue_priority`, `queue_respond_timeout`, `queue_max_job_retries`, `queue_retry_delay`, `queue_retry_delay_proc`, `queue_jobs_limit`, `queue_garbage_limit` and `queue_retry_limit` unless it sets its own, and is registered in `Backburner::Worker.known_queue_classes`. **Behaviour change:** a subclass that didn't set `queue` used to enqueue on the primary queue (`backburner-jobs`); it now enqueues on its parent's queue (tube). Jobs it enqueued before the upgrade stay on the primary queue, so keep a worker on that tube until they are drained (reported by @contentfree in #141)
 
 ## Version 1.7.0 (Jan 2 2026)
 

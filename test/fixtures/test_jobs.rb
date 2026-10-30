@@ -13,6 +13,16 @@ class TestJob
   def self.perform(x, y); $worker_test_count += x + y; end
 end
 
+class TestParentQueueJob
+  include Backburner::Queue
+  queue "test-parent"
+  queue_priority :high
+  queue_respond_timeout 250
+  def self.perform(x, y); $worker_test_count += x + y; end
+end
+
+class TestChildQueueJob < TestParentQueueJob; end
+
 class TestSlowJob
   include Backburner::Queue
   queue_priority :medium
