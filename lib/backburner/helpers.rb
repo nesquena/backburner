@@ -111,17 +111,23 @@ module Backburner
     #  resolve_priority(FooBar) => <queue priority>
     #  resolve_priority(nil) => <default priority>
     #
-    def resolve_priority(pri, resolving_default = false)
+    def resolve_priority(pri)
+      priority = resolve_priority_value(pri)
+      return priority if priority
+      default = Backburner.configuration.default_priority # can be a label too
+      resolve_priority_value(default) || default # left as configured if it isn't a known label
+    end
+
+    # Follows a job class's queue_priority and priority labels to a number; nil for nothing,
+    # an unknown label or a cycle of labels
+    def resolve_priority_value(pri, seen_labels = [])
       if pri.respond_to?(:queue_priority)
-        resolve_priority(pri.queue_priority, resolving_default)
+        resolve_priority_value(pri.queue_priority, seen_labels)
       elsif pri.is_a?(String) || pri.is_a?(Symbol) # named priority
-        resolve_priority(Backburner.configuration.priority_labels[pri.to_sym], resolving_default)
+        label = pri.to_sym
+        resolve_priority_value(Backburner.configuration.priority_labels[label], seen_labels + [label]) unless seen_labels.include?(label)
       elsif pri.is_a?(Integer) # numerical
         pri
-      elsif resolving_default # the default is not a known label either: leave it as configured
-        Backburner.configuration.default_priority
-      else # default, which can be a label too
-        resolve_priority(Backburner.configuration.default_priority, true)
       end
     end
 

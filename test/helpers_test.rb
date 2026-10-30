@@ -195,6 +195,13 @@ describe "Backburner::Helpers module" do
       Backburner.configure { |config| config.default_priority = :unknown_label }
       assert_equal :unknown_label, resolve_priority(nil)
     end
+
+    it "stops at a cycle of priority labels" do
+      Backburner.configure { |config| config.priority_labels = { :a => :b, :b => 'a' }; config.default_priority = :a }
+      assert_equal :a, resolve_priority(nil), "a default label cycle is left as configured"
+      Backburner.configure { |config| config.default_priority = 1000 }
+      assert_equal 1000, resolve_priority(:b), "a job label cycle falls back to the default"
+    end
   end # resolve_priority
 
   describe "for resolve_respond_timeout method" do
