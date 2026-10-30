@@ -59,6 +59,18 @@ describe "Backburner::Worker module" do
       end
     end # subclass queue
 
+    it "should support a priority label as the default priority" do
+      default_priority = Backburner.configuration.default_priority
+      Backburner.configuration.default_priority = :low
+      Backburner::Worker.enqueue TestPlainJob, [1, 2]
+      pop_one_job("test-plain") do |job, body|
+        assert_equal "TestPlainJob", body["class"]
+        assert_equal 200, job.pri
+      end
+    ensure
+      Backburner.configuration.default_priority = default_priority
+    end # default priority label
+
     it "should support enqueuing job with custom queue" do
       Backburner::Worker.enqueue TestJob, [6, 7], :queue => "test.bar", :pri => 5000
       pop_one_job("test.bar") do |job, body|

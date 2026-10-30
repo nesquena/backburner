@@ -119,7 +119,7 @@ The key options available are:
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
 | `retry_delay`         | Integer defines the base time to wait (in secs) between job retries. |
 | `retry_delay_proc`    | Lambda calculates the delay used, allowing for exponential back-off. |
-| `default_priority`    | Integer The default priority of jobs                                 |
+| `default_priority`    | Integer or priority label: the default priority of jobs              |
 | `respond_timeout`     | Integer defines how long a job has to complete its task              |
 | `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `logger`              | Logger recorded to when backburner wants to report info or errors.   |
@@ -407,6 +407,8 @@ and then these aliases can be used anywhere that a numerical value can:
 Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
 User.async(:pri => :useful, :delay => 10.seconds).reset_password(@user.id)
 ```
+
+They work for `config.default_priority` too (e.g. `config.default_priority = :custom`).
 
 Using named priorities can greatly simplify priority management.
 

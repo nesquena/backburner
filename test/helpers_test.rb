@@ -177,6 +177,24 @@ describe "Backburner::Helpers module" do
     it "supports default pri for null values" do
       assert_equal 1000, resolve_priority(nil)
     end
+
+    it "supports a priority label as the default" do
+      Backburner.configure { |config| config.default_priority = :high }
+      assert_equal 0, resolve_priority(nil)
+      assert_equal 0, resolve_priority(stub(:queue_priority => nil))
+      assert_equal 0, resolve_priority(:unknown_label)
+      assert_equal 200, resolve_priority(:low)
+    end
+
+    it "supports a custom or aliased priority label as the default" do
+      Backburner.configure { |config| config.priority_labels = { :foo => 5, :bar => 'foo' }; config.default_priority = 'bar' }
+      assert_equal 5, resolve_priority(nil)
+    end
+
+    it "leaves an unknown default label as configured" do
+      Backburner.configure { |config| config.default_priority = :unknown_label }
+      assert_equal :unknown_label, resolve_priority(nil)
+    end
   end # resolve_priority
 
   describe "for resolve_respond_timeout method" do
