@@ -372,6 +372,28 @@ describe "Backburner::Workers::Simple module" do
       pop_one_job("foo.bar.ttr") { |job, body| assert_equal "TestOverTTRJob", body["class"]; job.delete }
     end
 
+    it "should keep working when the connection is lost before the failed job could be retried or buried" do
+      clear_jobs!("foo.bar.lost")
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar.lost"
+      worker = @worker_class.new('foo.bar.lost')
+      errors = []
+      Backburner.configure { |config| config.on_error = lambda { |e| errors << e } }
+      # beanstalkd went away while the job ran: asking for its stats (to retry or bury it)
+      # raises NotConnected
+      Beaneater::Job.any_instance.stubs(:ttr).returns(10)
+      Beaneater::Job.any_instance.stubs(:stats).raises(Beaneater::NotConnected)
+      out = silenced(2) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestFailJob was no longer reserved/, out)
+      assert_equal [RuntimeError], errors.map(&:class)
+    ensure
+      Beaneater::Job.any_instance.unstub(:stats)
+      Beaneater::Job.any_instance.unstub(:ttr)
+      Backburner.configure { |config| config.on_error = nil }
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')

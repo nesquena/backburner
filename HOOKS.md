@@ -88,13 +88,15 @@ end
 Currently, there is just one hook:
 
 * `on_reconnect`: Called on the worker whose connection has been reset. The connection
-  is given as the argument
+  is given as the argument. The built-in workers define it to watch their tubes again,
+  so call `super` when you override it.
 
 An example:
 
 ```ruby
 class MyWorker < Backburner::Worker
   def on_reconnect(conn)
+    super
     prepare
   end
 end
