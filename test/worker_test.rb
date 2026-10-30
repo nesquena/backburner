@@ -176,6 +176,38 @@ describe "Backburner::Worker module" do
     end # beanstalkd goes away
   end # enqueue connection
 
+  describe "without a tube_namespace" do
+    before { @tube_namespace = Backburner.configuration.tube_namespace }
+    after { Backburner.configuration.tube_namespace = @tube_namespace }
+
+    def reserve_from(tube_name)
+      connection = beanstalk_connection
+      connection.tubes.watch!(tube_name)
+      job = connection.tubes.reserve(1)
+      job.delete
+      Backburner.configuration.job_parser_proc.call(job.body)
+    ensure
+      connection.close if connection
+    end
+
+    it "should enqueue on unprefixed tubes when tube_namespace is nil, false or empty" do
+      [nil, false, ""].each do |namespace|
+        Backburner.configuration.tube_namespace = namespace
+        Backburner::Worker.enqueue TestJob, [1, namespace.inspect]
+        Backburner::Worker.enqueue TestJob, [2, namespace.inspect], :queue => "test-no-namespace"
+        assert_equal [1, namespace.inspect], reserve_from("backburner-jobs")["args"]
+        assert_equal [2, namespace.inspect], reserve_from("test-no-namespace")["args"]
+      end
+    end
+
+    it "should list existing unprefixed tubes for a worker given no tubes" do
+      Backburner.configuration.tube_namespace = false
+      Backburner::Worker.enqueue TestJob, [1, 2], :queue => "test-no-namespace"
+      assert_contains Backburner::Worker.new(nil).tube_names, "test-no-namespace"
+      reserve_from("test-no-namespace")
+    end
+  end # without a tube_namespace
+
   describe "for start class method" do
     it "should initialize and start the worker instance" do
       ech = stub
