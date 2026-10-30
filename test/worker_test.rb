@@ -90,6 +90,92 @@ describe "Backburner::Worker module" do
     end
   end # enqueue
 
+  describe "for the enqueue connection" do
+    before { @stats_connection = beanstalk_connection }
+    after { @stats_connection.close }
+
+    # Connections beanstalkd has accepted so far
+    def total_connections
+      @stats_connection.stats.total_connections
+    end
+
+    def enqueue_in_new_thread(count = 1)
+      Thread.new { Array.new(count) { |i| Backburner::Worker.enqueue(TestJob, [i, 0]) } }.value
+    end
+
+    it "should reuse one connection for a thread's enqueues" do
+      before_count = total_connections
+      responses = enqueue_in_new_thread(5)
+      assert_equal ["INSERTED"] * 5, responses.map { |res| res[:status] }
+      assert_equal 1, total_connections - before_count
+    end
+
+    it "should give each thread its own connection" do
+      before_count = total_connections
+      2.times { enqueue_in_new_thread(2) }
+      assert_equal 2, total_connections - before_count
+    end
+
+    it "should give a forked child its own connection" do
+      skip "needs fork" unless Process.respond_to?(:fork)
+      Thread.new do
+        Backburner::Worker.enqueue(TestJob, [1, 0])
+        before_child = total_connections
+        pid = Process.fork do
+          res = Backburner::Worker.enqueue(TestJob, [2, 0]) rescue nil
+          exit!(res && res[:status] == "INSERTED" ? 0 : 1)
+        end
+        Process.wait(pid)
+        assert_equal 0, $?.exitstatus, "the child's enqueue failed"
+        assert_equal 1, total_connections - before_child, "the child should open its own connection"
+        assert_equal "INSERTED", Backburner::Worker.enqueue(TestJob, [3, 0])[:status]
+        assert_equal 1, total_connections - before_child, "the parent should keep its connection"
+      end.join
+    end
+
+    it "should not reuse a connection that an error interrupted" do
+      serializer = Backburner.configuration.job_serializer_proc
+      Thread.new do
+        Backburner::Worker.enqueue(TestJob, [1, 0])
+        socket = Thread.current[:backburner_enqueue_connection].last.connection.connection
+        # an interrupted command: its reply is left unread on the socket
+        Backburner.configuration.job_serializer_proc = lambda { |body| socket.write("list-tube-used\r\n"); raise Timeout::Error }
+        assert_raises(Timeout::Error) { Backburner::Worker.enqueue(TestJob, [2, 0]) }
+        Backburner.configuration.job_serializer_proc = serializer
+        assert_equal "INSERTED", Backburner::Worker.enqueue(TestJob, [3, 0])[:status]
+      end.join
+    ensure
+      Backburner.configuration.job_serializer_proc = serializer
+    end
+
+    describe "when beanstalkd goes away" do
+      before do
+        pick_beanstalkd_port
+        @beanstalk_url = Backburner.configuration.beanstalk_url
+        Backburner.configuration.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
+        start_beanstalkd
+      end
+
+      after do
+        stop_beanstalkd
+        Backburner.configuration.beanstalk_url = @beanstalk_url if @beanstalk_url
+      end
+
+      it "should recover from a restart and from Beaneater::NotConnected" do
+        Thread.new do
+          assert_equal "INSERTED", Backburner::Worker.enqueue(TestJob, [1, 0])[:status]
+          stop_beanstalkd
+          start_beanstalkd
+          assert_equal "INSERTED", Backburner::Worker.enqueue(TestJob, [2, 0])[:status]
+          stop_beanstalkd
+          assert_raises(Beaneater::NotConnected) { Backburner::Worker.enqueue(TestJob, [3, 0]) }
+          start_beanstalkd
+          assert_equal "INSERTED", Backburner::Worker.enqueue(TestJob, [4, 0])[:status]
+        end.join
+      end
+    end # beanstalkd goes away
+  end # enqueue connection
+
   describe "for start class method" do
     it "should initialize and start the worker instance" do
       ech = stub
