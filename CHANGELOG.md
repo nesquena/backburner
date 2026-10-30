@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+* Fix ThreadsOnFork with one thread per tube: each forked child now opens its own beanstalkd connection instead of sharing the parent's socket, which mixed up replies between children (`undefined method 'ttr' for nil`, lost jobs) (reported by @Haerezis in #169 and @supremoUL in #175)
+* Fix workers never recovering after beanstalkd is down for more than a few seconds: a failed reconnect no longer leaves the connection unusable (`undefined method 'tubes'` in a busy loop), and the simple worker watches its tubes again after reconnecting; a job that fails while the connection is down no longer stops the simple worker either (reported by @activestylus in #137)
+* Fix `Connection#retryable` raising `NameError` instead of `Beaneater::NotConnected` once its retries are used up
+* Fix a job that outlives its TTR stopping the worker: when beanstalkd has already taken the job back, the `NOT_FOUND` from the retry or bury is now logged instead of escaping `work_one_job` (reported by @boncey in #82)
+* Behaviour change: a `before_perform` hook returning false now deletes the job, as HOOKS.md describes; before, the job stayed reserved and beanstalkd handed it out again after every TTR (reported by @inoce1e in #145)
+* Fix docs: a TTR of 0 does not disable the timeout, beanstalkd stores it as 1 (reported by @pnabutovsky in #126); the HOOKS.md failure-hook examples no longer call `self.bury`, which raised `NoMethodError` and hid the original error (reported by @contentfree in #172); the README no longer points to the removed `retry_connection!` (reported by @att14 in #62)
+
 ## Version 1.7.0 (Jan 2 2026)
 
 * Changes to ActiveJob Rails adapter to remove default adapter and associated tests

@@ -377,7 +377,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         $worker_success = false
         $worker_raise   = false
         clear_jobs!('response')
-        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7')
+        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7', 'foo.bar.8')
         @worker_class.threads_number = 1
         @worker_class.garbage_after  = 10
 
@@ -392,7 +392,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       after do
         @templogger.close
         clear_jobs!('response')
-        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7')
+        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7', 'foo.bar.8')
         @worker_class.threads_number = 1
         @worker_class.shutdown = true
         silenced do
@@ -480,6 +480,28 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         end
         assert_equal num_jobs, $worker_test_count
       end # multithreaded
+
+      it "should give each forked tube its own connection when running one thread per tube" do
+        num_jobs = 5
+        tubes = %w(foo.bar.7 foo.bar.8)
+        @worker = @worker_class.new(tubes)
+        @worker.start(false)
+        tubes.each do |tube|
+          num_jobs.times { @worker_class.enqueue TestJobNoopFork, [], :queue => tube }
+        end
+
+        completed = lambda { @templogger.body.scan(/Completed TestJobNoopFork/).size }
+        deadline = Time.now + 10
+        sleep 0.1 until completed.call >= tubes.size * num_jobs || Time.now > deadline
+
+        assert_equal tubes.size * num_jobs, completed.call, @templogger.body
+        conn = beanstalk_connection
+        tubes.each do |tube|
+          stats = conn.tubes["demo.test.#{tube}"].stats
+          assert_equal 0, stats.current_jobs_ready + stats.current_jobs_reserved, "jobs left in #{tube}"
+        end
+        conn.close
+      end # one thread per tube
     end # practical tests
   end # forking and threading
 end # Backburner::Workers::ThreadsOnFork module

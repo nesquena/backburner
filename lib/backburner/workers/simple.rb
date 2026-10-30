@@ -24,6 +24,11 @@ module Backburner
         prepare
         loop { work_one_job }
       end
+
+      # A reconnected connection only watches the default tube: watch ours again
+      def on_reconnect(conn)
+        conn.tubes.watch!(*self.tube_names)
+      end
     end # Basic
   end # Workers
 end # Backburner

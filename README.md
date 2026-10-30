@@ -165,7 +165,7 @@ class NewsletterJob
 
   # optional, defaults to respond_timeout in config
   def self.queue_respond_timeout
-    300 # number of seconds before job times out, 0 to avoid timeout. NB: A timeout of 1 second will likely lead to race conditions between Backburner and beanstalkd and should be avoided
+    300 # number of seconds before job times out; the minimum is 1 (beanstalkd turns 0 into 1), so give long jobs a generous value. NB: A timeout of 1 second will likely lead to race conditions between Backburner and beanstalkd and should be avoided
   end
 
   # optional, defaults to retry_delay_proc in config
@@ -192,7 +192,7 @@ class NewsletterJob
   include Backburner::Queue
   queue "newsletter-sender"  # defaults to 'backburner-jobs' tube
   queue_priority 1000 # most urgent priority is 0
-  queue_respond_timeout 300 # number of seconds before job times out, 0 to avoid timeout
+  queue_respond_timeout 300 # number of seconds before job times out (minimum 1; 0 does not disable it)
 
   def self.perform(email, body)
     NewsletterMailer.deliver_text_to_email(email, body)
@@ -224,7 +224,7 @@ class User
   include Backburner::Performable
   queue "user-jobs"  # defaults to 'user'
   queue_priority 500 # most urgent priority is 0
-  queue_respond_timeout 300 # number of seconds before job times out, 0 to avoid timeout
+  queue_respond_timeout 300 # number of seconds before job times out (minimum 1; 0 does not disable it)
 
   def activate(device_id)
     @device = Device.find(device_id)
@@ -611,7 +611,8 @@ backburner -e $environment
 
 In Backburner, if the beanstalkd connection is temporarily severed, several retries to establish the connection will be attempted.
 After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
-You can manually catch this exception, and attempt another manual retry using `Backburner::Worker.retry_connection!`.
+Workers log the exception and try again on their next reserve, and watch their tubes again once the connection is back.
+Elsewhere (when enqueuing, for example) you can catch the exception and retry the call yourself.
 
 ### Web Front-end
 

@@ -33,3 +33,5 @@ jobs:
       run: ./beanstalkd-1.13/beanstalkd -l 127.0.0.1 -p 11300 &
     - name: Run tests
       run: bundle exec rake test
+      env:
+        BEANSTALKD_BIN: ${{ github.workspace }}/beanstalkd-1.13/beanstalkd # for the outage test, which stops and restarts its own server

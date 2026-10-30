@@ -70,3 +70,8 @@ class TestJobMultithreadFork
     }], :queue => 'response'
   end
 end
+
+class TestJobNoopFork
+  include Backburner::Queue
+  def self.perform; end
+end

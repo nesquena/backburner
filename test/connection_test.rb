@@ -152,7 +152,29 @@ describe "Backburner::Connection class" do
       end
     end
 
+    describe "when a reconnect fails" do
+      it "should reconnect on the next call once beanstalkd is back" do
+        back_up = Beaneater.new('127.0.0.1:11300')
+        Beaneater.expects(:new).twice.raises(Beaneater::NotConnected).then.returns(back_up)
+        assert_raises(Beaneater::NotConnected) { @connection.reconnect! }
+        assert_equal false, @connection.connected?
+        assert_kind_of Array, @connection.tubes.all
+        assert_equal true, @connection.connected?
+      end
+    end
+
     describe "when using the retryable method" do
+      it "should raise Beaneater::NotConnected once the retries are used up" do
+        attempts = 0
+        assert_raises Beaneater::NotConnected do
+          @connection.retryable(max_retries: 1, retry_delay: 0) do
+            attempts += 1
+            raise Beaneater::NotConnected
+          end
+        end
+        assert_equal 2, attempts
+      end
+
       it "should yield to the block multiple times" do
         expected    = 2
         retry_count = 0

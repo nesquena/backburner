@@ -17,7 +17,7 @@ There are a variety of hooks available that are triggered during the lifecycle o
   Any exception raised propagates up to the code which queued the job.
 
 * `before_perform`: Called with the job args before perform. If a hook returns false,
-  the job is aborted. Other exceptions are treated like regular job exceptions.
+  the job is aborted and deleted from the queue. Other exceptions are treated like regular job exceptions.
 
 * `after_perform`: Called with the job args after it performs. Uncaught
   exceptions will be treated like regular job exceptions.
@@ -41,9 +41,8 @@ class SomeJob
     logger.info "About to perform #{self} with #{args.inspect}"
   end
 
-  def self.on_failure_bury(e, *args)
+  def self.on_failure_log_job(e, *args)
     logger.info "Performing #{self} caused an exception (#{e})"
-    self.bury
   end
 
   def self.perform(*args)
@@ -56,25 +55,27 @@ class SomeJob
 end
 ```
 
+A failure hook doesn't need to retry or bury the job: the worker retries a failed job up to `max_job_retries`
+times and then buries it. Use an `on_retry` or `on_bury` hook to act on those.
+
 You can also setup modules to create compose-able and reusable hooks for your jobs. For example:
 
 ```ruby
 module LoggedJob
   def before_perform_log_job(*args)
-    Logger.info "About to perform #{self} with #{args.inspect}"
+    puts "About to perform #{self} with #{args.inspect}"
   end
 end
 
-module BuriedJob
-  def on_failure_bury(e, *args)
-    Logger.info "Performing #{self} caused an exception (#{e}). Retrying..."
-    self.bury
+module NotifiedJob
+  def on_failure_notify(e, *args)
+    puts "Performing #{self} caused an exception (#{e})"
   end
 end
 
 class MyJob
   extend LoggedJob
-  extend BuriedJob
+  extend NotifiedJob
 
   def self.perform(*args)
     # ...
@@ -86,14 +87,22 @@ end
 
 Currently, there is just one hook:
 
-* `on_reconnect`: Called on the worker whose connection has been reset. The connection
-  is given as the argument
+* `on_reconnect`: Called on a Simple or ThreadsOnFork worker after Backburner re-establishes
+  a lost connection, with the new connection as the argument. A short outage that beanstalk's
+  client library rides out on its own reconnects without it (and keeps the watched tubes). The
+  Threading worker never calls it (each thread's connection re-watches its own tube), and
+  Forking workers' children reconnect through the client library, so it doesn't fire there either.
+  Every public method whose name starts with `on_reconnect` is called, so add your own as
+  `on_reconnect_<something>`. The Simple, Forking and ThreadsOnFork
+  workers define `on_reconnect` itself to watch their tubes again; if you override
+  `on_reconnect` in a subclass of one of them, call `super`.
 
 An example:
 
 ```ruby
-class MyWorker < Backburner::Worker
-  def on_reconnect(conn)
-    prepare
+class MyWorker < Backburner::Workers::Simple
+  def on_reconnect_log(conn)
+    log_info "reconnected to beanstalkd"
   end
 end
+```

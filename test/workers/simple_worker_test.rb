@@ -332,6 +332,68 @@ describe "Backburner::Workers::Simple module" do
       refute_match(/HookFailError/, out)
     end # stopping perform
 
+    it "should delete a job whose before_perform hook stopped it" do
+      clear_jobs!('foo.bar.events.retry3')
+      worker = @worker_class.new('foo.bar.events.retry3')
+      silenced(2) do
+        HookedObjectBeforePerformFail.async(:queue => 'foo.bar.events.retry3').foo(10)
+        worker.prepare
+        worker.work_one_job
+      end
+      stats = worker.connection.tubes['demo.test.foo.bar.events.retry3'].stats
+      assert_equal 0, stats.current_jobs_reserved, "the aborted job is still reserved"
+      assert_equal 0, stats.current_jobs_ready + stats.current_jobs_delayed + stats.current_jobs_buried
+    end # stopping perform deletes
+
+    it "should keep working when the TTR ran out before the job could be buried" do
+      clear_jobs!("foo.bar.ttr")
+      @worker_class.enqueue TestOverTTRJob, [], :queue => "foo.bar.ttr"
+      worker = @worker_class.new('foo.bar.ttr')
+      out = silenced(6) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestOverTTRJob.* hit 1s timeout/, out)
+      assert_match(/TestOverTTRJob was no longer reserved/, out)
+      # beanstalkd took the job back when its TTR ran out and hands it out again
+      pop_one_job("foo.bar.ttr") { |job, body| assert_equal "TestOverTTRJob", body["class"]; job.delete }
+    end
+
+    it "should keep working when the TTR ran out before the job could be retried" do
+      Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+      clear_jobs!("foo.bar.ttr")
+      @worker_class.enqueue TestOverTTRJob, [], :queue => "foo.bar.ttr"
+      worker = @worker_class.new('foo.bar.ttr')
+      out = silenced(6) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestOverTTRJob was no longer reserved/, out)
+      pop_one_job("foo.bar.ttr") { |job, body| assert_equal "TestOverTTRJob", body["class"]; job.delete }
+    end
+
+    it "should keep working when the connection is lost before the failed job could be retried or buried" do
+      clear_jobs!("foo.bar.lost")
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar.lost"
+      worker = @worker_class.new('foo.bar.lost')
+      errors = []
+      Backburner.configure { |config| config.on_error = lambda { |e| errors << e } }
+      # beanstalkd went away while the job ran: asking for its stats (to retry or bury it)
+      # raises NotConnected
+      Beaneater::Job.any_instance.stubs(:ttr).returns(10)
+      Beaneater::Job.any_instance.stubs(:stats).raises(Beaneater::NotConnected)
+      out = silenced(2) do
+        worker.prepare
+        worker.work_one_job
+      end
+      assert_match(/TestFailJob was no longer reserved/, out)
+      assert_equal [RuntimeError], errors.map(&:class)
+    ensure
+      Beaneater::Job.any_instance.unstub(:stats)
+      Beaneater::Job.any_instance.unstub(:ttr)
+      Backburner.configure { |config| config.on_error = nil }
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')
@@ -347,4 +409,70 @@ describe "Backburner::Workers::Simple module" do
       end
     end
   end # work_one_job
+
+  describe "when beanstalkd is down for longer than the reconnect window" do
+    before do
+      @beanstalkd_bin = ENV['BEANSTALKD_BIN'] || ENV['PATH'].split(File::PATH_SEPARATOR).
+        map { |dir| File.join(dir, 'beanstalkd') }.find { |file| File.executable?(file) }
+      skip "needs a beanstalkd binary on PATH or in BEANSTALKD_BIN" unless @beanstalkd_bin
+      server = TCPServer.new('127.0.0.1', 0)
+      @port = server.addr[1]
+      server.close
+      @templogger = Templogger.new('/tmp')
+      @beanstalk_url = Backburner.configuration.beanstalk_url
+      Backburner.configure do |config|
+        config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
+        config.logger = @templogger.logger
+      end
+      start_beanstalkd
+      $worker_test_count = 0
+    end
+
+    after do
+      @worker_thread.kill if @worker_thread
+      stop_beanstalkd
+      if @templogger
+        Backburner.configure do |config|
+          config.beanstalk_url = @beanstalk_url
+          config.logger = nil
+        end
+        @templogger.close
+      end
+    end
+
+    def start_beanstalkd
+      @beanstalkd_pid = Process.spawn(@beanstalkd_bin, '-l', '127.0.0.1', '-p', @port.to_s, [:out, :err] => File::NULL)
+      wait_for { (TCPSocket.new('127.0.0.1', @port).close; true) rescue false }
+    end
+
+    def stop_beanstalkd
+      return unless @beanstalkd_pid
+      Process.kill(:KILL, @beanstalkd_pid)
+      Process.wait(@beanstalkd_pid)
+      @beanstalkd_pid = nil
+    end
+
+    def wait_for(seconds = 15)
+      deadline = Time.now + seconds
+      sleep 0.1 until yield || Time.now > deadline
+    end
+
+    it "should reconnect, watch its tubes again and resume working" do
+      worker = @worker_class.new('foo.bar.outage')
+      worker.prepare
+      @worker_thread = Thread.new { loop { worker.work_one_job } }
+      sleep 0.5 # let the worker block in reserve
+
+      stop_beanstalkd
+      # beaneater's own reconnect attempts fail, then Connection#ensure_connected! gives up too
+      wait_for { @templogger.body.scan(/Exception Beaneater::NotConnected/).size >= 2 }
+      start_beanstalkd
+      @worker_class.enqueue TestJob, [1, 2], :queue => 'foo.bar.outage'
+      wait_for(10) { $worker_test_count == 3 }
+
+      errors = @templogger.body.scan(/ERROR -- /).size
+      assert_operator errors, :<, 20, "the worker logged #{errors} errors (busy loop?)"
+      assert_equal 3, $worker_test_count
+    end
+  end # beanstalkd outage
 end # Worker
