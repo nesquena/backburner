@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Fix ThreadsOnFork with one thread per tube: each forked child now opens its own beanstalkd connection instead of sharing the parent's socket, which mixed up replies between children (`undefined method 'ttr' for nil`, lost jobs) (reported by @Haerezis in #169 and @supremoUL in #175)
+
 ## Version 1.7.0 (Jan 2 2026)
 
 * Changes to ActiveJob Rails adapter to remove default adapter and associated tests

@@ -182,6 +182,8 @@ module Backburner
         @runs = 0
 
         if @threads_number == 1
+          # Each forked child needs its own socket: the parent's connection is shared by every fork
+          self.connection = new_connection
           watch_tube(name)
           run_while_can
         else
