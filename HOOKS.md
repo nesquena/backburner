@@ -87,9 +87,13 @@ end
 
 Currently, there is just one hook:
 
-* `on_reconnect`: Called on the worker whose connection has been reset. The connection
-  is given as the argument. Every method whose name starts with `on_reconnect` is called,
-  so add your own as `on_reconnect_<something>`. The Simple, Forking and ThreadsOnFork
+* `on_reconnect`: Called on a Simple or ThreadsOnFork worker after Backburner re-establishes
+  a lost connection, with the new connection as the argument. A short outage that beanstalk's
+  client library rides out on its own reconnects without it (and keeps the watched tubes). The
+  Threading worker never calls it (each thread's connection re-watches its own tube), and
+  Forking workers' children reconnect through the client library, so it doesn't fire there either.
+  Every public method whose name starts with `on_reconnect` is called, so add your own as
+  `on_reconnect_<something>`. The Simple, Forking and ThreadsOnFork
   workers define `on_reconnect` itself to watch their tubes again; if you override
   `on_reconnect` in a subclass of one of them, call `super`.
 
