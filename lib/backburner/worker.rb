@@ -186,10 +186,11 @@ module Backburner
           job.bury
           self.log_job_end(job.name, "#{retry_status}, burying") if job_started_at
         end
-      rescue Beaneater::NotFoundError
-        # Its TTR ran out first: beanstalkd has already taken the job back and will hand it out again.
+      rescue Beaneater::NotFoundError, Beaneater::NotConnected
+        # Its TTR ran out first, or the connection was lost: either way beanstalkd has taken the job
+        # back and will hand it out again.
         # (An error raised in a rescue clause isn't caught by the method's other rescues, hence this one.)
-        self.log_error "#{job.name} was no longer reserved (its TTR ran out?), so it was neither retried nor buried"
+        self.log_error "#{job.name} was no longer reserved (its TTR ran out, or the connection was lost), so it was neither retried nor buried"
       end
 
       handle_error(e, job.name, job.args, job)
