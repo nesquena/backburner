@@ -19,7 +19,7 @@ module Backburner
     attr_accessor :reserve_timeout     # duration to wait to reserve on a single server
     attr_accessor :job_serializer_proc # proc to write the job body to a string
     attr_accessor :job_parser_proc     # proc to parse a job body from a string
-    attr_accessor :enqueue_connection_max_idle # seconds an idle enqueue connection is reused for (nil: no limit)
+    attr_reader   :enqueue_connection_max_idle # seconds an idle enqueue connection is reused for (nil: no limit)
 
     def initialize
       @beanstalk_url       = "beanstalk://127.0.0.1"
@@ -40,6 +40,11 @@ module Backburner
       @job_serializer_proc = lambda { |body| body.to_json }
       @job_parser_proc     = lambda { |body| JSON.parse(body) }
       @enqueue_connection_max_idle = 60
+    end
+
+    # Accepts a number or a numeric string (from ENV, say), or nil for no limit
+    def enqueue_connection_max_idle=(seconds)
+      @enqueue_connection_max_idle = seconds.nil? ? nil : Float(seconds)
     end
 
     def namespace_separator=(val)

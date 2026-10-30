@@ -10,7 +10,11 @@ module Backburner
     MAX_IDLE_CONNECTIONS = 5
 
     # The pool of this process: a forked child gets a new one and leaves its parent's
-    # sockets (and a lock another thread may have held at the fork) alone
+    # sockets (and a lock another thread may have held at the fork) alone.
+    # ceiling: no lock, so threads that race on the first enqueue (or the first after a fork) may
+    # each make a pool; only the last one is kept, and the others' connections stay open until
+    # garbage collected. A class-level lock would need replacing after a fork, as a thread that
+    # doesn't exist in the child may hold it.
     def self.current
       pool = @current
       pool && pool.pid == Process.pid ? pool : (@current = new)

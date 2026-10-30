@@ -72,6 +72,19 @@ describe "Backburner module" do
         Backburner.configuration.namespace_separator = ':'
       end
     end
+
+    it "reads enqueue_connection_max_idle as seconds" do
+      max_idle = Backburner.configuration.enqueue_connection_max_idle
+      Backburner.configuration.enqueue_connection_max_idle = "30"
+      assert_equal 30.0, Backburner.configuration.enqueue_connection_max_idle
+      Backburner.configuration.enqueue_connection_max_idle = 1
+      assert_equal 1.0, Backburner.configuration.enqueue_connection_max_idle
+      Backburner.configuration.enqueue_connection_max_idle = nil
+      assert_nil Backburner.configuration.enqueue_connection_max_idle
+      assert_raises(ArgumentError) { Backburner.configuration.enqueue_connection_max_idle = "a minute" }
+    ensure
+      Backburner.configuration.enqueue_connection_max_idle = max_idle
+    end
   end # configuration
 
   describe "for default_queues" do
