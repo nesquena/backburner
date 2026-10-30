@@ -113,7 +113,7 @@ The key options available are:
 | Option                | Description                                                          |
 | -----------------     | -------------------------------                                      |
 | `beanstalk_url`       | Address for beanstalkd connection i.e 'beanstalk://127.0.0.1'        |
-| `tube_namespace`      | Prefix used for all tubes related to this backburner queue (`nil` or `''` for no prefix). |
+| `tube_namespace`      | Prefix used for all tubes related to this backburner queue (`nil` or `''` for no prefix; a worker given no tubes then watches every tube on the server, so give your tubes distinct names on a shared beanstalkd). |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
@@ -200,6 +200,9 @@ class NewsletterJob
   end
 end
 ```
+
+A subclass of such a job uses its parent's settings (including its tube) unless it sets its own.
+It can't unset one: the setters ignore `nil` and `false`.
 
 Jobs can be enqueued with:
 
