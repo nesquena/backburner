@@ -7,6 +7,7 @@
 * Fix `Connection#retryable` raising `NameError` instead of `Beaneater::NotConnected` once its retries are used up
 * Fix a job that outlives its TTR stopping the worker: when beanstalkd has already taken the job back, the `NOT_FOUND` from the retry or bury is now logged instead of escaping `work_one_job` (reported by @boncey in #82)
 * Fix a job whose `before_perform` hook returns false staying reserved and being handed out again after every TTR: the aborted job is now deleted (reported by @inoce1e in #145)
+* Fix docs: a TTR of 0 does not disable the timeout, beanstalkd stores it as 1 (reported by @pnabutovsky in #126); the HOOKS.md failure-hook examples no longer call `self.bury`, which raised `NoMethodError` and hid the original error (reported by @contentfree in #172); the README no longer points to the removed `retry_connection!` (reported by @att14 in #62)
 
 ## Version 1.7.0 (Jan 2 2026)
 

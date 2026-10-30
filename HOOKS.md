@@ -41,9 +41,8 @@ class SomeJob
     logger.info "About to perform #{self} with #{args.inspect}"
   end
 
-  def self.on_failure_bury(e, *args)
+  def self.on_failure_log_job(e, *args)
     logger.info "Performing #{self} caused an exception (#{e})"
-    self.bury
   end
 
   def self.perform(*args)
@@ -56,25 +55,27 @@ class SomeJob
 end
 ```
 
+A failure hook doesn't need to retry or bury the job: the worker retries a failed job up to `max_job_retries`
+times and then buries it. Use an `on_retry` or `on_bury` hook to act on those.
+
 You can also setup modules to create compose-able and reusable hooks for your jobs. For example:
 
 ```ruby
 module LoggedJob
   def before_perform_log_job(*args)
-    Logger.info "About to perform #{self} with #{args.inspect}"
+    puts "About to perform #{self} with #{args.inspect}"
   end
 end
 
-module BuriedJob
-  def on_failure_bury(e, *args)
-    Logger.info "Performing #{self} caused an exception (#{e}). Retrying..."
-    self.bury
+module NotifiedJob
+  def on_failure_notify(e, *args)
+    puts "Performing #{self} caused an exception (#{e})"
   end
 end
 
 class MyJob
   extend LoggedJob
-  extend BuriedJob
+  extend NotifiedJob
 
   def self.perform(*args)
     # ...
