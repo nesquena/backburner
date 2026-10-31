@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Fix a job whose class an autoloader can't load (it raises `LoadError` rather than `NameError`) stopping the worker: the `LoadError` escaped `work_one_job`; the job is now handled like one whose class can't be found
 * Fix the usage comment in `bin/backburner`: queues are given with `-q` (`backburner -q foo,bar`); a bare `backburner foo,bar` ignores them and works every known queue
 * Fix the ThreadsOnFork worker logging "Catastrophic failure: tube ... exited with code 0" for every child on a normal shutdown: a child that exits with code 0 (stopped by `SIGTERM` or `SIGINT`) is now logged as "Tube ... exited normally."
 * Fix an error raised by `config.on_error` (an error reporter that can't reach its service, say) stopping the worker: it escaped `work_one_job`, which ended the simple worker and killed a ThreadsOnFork or Forking child; it is now logged ("The on_error handler failed for ..."). The failed job is still retried or buried as before

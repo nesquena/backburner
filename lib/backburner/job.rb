@@ -100,7 +100,7 @@ module Backburner
 
     def try_job_class
       constantize(self.name)
-    rescue NameError
+    rescue NameError, LoadError # an autoloader may raise LoadError for a file that isn't there
       nil
     end
 

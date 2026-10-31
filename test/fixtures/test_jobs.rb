@@ -108,3 +108,8 @@ class TestOverTTRJob
   # Outlives its TTR without Timeout being able to interrupt it (like a blocking C call)
   def self.perform; Thread.handle_interrupt(Object => :never) { sleep 3 }; end
 end
+
+# Like an autoloader that doesn't find a file for the constant
+module AutoloadingDemo
+  def self.const_missing(name); raise LoadError, "cannot load such file -- autoloading_demo/#{name}"; end
+end

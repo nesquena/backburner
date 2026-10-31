@@ -446,6 +446,16 @@ describe "Backburner::Workers::Simple module" do
       ensure
         Object.send(:remove_const, :TestRolloutJob) if Object.const_defined?(:TestRolloutJob)
       end
+
+      it "should release a job whose class an autoloader can't load" do
+        put_job("AutoloadingDemo::TestJobGone", 100)
+        out = silenced(2) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/AutoloadingDemo::TestJobGone: class not found; released for 100s/, out)
+        assert_equal [0, 1], [tube_stats.current_jobs_buried, tube_stats.current_jobs_delayed]
+      end
     end # unknown class
 
     it "should keep working when the on_error handler raises" do

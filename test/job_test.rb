@@ -1,4 +1,5 @@
 require File.expand_path('../test_helper', __FILE__)
+require File.expand_path('../fixtures/test_jobs', __FILE__)
 
 module NestedDemo
   class TestJobC
@@ -110,6 +111,19 @@ describe "Backburner::Job module" do
         assert_raises(Backburner::Job::JobNotFound) { @job.process }
       end # error class
     end # invalid
+
+    describe "with a class an autoloader can't load" do
+      before do
+        @task_body = { "class" => "AutoloadingDemo::TestJobGone", "args" => [56] }
+        @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
+        @task.expects(:delete).never
+      end
+
+      it "should raise JobNotFound" do
+        @job = Backburner::Job.new(@task)
+        assert_raises(Backburner::Job::JobNotFound) { @job.process }
+      end
+    end # autoloader
   end # process
 
   describe "for simple delegation method" do
