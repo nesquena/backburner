@@ -54,6 +54,16 @@ describe "Backburner::Logger module" do
       assert_match(/W,.*?baz/, @strio.string)
     end
 
+    it "logs as an error to a logger without a public warn method" do
+      logged = []
+      logger = Object.new # the README asks a logger for info and error only
+      logger.define_singleton_method(:info) { |msg| logged << [:info, msg] }
+      logger.define_singleton_method(:error) { |msg| logged << [:error, msg] }
+      Backburner.configure { |config| config.logger = logger }
+      log_warn("baz")
+      assert_equal [[:error, "baz"]], logged
+    end
+
     after do
       Backburner.configure { |config| config.logger = nil }
     end

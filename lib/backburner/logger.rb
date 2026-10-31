@@ -51,7 +51,7 @@ module Backburner
     #   log_warn("Task released!")
     #
     def log_warn(msg)
-      logger ? logger.warn(msg) : $stderr.puts(msg)
+      logger ? (logger.respond_to?(:warn) ? logger.warn(msg) : logger.error(msg)) : $stderr.puts(msg)
     end
 
     # Return logger if specified
