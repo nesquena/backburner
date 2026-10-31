@@ -85,6 +85,7 @@ describe "Backburner::Workers::Forking module" do
     # error work_one_job doesn't rescue, and then exits through the interpreter's teardown
     [:raise, :shutdown].each do |how|
       it "should disable the GC in the child before the interpreter's teardown (#{how})" do
+        Backburner::Worker.stubs(:gc_disabled_on_exit?).returns(true) # as on Ruby 3.3
         worker = @worker_class.new('bar.foo')
         gc_disabled = gc_disabled_at_child_exit?(worker, how) do |body|
           worker.define_singleton_method(:work_one_job) { |*| body.call }
