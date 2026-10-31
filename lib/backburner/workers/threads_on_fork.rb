@@ -200,9 +200,8 @@ module Backburner
           watch_tube(name)
           run_while_can
         else
-          threads_count = Thread.list.count
           failed = false
-          @threads_number.times do
+          threads = Array.new(@threads_number) do
             create_thread do
               begin
                 conn = new_connection
@@ -216,7 +215,8 @@ module Backburner
               end
             end
           end
-          sleep 0.1 while Thread.list.count > threads_count
+          # Wait for these threads only: others can outlive them (the timeout gem's, since Ruby 3.2)
+          sleep 0.1 while threads.any?(&:alive?)
           # Fail like a single-threaded child whose connection raised, so the parent backs off
           Kernel.exit!(1) if failed
         end

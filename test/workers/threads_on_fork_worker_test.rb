@@ -329,7 +329,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       it "should create threads if the number of threads is > 1" do
         worker = @worker_class.new(%(foo))
         @worker_class.expects(:threads_number).returns(5)
-        worker.expects(:create_thread).times(5)
+        worker.expects(:create_thread).times(5).returns(Thread.new {})
         silenced do
           worker.prepare
           worker.fork_inner('demo.test.foo')
@@ -340,7 +340,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         worker = @worker_class.new(%(foo))
         @worker_class.expects(:threads_number).returns(5)
         worker.expects(:run_while_can).times(5)
-        def worker.create_thread(*args, &block); block.call(*args) end
+        def worker.create_thread(*args, &block); super(*args, &block).tap(&:join) end
         silenced do
           worker.prepare
           worker.fork_inner('demo.test.foo')
@@ -369,13 +369,29 @@ describe "Backburner::Workers::ThreadsOnFork module" do
           worker.expects(:run_while_can).with(conn).when(num_conns.is(conn.num-1)).then(num_conns.is(conn.num))
         end
 
-        def worker.create_thread(*args, &block); block.call(*args) end
+        def worker.create_thread(*args, &block); super(*args, &block).tap(&:join) end
         silenced do
           worker.prepare
           worker.fork_inner(name)
         end
 
         assert_equal(num_threads, num_conns.current_state)
+      end
+
+      it "should exit once its own threads finish, even while other threads live on" do
+        worker = @worker_class.new(%(foo))
+        @worker_class.expects(:threads_number).returns(2)
+        strays, inner = [], nil
+        # Threads a job leaves running, like the one the timeout gem keeps since Ruby 3.2
+        worker.define_singleton_method(:run_while_can) { |conn| strays << Thread.new { sleep } }
+        silenced do
+          worker.prepare
+          inner = Thread.new { worker.fork_inner('demo.test.foo') }
+          assert inner.join(2), "the child still waited for threads that weren't its own"
+        end
+      ensure
+        inner.kill if inner
+        strays.each(&:kill) if strays
       end
 
       it "should set @garbage_after, @threads_number and set retries if needed" do
@@ -388,7 +404,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         @worker_class.any_instance.expects(:coolest_exit).times(3)
         Backburner.configuration.max_job_retries = default_retries
 
-        worker.expects(:create_thread).times(70)
+        worker.expects(:create_thread).times(70).returns(Thread.new {})
         worker.expects(:run_while_can).once
 
         silenced do
@@ -656,6 +672,21 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         conn.close if conn
         clear_jobs!('foo.bar.9')
       end # unknown class
+
+      it "should recycle a child running several threads after garbage_after jobs and keep working" do
+        clear_jobs!('foo.bar.10')
+        @worker_class.threads_number = 2
+        @worker_class.garbage_after = 2
+        @worker = @worker_class.new('foo.bar.10')
+        @worker.start(false)
+        6.times { @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.10' }
+
+        completed = lambda { @templogger.body.scan(/Completed TestJobNoopFork/).size }
+        wait_for(10) { completed.call >= 6 }
+        assert_equal 6, completed.call, @templogger.body
+      ensure
+        clear_jobs!('foo.bar.10')
+      end # recycled multithreaded child
     end # practical tests
   end # forking and threading
 end # Backburner::Workers::ThreadsOnFork module
