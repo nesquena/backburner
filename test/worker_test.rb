@@ -104,11 +104,14 @@ describe "Backburner::Worker module" do
 
   describe "for the enqueue connections" do
     before do
+      GC.start # closes the connections earlier tests left to the garbage collector before a test counts them
+      @gc_was_disabled = GC.disable # and keeps a collection from closing one while it counts
       @stats_connection = beanstalk_connection
       @beanstalk_url = Backburner.configuration.beanstalk_url
     end
 
     after do
+      GC.enable unless @gc_was_disabled
       @stats_connection.close
       Backburner.configuration.beanstalk_url = @beanstalk_url
     end
@@ -210,7 +213,6 @@ describe "Backburner::Worker module" do
     end
 
     it "should close a connection whose enqueue was killed" do
-      gc_was_disabled = GC.disable # so a leaked connection isn't closed by garbage collection instead
       fresh_pool # one idle connection
       before_total, before_open = total_connections, open_connections
       serializer = Backburner.configuration.job_serializer_proc
@@ -226,7 +228,6 @@ describe "Backburner::Worker module" do
       assert_equal 1, total_connections - before_total, "the next enqueue should open a new connection"
     ensure
       Backburner.configuration.job_serializer_proc = serializer if serializer
-      GC.enable unless gc_was_disabled
     end
 
     it "should replace a connection idle for longer than enqueue_connection_max_idle" do

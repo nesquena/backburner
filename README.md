@@ -128,7 +128,7 @@ The key options available are:
 | `reserve_timeout`     | Duration to wait for work from a single server, or nil for forever.  |
 | `job_serializer_proc` | Lambda serializes a job body to a string to write to the task        |
 | `job_parser_proc`     | Lambda parses a task body string to a hash                           |
-| `enqueue_connection_max_idle` | Seconds an idle enqueue connection is reused for before it is replaced (default 60, `nil` for no limit). |
+| `enqueue_connection_max_idle` | Seconds an idle enqueue connection is reused for before it is replaced (default 60; `nil` for no limit; 0 or less opens a new connection for every enqueue). |
 
 ## Breaking Changes
 
