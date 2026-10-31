@@ -394,6 +394,46 @@ describe "Backburner::Workers::Simple module" do
       Backburner.configure { |config| config.on_error = nil }
     end
 
+    describe "with a job whose class can't be found" do
+      before do
+        clear_jobs!("foo.bar.unknown")
+        @errors = []
+        Backburner.configure { |config| config.on_error = lambda { |e| @errors << e } }
+        conn = beanstalk_connection
+        body = Backburner.configuration.job_serializer_proc.call(:class => "TestRemovedJob", :args => [1])
+        conn.tubes["demo.test.foo.bar.unknown"].put(body)
+        conn.close
+        @worker = @worker_class.new('foo.bar.unknown')
+      end
+
+      after do
+        Backburner.configure { |config| config.on_error = nil }
+        clear_jobs!("foo.bar.unknown")
+      end
+
+      it "should bury it and keep working" do
+        out = silenced(2) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/Exception Backburner::Job::JobNotFound -> TestRemovedJob/, out)
+        assert_match(/Finished TestRemovedJob.*attempt 1 of 1, burying/, out)
+        assert_equal [Backburner::Job::JobNotFound], @errors.map(&:class)
+        assert_equal 1, @worker.connection.tubes["demo.test.foo.bar.unknown"].stats.current_jobs_buried
+      end
+
+      it "should retry it with the configured defaults before burying it" do
+        Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+        out = silenced(4) do
+          @worker.prepare
+          2.times { @worker.work_one_job }
+        end
+        assert_match(/attempt 1 of 2, retrying in 0s/, out)
+        assert_match(/attempt 2 of 2, burying/, out)
+        assert_equal 1, @worker.connection.tubes["demo.test.foo.bar.unknown"].stats.current_jobs_buried
+      end
+    end # unknown class
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')

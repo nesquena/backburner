@@ -514,6 +514,23 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         end
         conn.close
       end # one thread per tube
+
+      it "should bury a job whose class can't be found and keep its child working" do
+        clear_jobs!('foo.bar.9')
+        conn = beanstalk_connection
+        conn.tubes['demo.test.foo.bar.9'].put(Backburner.configuration.job_serializer_proc.call(:class => 'TestRemovedJobFork', :args => []))
+        @worker = @worker_class.new('foo.bar.9')
+        @worker.start(false)
+        @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.9'
+
+        silenced(5) { @templogger.wait_for_match(/Completed TestJobNoopFork/m) }
+        assert_match(/Finished TestRemovedJobFork.*attempt 1 of 1, burying/, @templogger.body)
+        refute_match(/Catastrophic failure/, @templogger.body)
+        assert_equal 1, conn.tubes['demo.test.foo.bar.9'].stats.current_jobs_buried
+      ensure
+        conn.close if conn
+        clear_jobs!('foo.bar.9')
+      end # unknown class
     end # practical tests
   end # forking and threading
 end # Backburner::Workers::ThreadsOnFork module

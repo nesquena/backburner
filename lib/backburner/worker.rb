@@ -148,11 +148,16 @@ module Backburner
       # gone down between the time we reserved / processed the job and here.
       begin
         num_retries = job.stats.releases
-        max_job_retries = resolve_max_job_retries(job.job_class)
+        job_class = begin
+          job.job_class
+        rescue Backburner::Job::JobNotFound # renamed or removed: retry and bury it with the configured defaults
+          nil
+        end
+        max_job_retries = resolve_max_job_retries(job_class)
         retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
         if num_retries < max_job_retries # retry again
-          retry_delay = resolve_retry_delay(job.job_class)
-          delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
+          retry_delay = resolve_retry_delay(job_class)
+          delay = resolve_retry_delay_proc(job_class).call(retry_delay, num_retries) rescue retry_delay
           job.retry(num_retries + 1, delay)
           self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
         else # retries failed, bury
