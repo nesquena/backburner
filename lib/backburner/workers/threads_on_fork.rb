@@ -271,9 +271,11 @@ module Backburner
       # never shutdown
       def fork_it(&blk)
         pid = Kernel.fork do
-          self.class.is_child = true
-          $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
-          blk.call
+          with_gc_disabled_on_exit do
+            self.class.is_child = true
+            $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
+            blk.call
+          end
         end
         self.class.child_pids << pid
         pid

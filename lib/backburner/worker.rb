@@ -287,5 +287,18 @@ module Backburner
       trap('TERM') { shutdown  }
       trap('INT')  { shutdown  }
     end
+
+    # Runs the body of a forked child, then disables the GC before the child exits by any path that
+    # tears the interpreter down: returning, an exception, or Kernel.exit (as the TERM and INT traps do).
+    # Kernel.exit! skips the ensure, and the teardown with it.
+    # ceiling: works around a Ruby 3.3 bug: a child forked while another thread of its parent runs
+    # finalizers can crash as it exits ("[BUG] lazy sweeping underway when freeing object space").
+    # GC.disable finishes the lazy sweep first. Fixed in Ruby 3.4 by ruby/ruby 868d63f0a3 (not
+    # backported to 3.3); this can go once Ruby 3.3 support is dropped.
+    def with_gc_disabled_on_exit
+      yield
+    ensure
+      GC.disable
+    end
   end # Worker
 end # Backburner

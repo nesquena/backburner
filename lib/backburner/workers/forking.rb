@@ -29,8 +29,10 @@ module Backburner
       # Waits for a job, works the job, and exits
       def fork_one_job
         pid = Process.fork do
-          work_one_job
-          coolest_exit
+          with_gc_disabled_on_exit do
+            work_one_job
+            coolest_exit
+          end
         end
         Process.wait(pid)
       end

@@ -150,4 +150,27 @@ class MiniTest::Spec
     end
     TCPSocket.expects(:new).times(returns.size).returns(*returns)
   end
+
+  # Whether a forked child's GC was disabled by the time the interpreter tore it down (when its
+  # at_exit handlers run). Yields the child's body, which ends as `how` says (:return, :raise, or
+  # :shutdown, which calls Kernel.exit as the TERM and INT traps do); the block forks a child that
+  # runs it and waits for the child.
+  def gc_disabled_at_child_exit?(worker, how)
+    reader, writer = IO.pipe
+    yield(lambda do
+      reader.close
+      $stdout.reopen(File::NULL)
+      $stderr.reopen(File::NULL)
+      at_exit { writer.write(GC.disable ? "disabled" : "enabled"); writer.close }
+      case how
+      when :raise then raise "the child failed"
+      when :shutdown then worker.shutdown
+      end
+    end)
+    writer.close
+    reader.read == "disabled"
+  ensure
+    reader.close unless reader.closed?
+    writer.close unless writer.closed?
+  end
 end # MiniTest::Spec

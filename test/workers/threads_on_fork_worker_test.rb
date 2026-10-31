@@ -520,6 +520,18 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
     end # cleanup on parent
 
+    describe "a child exiting" do
+      [:return, :raise, :shutdown].each do |how|
+        it "should disable the GC before the interpreter's teardown (#{how})" do
+          worker = @worker_class.new(%W(foo))
+          gc_disabled = gc_disabled_at_child_exit?(worker, how) do |body|
+            worker.wait_for_process(worker.fork_it(&body))
+          end
+          assert gc_disabled, "the child's GC was still enabled when it exited"
+        end
+      end
+    end
+
     describe "practical tests" do
 
       before do

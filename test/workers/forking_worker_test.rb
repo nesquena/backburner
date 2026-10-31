@@ -70,10 +70,27 @@ describe "Backburner::Workers::Forking module" do
       @worker_class.any_instance.expects(:coolest_exit)
       Process.expects(:wait).with(fake_pid)
 
+      gc_was_disabled = GC.disable # the child's body runs in this process, and disables the GC as it ends
+      GC.enable unless gc_was_disabled
       silenced(2) do
         worker = @worker_class.new('bar.foo')
         worker.prepare
         worker.fork_one_job
+      end
+    ensure
+      GC.enable unless gc_was_disabled
+    end
+
+    # A child leaves work_one_job by an exception when a job calls exit, on a TERM or INT, or on an
+    # error work_one_job doesn't rescue, and then exits through the interpreter's teardown
+    [:raise, :shutdown].each do |how|
+      it "should disable the GC in the child before the interpreter's teardown (#{how})" do
+        worker = @worker_class.new('bar.foo')
+        gc_disabled = gc_disabled_at_child_exit?(worker, how) do |body|
+          worker.define_singleton_method(:work_one_job) { |*| body.call }
+          worker.fork_one_job
+        end
+        assert gc_disabled, "the child's GC was still enabled when it exited"
       end
     end
 
