@@ -157,23 +157,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       refute_match(/Catastrophic failure/, out)
     end
 
-    it "fork_and_watch thread should log an error if exitstatus is != 99" do
-      process_exit = stub('process_exit', :exitstatus => 1)
-      worker = @worker_class.new(%(foo))
-      worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
-
-      wc = @worker_class
-      # TODO: Is there a best way do do this?
-      worker.define_singleton_method :fork_it do
-        wc.shutdown = true
-        12
-      end
-      def worker.create_thread(*args, &block); block.call(*args) end
-      out = silenced(2) { worker.start(false) }
-      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 1\./, out)
-    end
-
-    it "fork_and_watch thread should log a normal exit if exitstatus is 0" do
+    it "fork_and_watch thread should log a normal exit if exitstatus is 0 on shutdown" do
       process_exit = stub('process_exit', :exitstatus => 0)
       worker = @worker_class.new(%(foo))
       worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
@@ -213,6 +197,32 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
       it "should fork again at once after a recycled child and start the delays over" do
         expect_restart_delays([1, 1, 99, 1, 1], [1, 2, 1])
+      end
+
+      it "should log an error if exitstatus is != 99, and fork again" do
+        out = expect_restart_delays([1, 99], [1])
+        assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 1\. Forking it again in 1s\./, out)
+      end
+
+      it "should log a child that stops while shutting down without forking it again" do
+        [nil, 1].each do |code| # killed by finish_forks, or exited with an error
+          @worker_class.shutdown = false
+          out = expect_restart_delays([code], [])
+          assert_match(/Tube demo\.test\.foo stopped\./, out)
+          refute_match(/Catastrophic failure|Forking it again/, out)
+        end
+      end
+
+      it "should log the warning with a logger that has no warn method" do
+        logged = []
+        logger = Object.new
+        logger.define_singleton_method(:info) { |msg| logged << [:info, msg] }
+        logger.define_singleton_method(:error) { |msg| logged << [:error, msg] }
+        Backburner.configure { |config| config.logger = logger }
+        expect_restart_delays([0, 1], [1])
+        assert_includes logged, [:error, "Tube demo.test.foo exited with code 0. Forking it again in 1s."]
+      ensure
+        Backburner.configure { |config| config.logger = nil }
       end
 
       it "should warn and wait before forking again after a child exits with code 0 outside a shutdown" do

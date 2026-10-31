@@ -154,17 +154,17 @@ module Backburner
             # 99 = garbaged
             if status.exitstatus == 99
               restart_delay = 0
+            elsif self.class.shutdown # stopped by SIGTERM or SIGINT, or killed by finish_forks: not forked again
+              log_info(status.exitstatus == 0 ? "Tube #{tube_name} exited normally." : "Tube #{tube_name} stopped.")
             else
               ran_for = monotonic_time - forked_at
               restart_delay = ran_for >= MAX_RESTART_DELAY ? MIN_RESTART_DELAY : (restart_delay * 2).clamp(MIN_RESTART_DELAY, MAX_RESTART_DELAY)
-              if status.exitstatus == 0 && self.class.shutdown # stopped by SIGTERM or SIGINT on shutdown
-                log_info("Tube #{tube_name} exited normally.")
-              elsif status.exitstatus == 0 # stopped by a signal sent to the child alone, or a job called exit
+              if status.exitstatus == 0 # stopped by a signal sent to the child alone, or a job called exit
                 log_warn("Tube #{tube_name} exited with code 0. Forking it again in #{restart_delay}s.")
               else
                 log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}. Forking it again in #{restart_delay}s.")
               end
-              Kernel.sleep(restart_delay) unless self.class.shutdown
+              Kernel.sleep(restart_delay)
             end
           end
         end
