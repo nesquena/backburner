@@ -79,7 +79,7 @@ module Backburner
       with_async_name    = :"#{aliased_method}_with_async#{punctuation}"
       without_async_name = :"#{aliased_method}_without_async#{punctuation}"
 
-      klass.send(:include, Performable) unless included_modules.include?(Performable)
+      klass.send(:include, Performable) unless klass.included_modules.include?(Performable)
       klass_eval_scope.class_eval do
         define_method with_async_name do |*args|
           async(opts).__send__ without_async_name, *args
