@@ -42,7 +42,7 @@ enqueued = {
 beanstalk = Beaneater.new('127.0.0.1')
 jobs = enqueued.map do |name, job|
   stats = job.provider_job_id && beanstalk.jobs.find(job.provider_job_id).stats
-  [name, stats && { 'tube' => stats.tube, 'pri' => stats.pri, 'state' => stats.state }]
+  [name, stats && { 'tube' => stats.tube, 'pri' => stats.pri, 'state' => stats.state, 'delay' => stats.delay }]
 end.to_h
 beanstalk.close
 

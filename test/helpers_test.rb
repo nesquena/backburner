@@ -339,6 +339,19 @@ describe "Backburner::Helpers module" do
     it "supports default ttr for null values" do
       assert_equal 300, resolve_respond_timeout(nil)
     end
+
+    it "rounds a fractional respond_timeout up to whole seconds, from a value, a class or the default" do
+      assert_equal 1, resolve_respond_timeout(0.2)
+      assert_equal 2, resolve_respond_timeout(stub(:queue_respond_timeout => 1.5))
+      Backburner.configure { |config| config.respond_timeout = 2.5 }
+      assert_equal 3, resolve_respond_timeout(nil)
+    end
+
+    it "keeps an Integer as it is and ignores a value that isn't finite, as before" do
+      assert_equal(-5, resolve_respond_timeout(-5))
+      assert_equal 300, resolve_respond_timeout(Float::INFINITY)
+      assert_equal 300, resolve_respond_timeout(stub(:queue_respond_timeout => Float::NAN))
+    end
   end # resolve_respond_timeout
 
   describe "for resolve_max_job_retries method" do
@@ -379,6 +392,11 @@ describe "Backburner::Helpers module" do
     end
     after { Backburner.configure { |config| config.retry_delay = @original_retry_delay } }
 
+    it "ignores a retry_delay that isn't finite, as before" do
+      assert_equal 300, resolve_retry_delay(stub(:queue_retry_delay => Float::NAN))
+      assert_equal 300, resolve_retry_delay(Float::INFINITY)
+    end
+
     it "supports fix num retry_delay" do
       assert_equal 500, resolve_retry_delay(500)
     end
@@ -400,6 +418,11 @@ describe "Backburner::Helpers module" do
 
     it "supports default retry_delay for null values" do
       assert_equal 300, resolve_retry_delay(nil)
+    end
+
+    it "supports a fractional retry_delay from a value or a class" do
+      assert_equal 2.5, resolve_retry_delay(2.5)
+      assert_equal 1.5, resolve_retry_delay(stub(:queue_retry_delay => 1.5))
     end
   end # resolve_retry_delay
 

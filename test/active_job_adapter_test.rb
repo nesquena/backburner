@@ -9,13 +9,15 @@ describe "Backburner as the Active Job adapter" do
       app = File.expand_path('../fixtures/active_job_app.rb', __FILE__)
       out, status = Open3.capture2e(RbConfig.ruby, '-w', '-I', File.expand_path('../../lib', __FILE__), app, namespace, order)
       assert status.success?, out
-      refute_match(/circular require/, out)
+      # only backburner's own files: RubyGems can warn about its own
+      refute_match(/circular require considered harmful - #{Regexp.escape(File.expand_path('../../lib', __FILE__))}\//, out)
       result = JSON.parse(out.lines.last)
 
       tube = "#{namespace}.adapter"
-      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'ready' }, result['jobs']['now'])
-      assert_equal({ 'tube' => tube, 'pri' => 3, 'state' => 'ready' }, result['jobs']['urgent'])
-      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'delayed' }, result['jobs']['later'])
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'ready', 'delay' => 0 }, result['jobs']['now'])
+      assert_equal({ 'tube' => tube, 'pri' => 3, 'state' => 'ready', 'delay' => 0 }, result['jobs']['urgent'])
+      # wait: 3 reaches the adapter a little under 3 seconds ahead: rounded up, so it doesn't run early
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'delayed', 'delay' => 3 }, result['jobs']['later'])
       assert_equal %w(later now urgent), result['performed']
     end
   end

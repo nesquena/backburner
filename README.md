@@ -117,10 +117,10 @@ The key options available are:
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
-| `retry_delay`         | Integer defines the base time to wait (in secs) between job retries. |
+| `retry_delay`         | Number defines the base time to wait (in secs) between job retries.  |
 | `retry_delay_proc`    | Lambda calculates the delay used, allowing for exponential back-off. |
 | `default_priority`    | Integer or priority label: the default priority of jobs              |
-| `respond_timeout`     | Integer defines how long a job has to complete its task              |
+| `respond_timeout`     | Number defines how long a job has to complete its task (in secs)     |
 | `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `logger`              | Logger recorded to when backburner wants to report info or errors.   |
 | `primary_queue`       | Primary queue used for a job when an alternate queue is not given.   |

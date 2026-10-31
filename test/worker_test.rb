@@ -82,6 +82,31 @@ describe "Backburner::Worker module" do
       end
     end # custom
 
+    it "should round a fractional delay up to whole seconds, so the job never runs early" do
+      conn = beanstalk_connection
+      { nil => 0, -1 => 0, 0 => 0, 0.2 => 1, 1 => 1, 1.5 => 2, 2 => 2 }.each do |delay, expected|
+        response = Backburner::Worker.enqueue TestPlainJob, [1, 2], :delay => delay
+        assert_equal expected, conn.jobs.find(response[:id]).stats.delay, "delay #{delay.inspect}"
+      end
+    ensure
+      conn.close if conn
+      clear_jobs!("test-plain")
+    end # fractional delay
+
+    it "should round a fractional TTR up to whole seconds, from an option, a class or the default" do
+      respond_timeout = Backburner.configuration.respond_timeout
+      conn = beanstalk_connection
+      ttr_of = lambda { |response| conn.jobs.find(response[:id]).stats.ttr }
+      assert_equal 1, ttr_of.call(Backburner::Worker.enqueue(TestPlainJob, [1, 2], :ttr => 0.2))
+      assert_equal 2, ttr_of.call(Backburner::Worker.enqueue(TestFloatRespondTimeoutJob, []))
+      Backburner.configuration.respond_timeout = 2.5
+      assert_equal 3, ttr_of.call(Backburner::Worker.enqueue(TestPlainJob, [1, 2]))
+    ensure
+      Backburner.configuration.respond_timeout = respond_timeout
+      conn.close if conn
+      clear_jobs!("test-plain")
+    end # fractional ttr
+
     it "should support async job" do
       TestAsyncJob.async(:ttr => 100, :queue => "bar.baz.foo").foo(10, 5)
       pop_one_job("bar.baz.foo") do |job, body|
