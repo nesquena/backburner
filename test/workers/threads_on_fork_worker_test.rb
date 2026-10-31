@@ -195,7 +195,8 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         def @worker.create_thread(*args, &block); block.call(*args) end
       end
 
-      # Runs fork_and_watch over children exiting with these codes, expecting it to sleep these delays in turn
+      # Runs fork_and_watch over children exiting with these codes, expecting it to sleep these delays in
+      # turn, and returns what it logged
       def expect_restart_delays(codes, delays)
         wc = @worker_class
         left = codes.size
@@ -212,6 +213,12 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
       it "should fork again at once after a recycled child and start the delays over" do
         expect_restart_delays([1, 1, 99, 1, 1], [1, 2, 1])
+      end
+
+      it "should warn and wait before forking again after a child exits with code 0 outside a shutdown" do
+        out = expect_restart_delays([0, 1], [1])
+        assert_match(/Tube demo\.test\.foo exited with code 0\. Forking it again in 1s\./, out)
+        refute_match(/exited normally/, out)
       end
 
       it "should start the delays over after a child that ran for MAX_RESTART_DELAY" do
