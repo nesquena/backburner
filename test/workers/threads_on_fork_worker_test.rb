@@ -543,6 +543,40 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         end
         refute gc_disabled, "the child's GC was disabled when it exited"
       end
+
+      describe "while running several threads" do
+        before do
+          @worker_class.threads_number = 2
+          @worker_class.garbage_after = nil
+        end
+
+        after do
+          @worker_class.threads_number = 1
+          @worker_class.garbage_after = 1
+        end
+
+        it "should stop its threads before its at_exit handlers run on a TERM, so they don't work jobs with the GC off" do
+          worker = @worker_class.new(%W(foo))
+          reader, writer = IO.pipe
+          pid = worker.fork_it do
+            reader.close
+            $stdout.reopen(File::NULL)
+            $stderr.reopen(File::NULL)
+            $jobs_worked = 0
+            worker.define_singleton_method(:run_while_can) { |*| loop { $jobs_worked += 1; sleep 0.01 } } # jobs keep coming
+            # An app's slow at_exit handler (an error reporter flushing, say)
+            at_exit { sleep 0.05; before = $jobs_worked; sleep 0.3; writer.write(($jobs_worked - before).to_s); writer.close }
+            Thread.new { sleep 0.3; Process.kill(:TERM, Process.pid) }
+            worker.fork_inner("demo.test.foo")
+          end
+          writer.close
+          worker.wait_for_process(pid)
+          assert_equal "0", reader.read, "the child's threads kept working jobs while its at_exit handlers ran"
+        ensure
+          reader.close if reader && !reader.closed?
+          writer.close if writer && !writer.closed?
+        end
+      end
     end
 
     describe "practical tests" do
