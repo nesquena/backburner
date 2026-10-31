@@ -3,5 +3,5 @@
 require 'backburner'
 require 'backburner/cli'
 
-# bundle exec backburner foo,bar
+# bundle exec backburner -q foo,bar
 Backburner::CLI.start(ARGV)

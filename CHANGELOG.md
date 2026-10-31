@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Fix the usage comment in `bin/backburner`: queues are given with `-q` (`backburner -q foo,bar`); a bare `backburner foo,bar` ignores them and works every known queue
 * Fix the ThreadsOnFork worker logging "Catastrophic failure: tube ... exited with code 0" for every child on a normal shutdown: a child that exits with code 0 (stopped by `SIGTERM` or `SIGINT`) is now logged as "Tube ... exited normally."
 * Fix an error raised by `config.on_error` (an error reporter that can't reach its service, say) stopping the worker: it escaped `work_one_job`, which ended the simple worker and killed a ThreadsOnFork or Forking child; it is now logged ("The on_error handler failed for ..."). The failed job is still retried or buried as before
 * Fix the ThreadsOnFork worker forking children in a busy loop when they fail at once (hundreds a second while beanstalkd is down, each logging a "Catastrophic failure"): after a child fails, the parent now waits 1 second before forking the next one, doubling up to 30 seconds while children keep failing, and starts over once a child is recycled or runs for 30 seconds; recycling a child after `garbage_after` jobs is still immediate. A child running several threads now exits with code 1 (instead of 99) when one of its threads died of an error, so it backs off too
