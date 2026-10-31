@@ -201,22 +201,29 @@ module Backburner
           run_while_can
         else
           failed = false
-          threads = Array.new(@threads_number) do
-            create_thread do
-              begin
-                conn = new_connection
-                watch_tube(name, conn)
-                run_while_can(conn)
-              rescue Exception
-                failed = true
-                raise
-              ensure
-                conn.close if conn
+          threads = []
+          begin
+            @threads_number.times do
+              threads << create_thread do
+                begin
+                  conn = new_connection
+                  watch_tube(name, conn)
+                  run_while_can(conn)
+                rescue Exception
+                  failed = true
+                  raise
+                ensure
+                  conn.close if conn
+                end
               end
             end
+            # Wait for these threads only: others can outlive them (the timeout gem's, since Ruby 3.2)
+            sleep 0.1 while threads.any?(&:alive?)
+          rescue Exception # TERM, INT or an error: on Ruby 3.3 the child runs its at_exit handlers with the GC
+            # off (see with_gc_disabled_on_exit), so its threads mustn't keep working jobs meanwhile
+            threads.each(&:kill) if Worker.gc_disabled_on_exit?
+            raise
           end
-          # Wait for these threads only: others can outlive them (the timeout gem's, since Ruby 3.2)
-          sleep 0.1 while threads.any?(&:alive?)
           # Fail like a single-threaded child whose connection raised, so the parent backs off
           Kernel.exit!(1) if failed
         end
@@ -271,9 +278,11 @@ module Backburner
       # never shutdown
       def fork_it(&blk)
         pid = Kernel.fork do
-          self.class.is_child = true
-          $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
-          blk.call
+          with_gc_disabled_on_exit do
+            self.class.is_child = true
+            $0 = "[ThreadsOnFork worker] parent: #{Process.ppid}"
+            blk.call
+          end
         end
         self.class.child_pids << pid
         pid

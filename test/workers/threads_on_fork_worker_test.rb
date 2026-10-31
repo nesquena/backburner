@@ -520,6 +520,65 @@ describe "Backburner::Workers::ThreadsOnFork module" do
 
     end # cleanup on parent
 
+    describe "a child exiting" do
+      before do
+        Backburner::Worker.stubs(:gc_disabled_on_exit?).returns(true) # as on Ruby 3.3
+      end
+
+      [:return, :raise, :shutdown].each do |how|
+        it "should disable the GC before the interpreter's teardown (#{how})" do
+          worker = @worker_class.new(%W(foo))
+          gc_disabled = gc_disabled_at_child_exit?(worker, how) do |body|
+            worker.wait_for_process(worker.fork_it(&body))
+          end
+          assert gc_disabled, "the child's GC was still enabled when it exited"
+        end
+      end
+
+      it "should leave the GC enabled on a Ruby other than 3.3" do
+        Backburner::Worker.stubs(:gc_disabled_on_exit?).returns(false)
+        worker = @worker_class.new(%W(foo))
+        gc_disabled = gc_disabled_at_child_exit?(worker, :shutdown) do |body|
+          worker.wait_for_process(worker.fork_it(&body))
+        end
+        refute gc_disabled, "the child's GC was disabled when it exited"
+      end
+
+      describe "while running several threads" do
+        before do
+          @worker_class.threads_number = 2
+          @worker_class.garbage_after = nil
+        end
+
+        after do
+          @worker_class.threads_number = 1
+          @worker_class.garbage_after = 1
+        end
+
+        it "should stop its threads before its at_exit handlers run on a TERM, so they don't work jobs with the GC off" do
+          worker = @worker_class.new(%W(foo))
+          reader, writer = IO.pipe
+          pid = worker.fork_it do
+            reader.close
+            $stdout.reopen(File::NULL)
+            $stderr.reopen(File::NULL)
+            $jobs_worked = 0
+            worker.define_singleton_method(:run_while_can) { |*| loop { $jobs_worked += 1; sleep 0.01 } } # jobs keep coming
+            # An app's slow at_exit handler (an error reporter flushing, say)
+            at_exit { sleep 0.05; before = $jobs_worked; sleep 0.3; writer.write(($jobs_worked - before).to_s); writer.close }
+            Thread.new { sleep 0.3; Process.kill(:TERM, Process.pid) }
+            worker.fork_inner("demo.test.foo")
+          end
+          writer.close
+          worker.wait_for_process(pid)
+          assert_equal "0", reader.read, "the child's threads kept working jobs while its at_exit handlers ran"
+        ensure
+          reader.close if reader && !reader.closed?
+          writer.close if writer && !writer.closed?
+        end
+      end
+    end
+
     describe "practical tests" do
 
       before do

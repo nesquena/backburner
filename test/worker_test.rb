@@ -412,6 +412,16 @@ describe "Backburner::Worker module" do
     end
   end # start
 
+  describe "for gc_disabled_on_exit? class method" do
+    it "should be true only on CRuby 3.3, the Ruby whose forked children can crash as they exit" do
+      assert Backburner::Worker.gc_disabled_on_exit?("ruby", "3.3.6")
+      %w(2.7.8 3.2.6 3.4.1 4.0.0).each do |version|
+        refute Backburner::Worker.gc_disabled_on_exit?("ruby", version), version
+      end
+      refute Backburner::Worker.gc_disabled_on_exit?("jruby", "3.3.0")
+    end
+  end # gc_disabled_on_exit?
+
   describe "with an anonymous subclass of a queue class" do
     before { @anonymous = Class.new(TestNamedQueueJob) }
     after { Backburner::Worker.known_queue_classes.delete(@anonymous) }
