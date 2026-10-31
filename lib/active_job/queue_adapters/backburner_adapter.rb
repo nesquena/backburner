@@ -1,3 +1,6 @@
+# Rails' own adapter files require backburner too, for apps that don't require it themselves
+require 'backburner' unless defined?(Backburner::Worker)
+
 module ActiveJob
   module QueueAdapters
     # Rails 7.2 added AbstractAdapter; the adapters of older Rails have no superclass

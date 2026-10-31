@@ -3,8 +3,8 @@ require 'open3'
 require 'rbconfig'
 
 describe "Backburner as the Active Job adapter" do
-  %w(active_job_first backburner_first).each do |order|
-    it "enqueues and works jobs when the app requires #{order.sub('_first', '')} first" do
+  %w(active_job_first backburner_first active_job_only).each do |order|
+    it "enqueues and works jobs when the app requires #{order.tr('_', ' ')}" do
       namespace = "demo.test.active_job.#{Process.pid}.#{order}"
       app = File.expand_path('../fixtures/active_job_app.rb', __FILE__)
       out, status = Open3.capture2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), app, namespace, order)
