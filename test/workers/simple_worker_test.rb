@@ -459,7 +459,7 @@ describe "Backburner::Workers::Simple module" do
 
       [["TestBrokenNameJob", "NameError"], ["TestBrokenRequireJob", "LoadError"], ["TestBrokenNoMethodJob", "NoMethodError"],
        ["TestBrokenRuntimeJob", "ArgumentError"], ["TestSameNameJob", "NameError"], ["TestBrokenSyntaxJob", "SyntaxError"],
-       ["not a class", "NameError"]].each do |class_name, error|
+       ["not a class", "NameError"], ["TestBrokenTimeoutJob", "Timeout::Error"]].each do |class_name, error|
         it "should retry and bury a job whose class fails to load or can't exist (#{class_name}), calling on_error" do
           Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
           put_job(class_name, 30)

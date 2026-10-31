@@ -122,3 +122,4 @@ autoload :TestNoFileJob, File.expand_path('../autoload/test_no_such_job', __FILE
 autoload :TestBrokenRuntimeJob, File.expand_path('../autoload/test_broken_runtime_job', __FILE__)
 autoload :TestSameNameJob, File.expand_path('../autoload/test_same_name_job', __FILE__)
 autoload :TestBrokenSyntaxJob, File.expand_path('../autoload/test_broken_syntax_job', __FILE__)
+autoload :TestBrokenTimeoutJob, File.expand_path('../autoload/test_broken_timeout_job', __FILE__)

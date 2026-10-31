@@ -113,8 +113,6 @@ module Backburner
         scope, segment = mod, name
         autoload_path = mod.autoload?(name) rescue nil # a module, or the value of a constant that isn't one
       end
-    rescue Timeout::Error
-      raise # its TTR ran out while its file loaded: timeout_job_after makes that a JobTimeout
     rescue StandardError, ScriptError => e # its file may raise anything; an autoloader may raise LoadError for a file that isn't there
       @job_class_error = e
       @job_class_missing = !invalid_name && missing_constant_error?(e, scope, segment, autoload_path)
