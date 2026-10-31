@@ -9,7 +9,8 @@ describe "Backburner as the Active Job adapter" do
       app = File.expand_path('../fixtures/active_job_app.rb', __FILE__)
       out, status = Open3.capture2e(RbConfig.ruby, '-w', '-I', File.expand_path('../../lib', __FILE__), app, namespace, order)
       assert status.success?, out
-      refute_match(/circular require/, out)
+      # only backburner's own files: RubyGems can warn about its own
+      refute_match(%r{circular require considered harmful - \S*(/backburner\.rb|/backburner_adapter\.rb|/lib/backburner/\S+\.rb)$}, out)
       result = JSON.parse(out.lines.last)
 
       tube = "#{namespace}.adapter"
