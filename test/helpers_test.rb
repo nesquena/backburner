@@ -108,6 +108,86 @@ describe "Backburner::Helpers module" do
       assert_equal "backburner-jobs", expand_tube_name(RuntimeError)
     end
 
+    # A tube name is where queued jobs wait, so a namespace that works keeps every name it gives, including
+    # the odd ones of queue names that start with the namespace ("appmail" -> "app.mail")
+    it "keeps the tube names it gives for namespaces without regexp characters other than dots" do
+      queues = lambda do |namespace, separator|
+        ["default", "mailers", "production_mailers", "newsletter_sender", "email/send_news", "Admin::ReportJob",
+         "#{namespace}mail", "#{namespace}-reports", "#{namespace.tr('.', '-')}-sync", "#{namespace}#{separator}reports"]
+      end
+      {
+        ["backburner.worker.queue", "."] => %w[
+          backburner.worker.queue.default backburner.worker.queue.mailers backburner.worker.queue.production-mailers
+          backburner.worker.queue.newsletter-sender backburner.worker.queue.email/send-news
+          backburner.worker.queue.admin/report-job backburner.worker.queue.mail backburner.worker.queue.-reports
+          backburner.worker.queue.-sync backburner.worker.queue.reports backburner.worker.queue.backburner-jobs
+        ],
+        ["backburner.worker.queue", "_"] => %w[
+          backburner.worker.queue_default backburner.worker.queue_mailers backburner.worker.queue_production-mailers
+          backburner.worker.queue_newsletter-sender backburner.worker.queue_email/send-news
+          backburner.worker.queue_admin/report-job backburner.worker.queue_mail backburner.worker.queue_-reports
+          backburner.worker.queue_-sync backburner.worker.queue_-reports backburner.worker.queue_backburner-jobs
+        ],
+        ["backburner", "."] => %w[
+          backburner.default backburner.mailers backburner.production-mailers backburner.newsletter-sender
+          backburner.email/send-news backburner.admin/report-job backburner.mail backburner.-reports backburner.-sync
+          backburner.reports backburner.-jobs
+        ],
+        ["backburner", "_"] => %w[
+          backburner_default backburner_mailers backburner_production-mailers backburner_newsletter-sender
+          backburner_email/send-news backburner_admin/report-job backburner_mail backburner_-reports backburner_-sync
+          backburner_-reports backburner_-jobs
+        ],
+        ["app", "."] => %w[
+          app.default app.mailers app.production-mailers app.newsletter-sender app.email/send-news app.admin/report-job
+          app.mail app.-reports app.-sync app.reports app.backburner-jobs
+        ],
+        ["app", "_"] => %w[
+          app_default app_mailers app_production-mailers app_newsletter-sender app_email/send-news app_admin/report-job
+          app_mail app_-reports app_-sync app_-reports app_backburner-jobs
+        ],
+        ["app.prod", "."] => %w[
+          app.prod.default app.prod.mailers app.prod.production-mailers app.prod.newsletter-sender
+          app.prod.email/send-news app.prod.admin/report-job app.prod.mail app.prod.-reports app.prod.-sync
+          app.prod.reports app.prod.backburner-jobs
+        ],
+        ["app.prod", "_"] => %w[
+          app.prod_default app.prod_mailers app.prod_production-mailers app.prod_newsletter-sender
+          app.prod_email/send-news app.prod_admin/report-job app.prod_mail app.prod_-reports app.prod_-sync
+          app.prod_-reports app.prod_backburner-jobs
+        ],
+        ["my-app", "."] => %w[
+          my-app.default my-app.mailers my-app.production-mailers my-app.newsletter-sender my-app.email/send-news
+          my-app.admin/report-job my-app.mail my-app.-reports my-app.-sync my-app.reports my-app.backburner-jobs
+        ],
+        ["my-app", "_"] => %w[
+          my-app_default my-app_mailers my-app_production-mailers my-app_newsletter-sender my-app_email/send-news
+          my-app_admin/report-job my-app_mail my-app_-reports my-app_-sync my-app_-reports my-app_backburner-jobs
+        ],
+        ["MyApp", "."] => %w[
+          MyApp.default MyApp.mailers MyApp.production-mailers MyApp.newsletter-sender MyApp.email/send-news
+          MyApp.admin/report-job MyApp.my-appmail MyApp.my-app-reports MyApp.my-app-sync MyApp.my-app.reports
+          MyApp.backburner-jobs
+        ],
+        ["MyApp", "_"] => %w[
+          MyApp_default MyApp_mailers MyApp_production-mailers MyApp_newsletter-sender MyApp_email/send-news
+          MyApp_admin/report-job MyApp_my-appmail MyApp_my-app-reports MyApp_my-app-sync MyApp_my-app-reports
+          MyApp_backburner-jobs
+        ]
+      }.each do |(namespace, separator), tube_names|
+        Backburner.stubs(:configuration).returns(stub(:tube_namespace => namespace, :namespace_separator => separator, :primary_queue => "backburner-jobs"))
+        assert_equal tube_names, queues.call(namespace, separator).map { |queue| expand_tube_name(queue) } + [expand_tube_name(RuntimeError)],
+          [namespace, separator].inspect
+      end
+    end
+
+    it "matches a namespace that isn't a valid regexp literally" do
+      { "app(" => ["app(.default", "app(.mail"], "jobs\\" => ["jobs\\.default", "jobs\\.mail"] }.each do |namespace, tube_names|
+        Backburner.stubs(:configuration).returns(stub(:tube_namespace => namespace, :namespace_separator => ".", :primary_queue => "backburner-jobs"))
+        assert_equal tube_names, [expand_tube_name("default"), expand_tube_name("#{namespace}mail")], namespace
+      end
+    end
+
     it "uses the bare primary queue without a prefix" do
       [nil, false, ""].each do |namespace|
         Backburner.stubs(:configuration).returns(stub(:tube_namespace => namespace, :namespace_separator => '-', :primary_queue => "backburner-jobs"))

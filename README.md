@@ -130,6 +130,13 @@ The key options available are:
 | `job_parser_proc`     | Lambda parses a task body string to a hash                           |
 | `enqueue_connection_max_idle` | Seconds an idle enqueue connection is reused for before it is replaced (default 60; `nil` for no limit; 0 or less opens a new connection for every enqueue). |
 
+A tube's name is the namespace, the separator and the queue name, dasherized (`some.app.production.newsletter-sender`).
+Don't start queue names with the namespace: that part of the queue name is dropped, so with the namespace `app` the queues
+`mail` and `appmail` share the tube `app.mail` and `apple-sync` uses `app.le-sync` (an ActiveJob `queue_name_prefix` equal
+to the namespace does the same: `production_mailers` uses `production.-mailers`). It stays that way because changing it
+would leave queued jobs in the old tubes. A worker given no tubes watches the tubes on the server whose names start with the
+namespace and separator, the tubes of the job classes it has loaded and the primary queue.
+
 ## Breaking Changes
 
 Before **v0.4.0**: Jobs were placed into default queues based on the name of the class creating the queue. i.e NewsletterJob would

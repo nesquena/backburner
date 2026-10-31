@@ -100,8 +100,27 @@ module Backburner
         tube.to_s
       end
       tube_name = dasherize(queue_name)
-      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(/^#{prefix}/, '')].join(separator) unless prefix.empty?
+      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) unless prefix.empty?
       tube_name.gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
+    end
+
+    # What every tube name expand_tube_name gives starts with: the namespace and its separator ('' without a namespace)
+    #
+    # @example
+    #   expanded_tube_prefix # => "<prefix>."
+    #
+    def expanded_tube_prefix
+      expand_tube_name('').to_s
+    end
+
+    # The namespace as the pattern expand_tube_name strips from the start of a queue name.
+    # ceiling: a namespace that is a valid regexp is still matched as one ("app.prod" also strips "app-prod"), because
+    # matching it literally would move the jobs of the queue names it matches to other tubes; one that isn't ("app(")
+    # used to fail every enqueue and is matched literally.
+    def namespace_pattern(prefix)
+      Regexp.new("^#{prefix}")
+    rescue RegexpError
+      Regexp.new("^#{Regexp.escape(prefix)}")
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing

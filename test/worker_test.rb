@@ -307,6 +307,44 @@ describe "Backburner::Worker module" do
     end
   end # without a tube_namespace
 
+  describe "for a worker given no tubes" do
+    before do
+      @tube_namespace = Backburner.configuration.tube_namespace
+      @namespace_separator = Backburner.configuration.namespace_separator
+    end
+    after do
+      Backburner.configuration.tube_namespace = @tube_namespace
+      Backburner.configuration.namespace_separator = @namespace_separator
+    end
+
+    # Namespaces, separators and queue names (ActiveJob's queue_name_prefix gives "production_mailers") whose
+    # tubes the worker used to miss: it expanded the tube names it found on the server again
+    it "should watch the tubes enqueued on for its namespace, under their names on the server" do
+      [["MyApp", ".", "default"], ["jobs(eu)", ".", "default"], ["app+", ".", "default"], ["bb-discovery", "_", "default"],
+       ["production", ".", "production_mailers"], ["bb-discovery", ".", "report_2026"]].each do |namespace, separator, queue|
+        Backburner.configuration.tube_namespace = namespace
+        Backburner.configuration.namespace_separator = separator
+        tube_name = Backburner::Worker.expand_tube_name(queue)
+        connection = beanstalk_connection # no jobs left in this namespace for the worker to take first
+        connection.tubes.all.select { |tube| tube.name.start_with?("#{namespace}#{separator}") }.each(&:clear)
+        connection.close
+        Backburner::Worker.enqueue TestJob, [1, 2], :queue => queue
+
+        [Backburner::Workers::Simple, Backburner::Workers::Forking, Backburner::Workers::Threading, Backburner::Workers::ThreadsOnFork].each do |worker_class|
+          worker = worker_class.new(nil)
+          capture_stdout { worker.prepare }
+          worker.connection.close
+          assert_contains worker.tube_names, tube_name, "#{worker_class.name} #{[namespace, separator, queue].inspect}"
+        end
+        $worker_test_count = 0
+        worker = Backburner::Workers::Simple.new(nil)
+        silenced(3) { worker.prepare; worker.work_one_job }
+        worker.connection.close
+        assert_equal 3, $worker_test_count, [namespace, separator, queue].inspect
+      end
+    end
+  end # given no tubes
+
   describe "for start class method" do
     it "should initialize and start the worker instance" do
       ech = stub
