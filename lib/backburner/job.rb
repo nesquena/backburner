@@ -83,7 +83,7 @@ module Backburner
     #
     def job_class
       handler = try_job_class
-      raise(JobNotFound, @job_class_error ? "#{name} (#{@job_class_error.class}: #{@job_class_error.message})" : name) unless handler
+      raise(JobNotFound, @job_class_error ? "#{name} (#{@job_class_error.class}: #{@job_class_error.message.to_s.lines.first.to_s.chomp})" : name) unless handler
       handler
     end
 
@@ -107,25 +107,38 @@ module Backburner
     def try_job_class
       @job_class_error = nil
       @job_class_missing = false
-      segment = autoload_path = nil
+      scope = segment = autoload_path = nil
+      invalid_name = !constant_names(self.name).all? { |name| constant_name?(name) }
       constantize(self.name) do |mod, name|
-        segment = name
-        autoload_path = (mod.autoload?(name) rescue nil) # raises for a name that can't be a constant
+        scope, segment = mod, name
+        autoload_path = mod.autoload?(name) rescue nil # a module, or the value of a constant that isn't one
       end
-    rescue NameError, LoadError => e # an autoloader may raise LoadError for a file that isn't there
+    rescue Timeout::Error
+      raise # its TTR ran out while its file loaded: timeout_job_after makes that a JobTimeout
+    rescue StandardError, ScriptError => e # its file may raise anything; an autoloader may raise LoadError for a file that isn't there
       @job_class_error = e
-      @job_class_missing = missing_constant_error?(e, segment, autoload_path)
+      @job_class_missing = !invalid_name && missing_constant_error?(e, scope, segment, autoload_path)
       nil
     end
 
-    # Whether an error raised while looking up `segment` says that constant is missing, rather than
-    # coming from inside the file that defines it (a NameError for another constant, a NoMethodError,
-    # a require of a missing gem)
-    def missing_constant_error?(e, segment, autoload_path)
+    # Whether a name can be a constant's: one that can't ("not a class", "123") will never be found
+    def constant_name?(name)
+      Module.new.const_defined?(name, false) # raises NameError for one that can't
+      true
+    rescue NameError
+      false
+    end
+
+    # Whether an error raised while looking up `segment` in `scope` says that constant is missing,
+    # rather than coming from inside the file that defines it (a NameError for another constant, or for
+    # one of the same name in another module, a NoMethodError, a require of a missing gem, any other
+    # error or a syntax error)
+    def missing_constant_error?(e, scope, segment, autoload_path)
       case e
       when NoMethodError then false
-      when NameError then e.name.to_s == segment.to_s
-      else e.path.nil? || e.path == autoload_path # LoadError
+      when NameError then e.name.to_s == segment.to_s && (e.receiver.equal?(scope) rescue true) # no receiver: by name only
+      when LoadError then e.path.nil? || e.path == autoload_path
+      else false
       end
     end
 

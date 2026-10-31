@@ -119,3 +119,6 @@ autoload :TestBrokenNameJob, File.expand_path('../autoload/test_broken_name_job'
 autoload :TestBrokenRequireJob, File.expand_path('../autoload/test_broken_require_job', __FILE__)
 autoload :TestBrokenNoMethodJob, File.expand_path('../autoload/test_broken_no_method_job', __FILE__)
 autoload :TestNoFileJob, File.expand_path('../autoload/test_no_such_job', __FILE__)
+autoload :TestBrokenRuntimeJob, File.expand_path('../autoload/test_broken_runtime_job', __FILE__)
+autoload :TestSameNameJob, File.expand_path('../autoload/test_same_name_job', __FILE__)
+autoload :TestBrokenSyntaxJob, File.expand_path('../autoload/test_broken_syntax_job', __FILE__)

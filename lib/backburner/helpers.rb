@@ -47,17 +47,8 @@ module Backburner
     # NameError is raised when the constant is unknown. Given a block, yields each module and the name
     # of the constant it is about to look up in it, so a caller can tell which one failed.
     def constantize(camel_cased_word)
-      camel_cased_word = camel_cased_word.to_s
-
-      if camel_cased_word.include?('-')
-        camel_cased_word = classify(camel_cased_word)
-      end
-
-      names = camel_cased_word.split('::')
-      names.shift if names.empty? || names.first.empty?
-
       constant = Object
-      names.each do |name|
+      constant_names(camel_cased_word).each do |name|
         args = Module.method(:const_get).arity != 1 ? [false] : []
         yield constant, name if block_given?
 
@@ -68,6 +59,23 @@ module Backburner
         end
       end
       constant
+    end
+
+    # The names of the constants constantize looks up in turn
+    #
+    # @example
+    #   constant_names("Test::Unit") # => ["Test", "Unit"]
+    #
+    def constant_names(camel_cased_word)
+      camel_cased_word = camel_cased_word.to_s
+
+      if camel_cased_word.include?('-')
+        camel_cased_word = classify(camel_cased_word)
+      end
+
+      names = camel_cased_word.split('::')
+      names.shift if names.empty? || names.first.empty?
+      names
     end
 
     # Returns configuration options for backburner

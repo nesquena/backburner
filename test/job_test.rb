@@ -124,6 +124,14 @@ describe "Backburner::Job module" do
         assert_raises(Backburner::Job::JobNotFound) { @job.process }
       end
     end # autoloader
+
+    describe "with a class whose file fails to load" do
+      it "should raise JobNotFound naming the cause on one line" do
+        task = stub(:body => { "class" => "TestBrokenNameJob", "args" => [56] }, :ttr => 120, :delete => true, :bury => true)
+        error = assert_raises(Backburner::Job::JobNotFound) { Backburner::Job.new(task).process }
+        assert_match(/\ATestBrokenNameJob \(NameError: uninitialized constant (TestBrokenNameJob::)?TestMissingConcern\)\z/, error.message)
+      end
+    end # broken class file
   end # process
 
   describe "for simple delegation method" do

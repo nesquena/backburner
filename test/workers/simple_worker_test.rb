@@ -457,8 +457,10 @@ describe "Backburner::Workers::Simple module" do
         assert_equal [0, 1], [tube_stats.current_jobs_buried, tube_stats.current_jobs_delayed]
       end
 
-      [["TestBrokenNameJob", "NameError"], ["TestBrokenRequireJob", "LoadError"], ["TestBrokenNoMethodJob", "NoMethodError"]].each do |class_name, error|
-        it "should retry and bury a job whose class fails to load (#{error}), calling on_error" do
+      [["TestBrokenNameJob", "NameError"], ["TestBrokenRequireJob", "LoadError"], ["TestBrokenNoMethodJob", "NoMethodError"],
+       ["TestBrokenRuntimeJob", "ArgumentError"], ["TestSameNameJob", "NameError"], ["TestBrokenSyntaxJob", "SyntaxError"],
+       ["not a class", "NameError"]].each do |class_name, error|
+        it "should retry and bury a job whose class fails to load or can't exist (#{class_name}), calling on_error" do
           Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
           put_job(class_name, 30)
           out = silenced(4) do
