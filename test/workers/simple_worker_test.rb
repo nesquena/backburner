@@ -258,17 +258,19 @@ describe "Backburner::Workers::Simple module" do
 
     it "should round a fractional retry delay up to whole seconds" do
       conn = beanstalk_connection
+      default_proc = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }
       [
-        [5,   lambda { |min_retry_delay, num_retries| 1.5 }, 2], # a retry_delay_proc returning a Float
-        [0.5, lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }, 1] # a Float retry_delay
-      ].each do |retry_delay, retry_delay_proc, expected|
+        [TestConfigurableRetryJob, 5,   lambda { |min_retry_delay, num_retries| 1.5 }, 2], # a retry_delay_proc returning a Float
+        [TestConfigurableRetryJob, 0.5, default_proc, 1], # a Float retry_delay
+        [TestFloatRetryDelayJob,   5,   default_proc, 2]  # a class's Float queue_retry_delay (1.5)
+      ].each do |job_class, retry_delay, retry_delay_proc, expected|
         clear_jobs!('foo.bar')
         Backburner.configure do |config|
           config.max_job_retries = 1
           config.retry_delay = retry_delay
           config.retry_delay_proc = retry_delay_proc
         end
-        id = @worker_class.enqueue(TestConfigurableRetryJob, [5], :queue => 'foo.bar')[:id]
+        id = @worker_class.enqueue(job_class, [5], :queue => 'foo.bar')[:id]
         out = silenced(5) do
           worker = @worker_class.new('foo.bar')
           worker.prepare
@@ -276,7 +278,7 @@ describe "Backburner::Workers::Simple module" do
         end
         assert_match(/attempt 1 of 2, retrying in #{expected}s/, out)
         stats = conn.jobs.find(id).stats
-        assert_equal [expected, 'delayed'], [stats.delay, stats.state], "retry_delay #{retry_delay}"
+        assert_equal [expected, 'delayed'], [stats.delay, stats.state], "#{job_class} with retry_delay #{retry_delay}"
       end
     ensure
       conn.close if conn

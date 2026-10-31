@@ -141,20 +141,23 @@ module Backburner
       end
     end
 
-    # Resolves job respond timeout based on the value given. Can be integer, a class or nothing
+    # Resolves job respond timeout based on the value given, rounded up to whole seconds. Can be a number,
+    # a class or nothing
     #
     # @example
     #  resolve_respond_timeout(1000) => 1000
+    #  resolve_respond_timeout(1.5) => 2
     #  resolve_respond_timeout(FooBar) => <queue respond_timeout>
     #  resolve_respond_timeout(nil) => <default respond_timeout>
     #
     def resolve_respond_timeout(ttr)
       if ttr.respond_to?(:queue_respond_timeout)
         resolve_respond_timeout(ttr.queue_respond_timeout)
-      elsif ttr.is_a?(Integer) # numerical
-        ttr
+      elsif ttr.is_a?(Numeric) # numerical
+        whole_seconds(ttr)
       else # default
-        Backburner.configuration.respond_timeout
+        ttr = Backburner.configuration.respond_timeout
+        ttr.is_a?(Numeric) ? whole_seconds(ttr) : ttr
       end
     end
 
@@ -175,7 +178,7 @@ module Backburner
       end
     end
 
-    # Resolves retry delay based on the value given. Can be integer, a class or nothing
+    # Resolves retry delay based on the value given. Can be a number, a class or nothing
     #
     # @example
     #  resolve_retry_delay(5) => 5
@@ -185,7 +188,7 @@ module Backburner
     def resolve_retry_delay(delay)
       if delay.respond_to?(:queue_retry_delay)
         resolve_retry_delay(delay.queue_retry_delay)
-      elsif delay.is_a?(Integer) # numerical
+      elsif delay.is_a?(Numeric) # numerical (the worker rounds the delay it computes from it up)
         delay
       else # default
         Backburner.configuration.retry_delay

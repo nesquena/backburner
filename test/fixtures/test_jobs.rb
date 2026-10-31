@@ -61,6 +61,21 @@ class TestRetryJob
   end
 end
 
+class TestFloatRetryDelayJob
+  include Backburner::Queue
+  queue_retry_delay 1.5
+  def self.perform(retry_count)
+    raise RuntimeError
+  end
+end
+
+class TestFloatRespondTimeoutJob
+  include Backburner::Queue
+  queue "test-plain"
+  queue_respond_timeout 1.5
+  def self.perform; end
+end
+
 class TestConfigurableRetryJob
   include Backburner::Queue
   def self.perform(retry_count)
