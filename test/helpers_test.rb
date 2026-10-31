@@ -85,6 +85,36 @@ describe "Backburner::Helpers module" do
       test = lambda { "email/send_news" }
       assert_equal "test.foo.job.email/send-news", expand_tube_name(test)
     end #lambdas
+
+    it "removes prefix if configured as nil" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => nil, :namespace_separator => '.'))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
+
+    it "removes prefix if configured as false" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => false, :namespace_separator => '.'))
+
+      test = stub(:queue => "email/send_news")
+      assert_equal "email/send-news", expand_tube_name(test)
+    end
+
+    it "removes prefix if configured as empty" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => "", :namespace_separator => '.', :primary_queue => "backburner-jobs"))
+
+      assert_equal "email/send-news", expand_tube_name("email/send_news")
+      assert_equal "email/send-news", expand_tube_name(stub(:queue => "email/send_news"))
+      assert_equal "backburner-jobs", expand_tube_name(RuntimeError)
+    end
+
+    it "uses the bare primary queue without a prefix" do
+      [nil, false, ""].each do |namespace|
+        Backburner.stubs(:configuration).returns(stub(:tube_namespace => namespace, :namespace_separator => '-', :primary_queue => "backburner-jobs"))
+        assert_equal "backburner-jobs", expand_tube_name(RuntimeError), namespace.inspect
+        assert_equal "queue-name", expand_tube_name("queue_name"), namespace.inspect
+      end
+    end
   end # expand_tube_name
 
   describe "for alternative namespace separator" do
@@ -146,6 +176,31 @@ describe "Backburner::Helpers module" do
 
     it "supports default pri for null values" do
       assert_equal 1000, resolve_priority(nil)
+    end
+
+    it "supports a priority label as the default" do
+      Backburner.configure { |config| config.default_priority = :high }
+      assert_equal 0, resolve_priority(nil)
+      assert_equal 0, resolve_priority(stub(:queue_priority => nil))
+      assert_equal 0, resolve_priority(:unknown_label)
+      assert_equal 200, resolve_priority(:low)
+    end
+
+    it "supports a custom or aliased priority label as the default" do
+      Backburner.configure { |config| config.priority_labels = { :foo => 5, :bar => 'foo' }; config.default_priority = 'bar' }
+      assert_equal 5, resolve_priority(nil)
+    end
+
+    it "leaves an unknown default label as configured" do
+      Backburner.configure { |config| config.default_priority = :unknown_label }
+      assert_equal :unknown_label, resolve_priority(nil)
+    end
+
+    it "stops at a cycle of priority labels" do
+      Backburner.configure { |config| config.priority_labels = { :a => :b, :b => 'a' }; config.default_priority = :a }
+      assert_equal :a, resolve_priority(nil), "a default label cycle is left as configured"
+      Backburner.configure { |config| config.default_priority = 1000 }
+      assert_equal 1000, resolve_priority(:b), "a job label cycle falls back to the default"
     end
   end # resolve_priority
 

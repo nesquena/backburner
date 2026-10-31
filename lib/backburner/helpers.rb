@@ -85,7 +85,7 @@ module Backburner
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
     def expand_tube_name(tube)
-      prefix = queue_config.tube_namespace
+      prefix = queue_config.tube_namespace || '' # nil, false or '' mean no prefix
       separator = queue_config.namespace_separator
       queue_name = if tube.is_a?(String)
         tube
@@ -99,7 +99,9 @@ module Backburner
       else # turn into a string
         tube.to_s
       end
-      [prefix.gsub(/\.$/, ''), dasherize(queue_name).gsub(/^#{prefix}/, '')].join(separator).gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
+      tube_name = dasherize(queue_name)
+      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(/^#{prefix}/, '')].join(separator) unless prefix.empty?
+      tube_name.gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing
@@ -110,14 +112,22 @@ module Backburner
     #  resolve_priority(nil) => <default priority>
     #
     def resolve_priority(pri)
+      priority = resolve_priority_value(pri)
+      return priority if priority
+      default = Backburner.configuration.default_priority # can be a label too
+      resolve_priority_value(default) || default # left as configured if it isn't a known label
+    end
+
+    # Follows a job class's queue_priority and priority labels to a number; nil for nothing,
+    # an unknown label or a cycle of labels
+    def resolve_priority_value(pri, seen_labels = [])
       if pri.respond_to?(:queue_priority)
-        resolve_priority(pri.queue_priority)
+        resolve_priority_value(pri.queue_priority, seen_labels)
       elsif pri.is_a?(String) || pri.is_a?(Symbol) # named priority
-        resolve_priority(Backburner.configuration.priority_labels[pri.to_sym])
+        label = pri.to_sym
+        resolve_priority_value(Backburner.configuration.priority_labels[label], seen_labels + [label]) unless seen_labels.include?(label)
       elsif pri.is_a?(Integer) # numerical
         pri
-      else # default
-        Backburner.configuration.default_priority
       end
     end
 

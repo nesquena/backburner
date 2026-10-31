@@ -5,6 +5,33 @@ module NestedDemo
   class TestJobB; include Backburner::Queue; end
 end
 
+module InheritDemo
+  class ParentJob
+    include Backburner::Queue
+    queue "inherit-parent"
+    queue_priority 10
+    queue_respond_timeout 77
+    queue_max_job_retries 4
+    queue_retry_delay 9
+    queue_retry_delay_proc lambda { |min_retry_delay, num_retries| 42 }
+    queue_jobs_limit 3
+    queue_garbage_limit 50
+    queue_retry_limit 6
+  end
+  class ChildJob < ParentJob; end
+  class GrandchildJob < ChildJob; end
+  class OverrideJob < ParentJob
+    queue "inherit-override"
+    queue_priority 20
+  end
+  class ReincludedJob < ParentJob; include Backburner::Queue; end
+  class LambdaParentJob
+    include Backburner::Queue
+    queue lambda { |klass| klass.name }
+  end
+  class LambdaChildJob < LambdaParentJob; end
+end
+
 describe "Backburner::Queue module" do
   describe "contains known_queue_classes" do
     it "has all defined known queues" do
@@ -66,4 +93,40 @@ describe "Backburner::Queue module" do
       assert_equal retry_delay_proc.call(2, 1), NestedDemo::TestJobB.queue_retry_delay_proc.call(2, 1)
     end
   end # queue_retry_delay_proc
+
+  describe "for subclasses" do
+    settings = [:queue, :queue_priority, :queue_respond_timeout, :queue_max_job_retries, :queue_retry_delay,
+                :queue_retry_delay_proc, :queue_jobs_limit, :queue_garbage_limit, :queue_retry_limit]
+
+    it "inherits every queue setting from the superclass" do
+      settings.each do |setting|
+        refute_nil InheritDemo::ParentJob.send(setting), setting
+        assert_equal InheritDemo::ParentJob.send(setting), InheritDemo::ChildJob.send(setting), setting
+        assert_equal InheritDemo::ParentJob.send(setting), InheritDemo::GrandchildJob.send(setting), setting
+      end
+    end
+
+    it "uses its own settings over inherited ones without changing the superclass" do
+      assert_equal "inherit-override", InheritDemo::OverrideJob.queue
+      assert_equal 20, InheritDemo::OverrideJob.queue_priority
+      assert_equal 77, InheritDemo::OverrideJob.queue_respond_timeout
+      assert_equal "inherit-parent", InheritDemo::ParentJob.queue
+      assert_equal 10, InheritDemo::ParentJob.queue_priority
+    end
+
+    it "inherits the superclass settings when it includes Backburner::Queue again" do
+      assert_equal "inherit-parent", InheritDemo::ReincludedJob.queue
+      assert_equal 10, InheritDemo::ReincludedJob.queue_priority
+    end
+
+    it "calls an inherited queue lambda with the subclass" do
+      assert_equal "InheritDemo::LambdaChildJob", InheritDemo::LambdaChildJob.queue
+    end
+
+    it "registers subclasses as known queue classes, once each" do
+      [InheritDemo::ChildJob, InheritDemo::GrandchildJob, InheritDemo::OverrideJob, InheritDemo::ReincludedJob].each do |klass|
+        assert_equal 1, Backburner::Worker.known_queue_classes.count(klass), klass.name
+      end
+    end
+  end # subclasses
 end # Backburner::Queue

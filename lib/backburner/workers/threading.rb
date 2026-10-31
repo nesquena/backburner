@@ -108,13 +108,7 @@ module Backburner
       # If the tube is known by existing beanstalkd queue, but not by class - skip it
       #
       def process_tube_options
-        Backburner::Worker.known_queue_classes.each do |queue|
-          next if @tubes_data[expand_tube_name(queue)].nil?
-          queue_settings = {
-            :threads => queue.queue_jobs_limit
-          }
-          @tubes_data[expand_tube_name(queue)].merge!(queue_settings){|k, v1, v2| v2.nil? ? v1 : v2 }
-        end
+        merge_tube_settings(@tubes_data) { |queue| { :threads => queue.queue_jobs_limit } }
       end
 
       # Wait for the shutdown signel

@@ -110,6 +110,34 @@ class MiniTest::Spec
     connection.close if connection
   end
 
+  # A beanstalkd of the test's own (on @port) that it can stop and start, for outage tests:
+  # pick_beanstalkd_port in `before`, then start_beanstalkd, and stop_beanstalkd in `after`
+  def pick_beanstalkd_port
+    @beanstalkd_bin = ENV['BEANSTALKD_BIN'] || ENV['PATH'].split(File::PATH_SEPARATOR).
+      map { |dir| File.join(dir, 'beanstalkd') }.find { |file| File.executable?(file) }
+    skip "needs a beanstalkd binary on PATH or in BEANSTALKD_BIN" unless @beanstalkd_bin
+    server = TCPServer.new('127.0.0.1', 0)
+    @port = server.addr[1]
+    server.close
+  end
+
+  def start_beanstalkd
+    @beanstalkd_pid = Process.spawn(@beanstalkd_bin, '-l', '127.0.0.1', '-p', @port.to_s, [:out, :err] => File::NULL)
+    wait_for { (TCPSocket.new('127.0.0.1', @port).close; true) rescue false }
+  end
+
+  def stop_beanstalkd
+    return unless @beanstalkd_pid
+    Process.kill(:KILL, @beanstalkd_pid)
+    Process.wait(@beanstalkd_pid)
+    @beanstalkd_pid = nil
+  end
+
+  def wait_for(seconds = 15)
+    deadline = Time.now + seconds
+    sleep 0.1 until yield || Time.now > deadline
+  end
+
   # Simulates a broken connection for any Beaneater::Connection. Will
   # simulate a restored connection after `reconnects_after`. This is expected
   # to be used when ensuring a Beaneater connection is open, therefore

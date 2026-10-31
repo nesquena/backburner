@@ -11,7 +11,7 @@ module Backburner
       base.instance_variable_set(:@queue_garbage_limit, nil)
       base.instance_variable_set(:@queue_retry_limit, nil)
       base.extend ClassMethods
-      Backburner::Worker.known_queue_classes << base
+      Backburner::Worker.known_queue_classes << base unless Backburner::Worker.known_queue_classes.include?(base)
     end
 
     module ClassMethods
@@ -25,7 +25,8 @@ module Backburner
         if name
           @queue_name = name
         else # accessor
-          (@queue_name.is_a?(Proc) ? @queue_name.call(self) : @queue_name) || Backburner.configuration.primary_queue
+          queue_name = inherited_queue_setting(:@queue_name)
+          (queue_name.is_a?(Proc) ? queue_name.call(self) : queue_name) || Backburner.configuration.primary_queue
         end
       end
 
@@ -39,7 +40,7 @@ module Backburner
         if pri
           @queue_priority = pri
         else # accessor
-          @queue_priority
+          inherited_queue_setting(:@queue_priority)
         end
       end
 
@@ -53,7 +54,7 @@ module Backburner
         if ttr
           @queue_respond_timeout = ttr
         else # accessor
-          @queue_respond_timeout
+          inherited_queue_setting(:@queue_respond_timeout)
         end
       end
 
@@ -67,7 +68,7 @@ module Backburner
         if delay
           @queue_max_job_retries = delay
         else # accessor
-          @queue_max_job_retries
+          inherited_queue_setting(:@queue_max_job_retries)
         end
       end
 
@@ -81,7 +82,7 @@ module Backburner
         if delay
           @queue_retry_delay = delay
         else # accessor
-          @queue_retry_delay
+          inherited_queue_setting(:@queue_retry_delay)
         end
       end
 
@@ -95,7 +96,7 @@ module Backburner
         if proc
           @queue_retry_delay_proc = proc
         else # accessor
-          @queue_retry_delay_proc
+          inherited_queue_setting(:@queue_retry_delay_proc)
         end
       end
 
@@ -109,7 +110,7 @@ module Backburner
         if limit
           @queue_jobs_limit = limit
         else #accessor
-          @queue_jobs_limit
+          inherited_queue_setting(:@queue_jobs_limit)
         end
       end
 
@@ -123,7 +124,7 @@ module Backburner
         if limit
           @queue_garbage_limit = limit
         else #accessor
-          @queue_garbage_limit
+          inherited_queue_setting(:@queue_garbage_limit)
         end
       end
 
@@ -137,8 +138,28 @@ module Backburner
         if limit
           @queue_retry_limit = limit
         else #accessor
-          @queue_retry_limit
+          inherited_queue_setting(:@queue_retry_limit)
         end
+      end
+
+      private
+
+      # Registers subclasses as known queues too (they inherit the queue settings)
+      def inherited(subclass)
+        super
+        Backburner::Worker.known_queue_classes << subclass unless Backburner::Worker.known_queue_classes.include?(subclass)
+      end
+
+      # Returns the setting from this class or else from the closest superclass that has it,
+      # so a subclass shares its parent's queue settings unless it sets its own
+      def inherited_queue_setting(ivar)
+        klass = self
+        while klass.is_a?(ClassMethods)
+          value = klass.instance_variable_get(ivar) if klass.instance_variable_defined?(ivar)
+          return value unless value.nil?
+          klass = klass.respond_to?(:superclass) ? klass.superclass : nil
+        end
+        nil
       end
     end # ClassMethods
   end # Queue

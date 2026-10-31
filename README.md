@@ -113,13 +113,13 @@ The key options available are:
 | Option                | Description                                                          |
 | -----------------     | -------------------------------                                      |
 | `beanstalk_url`       | Address for beanstalkd connection i.e 'beanstalk://127.0.0.1'        |
-| `tube_namespace`      | Prefix used for all tubes related to this backburner queue.          |
+| `tube_namespace`      | Prefix used for all tubes related to this backburner queue (`nil` or `''` for no prefix; a worker given no tubes then watches every tube on the server, so give your tubes distinct names on a shared beanstalkd). |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |
 | `retry_delay`         | Integer defines the base time to wait (in secs) between job retries. |
 | `retry_delay_proc`    | Lambda calculates the delay used, allowing for exponential back-off. |
-| `default_priority`    | Integer The default priority of jobs                                 |
+| `default_priority`    | Integer or priority label: the default priority of jobs              |
 | `respond_timeout`     | Integer defines how long a job has to complete its task              |
 | `default_worker`      | Worker class that will be used if no other worker is specified.      |
 | `logger`              | Logger recorded to when backburner wants to report info or errors.   |
@@ -128,6 +128,7 @@ The key options available are:
 | `reserve_timeout`     | Duration to wait for work from a single server, or nil for forever.  |
 | `job_serializer_proc` | Lambda serializes a job body to a string to write to the task        |
 | `job_parser_proc`     | Lambda parses a task body string to a hash                           |
+| `enqueue_connection_max_idle` | Seconds an idle enqueue connection is reused for before it is replaced (default 60; `nil` for no limit; 0 or less opens a new connection for every enqueue). |
 
 ## Breaking Changes
 
@@ -199,6 +200,11 @@ class NewsletterJob
   end
 end
 ```
+
+A subclass of such a job uses its parent's settings (including its tube) unless it sets its own.
+It can't unset one: the setters ignore `nil` and `false`. For the Threading and ThreadsOnFork workers, a shared
+tube's limits (`queue_jobs_limit`, `queue_garbage_limit`, `queue_retry_limit`) come from the class that declares the
+tube; subclasses only fill in the limits it leaves unset.
 
 Jobs can be enqueued with:
 
@@ -408,6 +414,8 @@ Backburner::Worker.enqueue NewsletterJob, ["foo", "bar"], :pri => :custom
 User.async(:pri => :useful, :delay => 10.seconds).reset_password(@user.id)
 ```
 
+They work for `config.default_priority` too (e.g. `config.default_priority = :custom`).
+
 Using named priorities can greatly simplify priority management.
 
 ### Processing Strategies
@@ -613,6 +621,10 @@ In Backburner, if the beanstalkd connection is temporarily severed, several retr
 After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
 Workers log the exception and try again on their next reserve, and watch their tubes again once the connection is back.
 Elsewhere (when enqueuing, for example) you can catch the exception and retry the call yourself.
+
+Enqueueing reuses a small pool of connections (up to 5 idle per process). While beanstalkd is down, each enqueue
+that picks up one of those idle connections takes about 2 seconds of retries before raising `Beaneater::NotConnected`;
+once they are used up, enqueues fail at once until beanstalkd is back.
 
 ### Web Front-end
 

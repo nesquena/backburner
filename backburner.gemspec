@@ -15,10 +15,12 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.version       = Backburner::VERSION
   s.license       = 'MIT'
+  s.required_ruby_version = '>= 2.7'
 
   s.add_runtime_dependency 'beaneater', '~> 1.0'
   s.add_runtime_dependency 'dante', '> 0.1.5'
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.0', '>= 1.0.1'
+  s.add_runtime_dependency 'logger' # a bundled gem (no longer a default one) since Ruby 4.0
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest', '5.1.0'

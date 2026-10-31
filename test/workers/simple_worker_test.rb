@@ -412,12 +412,7 @@ describe "Backburner::Workers::Simple module" do
 
   describe "when beanstalkd is down for longer than the reconnect window" do
     before do
-      @beanstalkd_bin = ENV['BEANSTALKD_BIN'] || ENV['PATH'].split(File::PATH_SEPARATOR).
-        map { |dir| File.join(dir, 'beanstalkd') }.find { |file| File.executable?(file) }
-      skip "needs a beanstalkd binary on PATH or in BEANSTALKD_BIN" unless @beanstalkd_bin
-      server = TCPServer.new('127.0.0.1', 0)
-      @port = server.addr[1]
-      server.close
+      pick_beanstalkd_port
       @templogger = Templogger.new('/tmp')
       @beanstalk_url = Backburner.configuration.beanstalk_url
       Backburner.configure do |config|
@@ -438,23 +433,6 @@ describe "Backburner::Workers::Simple module" do
         end
         @templogger.close
       end
-    end
-
-    def start_beanstalkd
-      @beanstalkd_pid = Process.spawn(@beanstalkd_bin, '-l', '127.0.0.1', '-p', @port.to_s, [:out, :err] => File::NULL)
-      wait_for { (TCPSocket.new('127.0.0.1', @port).close; true) rescue false }
-    end
-
-    def stop_beanstalkd
-      return unless @beanstalkd_pid
-      Process.kill(:KILL, @beanstalkd_pid)
-      Process.wait(@beanstalkd_pid)
-      @beanstalkd_pid = nil
-    end
-
-    def wait_for(seconds = 15)
-      deadline = Time.now + seconds
-      sleep 0.1 until yield || Time.now > deadline
     end
 
     it "should reconnect, watch its tubes again and resume working" do

@@ -34,18 +34,15 @@ module Backburner
       data = { :class => job_class.name, :args => args }
       queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
 
-      begin
-        response = nil
-        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+      response = nil
+      Backburner::EnqueuePool.current.with_connection do |connection|
         connection.retryable do
           tube = connection.tubes[expand_tube_name(queue || job_class)]
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
           response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
         end
-        return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
-      ensure
-        connection.close if connection
       end
+      return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
 
       response
     end
@@ -188,11 +185,34 @@ module Backburner
     # Returns a list of all tubes known within the system
     # Filtered for tubes that match the known prefix
     def all_existing_queues
-      known_queues    = Backburner::Worker.known_queue_classes.map(&:queue)
-      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace}/ }
+      known_queues    = Backburner::Worker.known_queue_classes.select(&:name).map(&:queue) # an anonymous class can't be a job
+      existing_tubes  = self.connection.tubes.all.map(&:name).select { |tube| tube =~ /^#{queue_config.tube_namespace || ''}/ }
       existing_tubes + known_queues + [queue_config.primary_queue]
     end
 
+
+    # Merges the options the block gives for each known queue class (its queue_jobs_limit and so on)
+    # into its tube's entry in tubes_data, for tubes that are there. A class that declares its tube
+    # overrides the tube's options; a subclass sharing its parent's tube only fills in the ones still
+    # unset. Anonymous classes are skipped.
+    def merge_tube_settings(tubes_data)
+      owners, sharers = Backburner::Worker.known_queue_classes.select(&:name).partition { |queue| !shares_parent_tube?(queue) }
+      [[owners, true], [sharers, false]].each do |classes, override|
+        classes.each do |queue|
+          data = tubes_data[expand_tube_name(queue)]
+          next if data.nil?
+          data.merge!(yield(queue)) { |_key, current, setting| (override ? setting.nil? : !current.nil?) ? current : setting }
+        end
+      end
+    end
+
+    # Whether a queue class uses the same tube as its closest named Backburner::Queue ancestor
+    def shares_parent_tube?(queue)
+      return false unless queue.respond_to?(:superclass)
+      parent = queue.superclass
+      parent = parent.superclass while parent.is_a?(Backburner::Queue::ClassMethods) && parent.name.nil?
+      parent.is_a?(Backburner::Queue::ClassMethods) && expand_tube_name(parent) == expand_tube_name(queue)
+    end
 
     # Handles an error according to custom definition
     # Used when processing a job that errors out
