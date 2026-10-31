@@ -83,7 +83,7 @@ jobs:
               *) echo "::error::run this on $TRUNK or ${version%.*}-stable, not $GITHUB_REF"; exit 1 ;;
             esac
             tag="$TAG_PREFIX$version"
-            tagged=$(git ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}" | cut -f1)
+            tagged=$(git ls-remote origin "refs/tags/$tag*" | awk -v t="refs/tags/$tag" '$2 == t || $2 == t "^{}" { print $1 }')
             [ -z "$tagged" ] || echo "$tagged" | grep -qx "$GITHUB_SHA" ||
               { echo "::error::tag $tag already exists at another commit"; exit 1; }
           else
@@ -195,7 +195,8 @@ jobs:
           TAG: ${{ needs.build.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          tagged=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" "refs/tags/$TAG" "refs/tags/$TAG^{}" | cut -f1)
+          tagged=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" "refs/tags/$TAG*" |
+            awk -v t="refs/tags/$TAG" '$2 == t || $2 == t "^{}" { print $1 }')
           if [ -z "$tagged" ]; then
             gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
           elif echo "$tagged" | grep -qx "$GITHUB_SHA"; then
