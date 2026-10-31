@@ -318,10 +318,10 @@ describe "Backburner::Worker module" do
     end
 
     # Namespaces, separators and queue names (ActiveJob's queue_name_prefix gives "production_mailers") whose
-    # tubes the worker used to miss: it expanded the tube names it found on the server again
+    # tubes the worker used to miss: it expanded the tube names it found on the server again ("a--b" raised)
     it "should watch the tubes enqueued on for its namespace, under their names on the server" do
       [["MyApp", ".", "default"], ["jobs(eu)", ".", "default"], ["app+", ".", "default"], ["bb-discovery", "_", "default"],
-       ["production", ".", "production_mailers"], ["bb-discovery", ".", "report_2026"]].each do |namespace, separator, queue|
+       ["production", ".", "production_mailers"], ["bb-discovery", ".", "report_2026"], ["bb-discovery", ".", "a__b"]].each do |namespace, separator, queue|
         Backburner.configuration.tube_namespace = namespace
         Backburner.configuration.namespace_separator = separator
         tube_name = Backburner::Worker.expand_tube_name(queue)
@@ -341,6 +341,28 @@ describe "Backburner::Worker module" do
         silenced(3) { worker.prepare; worker.work_one_job }
         worker.connection.close
         assert_equal 3, $worker_test_count, [namespace, separator, queue].inspect
+      end
+    end
+
+    # Another app's tubes on a shared server: the worker expanded them into tubes nobody enqueues on, so it never took
+    # their jobs, and mustn't start to
+    it "should leave out the tubes its namespace and separator can't give" do
+      [[["bb-discovery_admin", "_"], ["bb-discovery", "_"]], [["MyApp.Admin", "."], ["MyApp", "."]],
+       [["bb-other", "."], ["bb:disc", "."]]].each do |(other_namespace, other_separator), (namespace, separator)|
+        Backburner.configuration.tube_namespace = other_namespace
+        Backburner.configuration.namespace_separator = other_separator
+        other_tube = Backburner::Worker.expand_tube_name("reports")
+        Backburner::Worker.enqueue TestJob, [1, 2], :queue => "reports"
+        Backburner.configuration.tube_namespace = namespace
+        Backburner.configuration.namespace_separator = separator
+        worker = Backburner::Workers::Simple.new(nil)
+        capture_stdout { worker.prepare }
+        worker.connection.close
+        refute_includes worker.tube_names, other_tube, namespace
+        assert_equal ["bb"], worker.tube_names, namespace if namespace == "bb:disc" # a ':' cuts every tube name to "bb"
+        connection = beanstalk_connection
+        connection.tubes.find(other_tube).clear
+        connection.close
       end
     end
   end # given no tubes
