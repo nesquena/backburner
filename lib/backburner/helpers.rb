@@ -173,11 +173,13 @@ module Backburner
     def resolve_respond_timeout(ttr)
       if ttr.respond_to?(:queue_respond_timeout)
         resolve_respond_timeout(ttr.queue_respond_timeout)
-      elsif ttr.is_a?(Numeric) # numerical
+      elsif ttr.is_a?(Integer) # numerical
+        ttr
+      elsif ttr.is_a?(Numeric) && ttr.finite? # fractional
         whole_seconds(ttr)
       else # default
         ttr = Backburner.configuration.respond_timeout
-        ttr.is_a?(Numeric) ? whole_seconds(ttr) : ttr
+        !ttr.is_a?(Integer) && ttr.is_a?(Numeric) && ttr.finite? ? whole_seconds(ttr) : ttr
       end
     end
 
@@ -208,7 +210,7 @@ module Backburner
     def resolve_retry_delay(delay)
       if delay.respond_to?(:queue_retry_delay)
         resolve_retry_delay(delay.queue_retry_delay)
-      elsif delay.is_a?(Numeric) # numerical (the worker rounds the delay it computes from it up)
+      elsif delay.is_a?(Numeric) && delay.finite? # numerical (the worker rounds the delay it computes from it up)
         delay
       else # default
         Backburner.configuration.retry_delay

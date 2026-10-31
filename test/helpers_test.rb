@@ -346,6 +346,12 @@ describe "Backburner::Helpers module" do
       Backburner.configure { |config| config.respond_timeout = 2.5 }
       assert_equal 3, resolve_respond_timeout(nil)
     end
+
+    it "keeps an Integer as it is and ignores a value that isn't finite, as before" do
+      assert_equal(-5, resolve_respond_timeout(-5))
+      assert_equal 300, resolve_respond_timeout(Float::INFINITY)
+      assert_equal 300, resolve_respond_timeout(stub(:queue_respond_timeout => Float::NAN))
+    end
   end # resolve_respond_timeout
 
   describe "for resolve_max_job_retries method" do
@@ -385,6 +391,11 @@ describe "Backburner::Helpers module" do
       Backburner.configure { |config| config.retry_delay = 300 }
     end
     after { Backburner.configure { |config| config.retry_delay = @original_retry_delay } }
+
+    it "ignores a retry_delay that isn't finite, as before" do
+      assert_equal 300, resolve_retry_delay(stub(:queue_retry_delay => Float::NAN))
+      assert_equal 300, resolve_retry_delay(Float::INFINITY)
+    end
 
     it "supports fix num retry_delay" do
       assert_equal 500, resolve_retry_delay(500)
