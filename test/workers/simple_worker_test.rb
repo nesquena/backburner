@@ -256,6 +256,33 @@ describe "Backburner::Workers::Simple module" do
       assert_equal true, $worker_success
     end
 
+    it "should round a fractional retry delay up to whole seconds" do
+      conn = beanstalk_connection
+      [
+        [5,   lambda { |min_retry_delay, num_retries| 1.5 }, 2], # a retry_delay_proc returning a Float
+        [0.5, lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }, 1] # a Float retry_delay
+      ].each do |retry_delay, retry_delay_proc, expected|
+        clear_jobs!('foo.bar')
+        Backburner.configure do |config|
+          config.max_job_retries = 1
+          config.retry_delay = retry_delay
+          config.retry_delay_proc = retry_delay_proc
+        end
+        id = @worker_class.enqueue(TestConfigurableRetryJob, [5], :queue => 'foo.bar')[:id]
+        out = silenced(5) do
+          worker = @worker_class.new('foo.bar')
+          worker.prepare
+          worker.work_one_job
+        end
+        assert_match(/attempt 1 of 2, retrying in #{expected}s/, out)
+        stats = conn.jobs.find(id).stats
+        assert_equal [expected, 'delayed'], [stats.delay, stats.state], "retry_delay #{retry_delay}"
+      end
+    ensure
+      conn.close if conn
+      clear_jobs!('foo.bar')
+    end
+
     it "should support event hooks without retry" do
       $hooked_fail_count = 0
       clear_jobs!('foo.bar.events')

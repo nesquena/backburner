@@ -209,5 +209,15 @@ module Backburner
       end
     end
 
+    # Rounds a delay up to the whole seconds beanstalkd takes, so a job is never ready early
+    #
+    # @example
+    #  whole_seconds(1.5) => 2
+    #  whole_seconds(nil) => 0
+    #
+    def whole_seconds(delay)
+      [0, delay.to_f.ceil].max
+    end
+
   end # Helpers
 end # Backburner
