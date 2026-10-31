@@ -158,8 +158,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     end
 
     it "fork_and_watch thread should log an error if exitstatus is != 99" do
-      process_exit = stub('process_exit')
-      process_exit.expects(:exitstatus).twice.returns(0)
+      process_exit = stub('process_exit', :exitstatus => 1)
       worker = @worker_class.new(%(foo))
       worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
 
@@ -171,7 +170,23 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       end
       def worker.create_thread(*args, &block); block.call(*args) end
       out = silenced(2) { worker.start(false) }
-      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out)
+      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 1\./, out)
+    end
+
+    it "fork_and_watch thread should log a normal exit if exitstatus is 0" do
+      process_exit = stub('process_exit', :exitstatus => 0)
+      worker = @worker_class.new(%(foo))
+      worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
+
+      wc = @worker_class
+      worker.define_singleton_method :fork_it do
+        wc.shutdown = true
+        12
+      end
+      def worker.create_thread(*args, &block); block.call(*args) end
+      out = silenced(2) { worker.start(false) }
+      assert_match(/Tube demo\.test\.foo exited normally\./, out)
+      refute_match(/Catastrophic failure/, out)
     end
 
     describe "restarting a failed child" do

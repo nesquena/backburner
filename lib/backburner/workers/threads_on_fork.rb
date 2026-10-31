@@ -157,7 +157,11 @@ module Backburner
             else
               ran_for = monotonic_time - forked_at
               restart_delay = ran_for >= MAX_RESTART_DELAY ? MIN_RESTART_DELAY : (restart_delay * 2).clamp(MIN_RESTART_DELAY, MAX_RESTART_DELAY)
-              log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}. Forking it again in #{restart_delay}s.")
+              if status.exitstatus == 0 # stopped by SIGTERM or SIGINT, as on shutdown
+                log_info("Tube #{tube_name} exited normally.")
+              else
+                log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}. Forking it again in #{restart_delay}s.")
+              end
               Kernel.sleep(restart_delay) unless self.class.shutdown
             end
           end
