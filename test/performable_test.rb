@@ -22,6 +22,24 @@ end
 class AsyncInstanceMethodsTestObj < PerformableTestObj; end
 class AsyncStaticMethodsTestObj < PerformableTestObj; end
 
+class AsyncSettingsTestObj < TestObj
+  include Backburner::Performable
+  queue "performable-settings"
+  queue_priority 10
+  queue_respond_timeout 300
+  queue_max_job_retries 3
+  handle_asynchronously :foo
+  handle_static_asynchronously :bar
+end
+
+class QueueThenPerformableTestObj < TestObj
+  include Backburner::Queue
+  queue "queue-then-performable"
+  queue_priority 20
+  queue_respond_timeout 200
+  include Backburner::Performable
+end
+
 
 
 describe "Backburner::Performable module" do
@@ -83,6 +101,38 @@ describe "Backburner::Performable module" do
       AsyncStaticMethodsTestObj.handle_static_asynchronously :bar, pri: 5000, queue: 'garply'
       Backburner::Worker.expects(:enqueue).with(AsyncStaticMethodsTestObj, [nil, :bar_without_async, true, false], has_entries(:pri => 5000, :queue => "garply"))
       AsyncStaticMethodsTestObj.bar(true, false)
+    end
+
+    describe "on a class with queue settings" do
+      before { clear_jobs!("performable-settings") }
+      after { clear_jobs!("performable-settings") }
+
+      it "keeps the class's queue settings" do
+        assert_equal "performable-settings", AsyncSettingsTestObj.queue
+        assert_equal 10, AsyncSettingsTestObj.queue_priority
+        assert_equal 300, AsyncSettingsTestObj.queue_respond_timeout
+        assert_equal 3, AsyncSettingsTestObj.queue_max_job_retries
+      end
+
+      it "enqueues instance and class method calls with the class's queue settings" do
+        AsyncSettingsTestObj.new.foo(true, false)
+        AsyncSettingsTestObj.bar(false, true)
+        [[56, "foo_without_async", true, false], [nil, "bar_without_async", false, true]].each do |args|
+          pop_one_job("performable-settings") do |job, body|
+            assert_equal ["AsyncSettingsTestObj", args], [body["class"], body["args"]]
+            assert_equal [10, 300], [job.pri, job.ttr]
+            job.delete
+          end
+        end
+      end
+    end
+  end # handle_asynchronously
+
+  describe "when included after Backburner::Queue" do
+    it "keeps the queue settings the class already set" do
+      assert_equal "queue-then-performable", QueueThenPerformableTestObj.queue
+      assert_equal 20, QueueThenPerformableTestObj.queue_priority
+      assert_equal 200, QueueThenPerformableTestObj.queue_respond_timeout
     end
   end
 end

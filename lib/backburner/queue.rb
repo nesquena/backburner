@@ -1,15 +1,12 @@
 module Backburner
   module Queue
     def self.included(base)
-      base.instance_variable_set(:@queue_name, nil)
-      base.instance_variable_set(:@queue_priority, nil)
-      base.instance_variable_set(:@queue_respond_timeout, nil)
-      base.instance_variable_set(:@queue_max_job_retries, nil)
-      base.instance_variable_set(:@queue_retry_delay, nil)
-      base.instance_variable_set(:@queue_retry_delay_proc, nil)
-      base.instance_variable_set(:@queue_jobs_limit, nil)
-      base.instance_variable_set(:@queue_garbage_limit, nil)
-      base.instance_variable_set(:@queue_retry_limit, nil)
+      # Initialize the settings, but keep any already set: including Queue again (as including
+      # Performable does) must not reset them
+      [:@queue_name, :@queue_priority, :@queue_respond_timeout, :@queue_max_job_retries, :@queue_retry_delay,
+       :@queue_retry_delay_proc, :@queue_jobs_limit, :@queue_garbage_limit, :@queue_retry_limit].each do |setting|
+        base.instance_variable_set(setting, nil) unless base.instance_variable_defined?(setting)
+      end
       base.extend ClassMethods
       Backburner::Worker.known_queue_classes << base unless Backburner::Worker.known_queue_classes.include?(base)
     end
