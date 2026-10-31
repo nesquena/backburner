@@ -11,7 +11,7 @@ module Backburner
 
       base = File.expand_path(Dir.pwd) + '/'
       e.backtrace.each do |t|
-        msg << "   #{File.expand_path(t).gsub(/#{base}/, '')}"
+        msg << "   #{File.expand_path(t).gsub(base, '')}"
       end if e.backtrace
 
       msg.join("\n")

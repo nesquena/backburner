@@ -42,6 +42,19 @@ describe "Backburner::Helpers module" do
       output = exception_message(RuntimeError.new("test"))
       assert_match(/Exception RuntimeError/, output)
     end
+
+    it "shortens the backtrace paths under a working directory that has regexp characters in its name" do
+      ["jobs[1]", "jobs["].each do |name|
+        Dir.mktmpdir do |root|
+          dir = File.join(File.realpath(root), name)
+          Dir.mkdir(dir)
+          error = RuntimeError.new("test")
+          error.set_backtrace(["#{dir}/app/jobs/report.rb:3:in `perform'"])
+          output = Dir.chdir(dir) { exception_message(error) }
+          assert_equal "Exception RuntimeError -> test\n   app/jobs/report.rb:3:in `perform'", output, name
+        end
+      end
+    end
   end # exception_message
 
   describe "for queue_config" do
