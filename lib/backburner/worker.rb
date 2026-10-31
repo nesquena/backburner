@@ -301,6 +301,8 @@ module Backburner
     # finalizers can crash as it exits ("[BUG] lazy sweeping underway when freeing object space").
     # GC.disable finishes the lazy sweep first. Fixed in Ruby 3.4 by ruby/ruby 868d63f0a3 (not
     # backported to 3.3, and not seen on 3.1 or 3.2); this can go once Ruby 3.3 support is dropped.
+    # Limits: an at_exit handler that calls GC.enable itself can still crash, and a TERM that lands while
+    # a ThreadsOnFork child is starting its job threads can leave one of them running during at_exit.
     def with_gc_disabled_on_exit
       yield
     ensure
