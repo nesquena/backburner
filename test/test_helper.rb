@@ -154,8 +154,12 @@ class MiniTest::Spec
   # Whether a forked child's GC was disabled by the time the interpreter tore it down (when its
   # at_exit handlers run). Yields the child's body, which ends as `how` says (:return, :raise, or
   # :shutdown, which calls Kernel.exit as the TERM and INT traps do); the block forks a child that
-  # runs it and waits for the child.
+  # runs it and waits for the child. Fails if the GC is already off here (the child would inherit
+  # that), or if the child never ran its at_exit handlers (it left by exit!, or crashed).
   def gc_disabled_at_child_exit?(worker, how)
+    gc_was_disabled = GC.enable # returns whether it was disabled
+    GC.disable if gc_was_disabled
+    refute gc_was_disabled, "the GC was already disabled in the test process"
     reader, writer = IO.pipe
     yield(lambda do
       reader.close
@@ -168,9 +172,11 @@ class MiniTest::Spec
       end
     end)
     writer.close
-    reader.read == "disabled"
+    state = reader.read
+    flunk "the child never ran its at_exit handlers (it left by exit!, or crashed)" if state.empty?
+    state == "disabled"
   ensure
-    reader.close unless reader.closed?
-    writer.close unless writer.closed?
+    reader.close if reader && !reader.closed?
+    writer.close if writer && !writer.closed?
   end
 end # MiniTest::Spec
