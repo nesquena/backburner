@@ -174,6 +174,98 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out)
     end
 
+    describe "restarting a failed child" do
+      before do
+        @worker = @worker_class.new(%(foo))
+        def @worker.create_thread(*args, &block); block.call(*args) end
+      end
+
+      # Runs fork_and_watch over children exiting with these codes, expecting it to sleep these delays in turn
+      def expect_restart_delays(codes, delays)
+        wc = @worker_class
+        left = codes.size
+        @worker.define_singleton_method(:fork_it) { left -= 1; wc.shutdown = true if left.zero?; 12 }
+        @worker.stubs(:wait_for_process).with(12).returns(*codes.map { |code| [12, stub(:exitstatus => code)] })
+        restarts = sequence('restarts')
+        delays.each { |delay| Kernel.expects(:sleep).with(delay).in_sequence(restarts) }
+        silenced(2) { @worker.start(false) }
+      end
+
+      it "should wait longer before each fork while children keep failing, up to MAX_RESTART_DELAY" do
+        expect_restart_delays([1] * 7, [1, 2, 4, 8, 16, 30])
+      end
+
+      it "should fork again at once after a recycled child and start the delays over" do
+        expect_restart_delays([1, 1, 99, 1, 1], [1, 2, 1])
+      end
+
+      it "should start the delays over after a child that ran for MAX_RESTART_DELAY" do
+        @worker.stubs(:monotonic_time).returns(0, 0.5, 1, 1.5, 4, 40, 41, 41.5)
+        expect_restart_delays([1, 1, 1, 1], [1, 2, 1])
+      end
+    end # restarting a failed child
+
+    describe "when beanstalkd is down while children start" do
+      before do
+        pick_beanstalkd_port
+        start_beanstalkd
+        @templogger = Templogger.new('/tmp')
+        @beanstalk_url = Backburner.configuration.beanstalk_url
+        Backburner.configure do |config|
+          config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
+          config.logger = @templogger.logger
+        end
+        @worker_class.garbage_after = 1
+        @watchers = []
+        @ignore_forks = true
+      end
+
+      after do
+        begin
+          @worker_class.shutdown = true
+          silenced do
+            @worker_class.stop_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+            @worker_class.kill_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          end
+        ensure
+          @watchers.each(&:kill) # once they've reaped the children: one waiting to fork again would wake up in a later test
+          stop_beanstalkd
+          Backburner.configure do |config|
+            config.beanstalk_url = @beanstalk_url
+            config.logger = nil
+          end
+          @templogger.close
+        end
+      end
+
+      [1, 2].each do |threads|
+        it "should back off instead of forking in a busy loop, and resume when it is back (#{threads} thread(s) per child)" do
+          @worker_class.threads_number = threads
+          worker = @worker_class.new('foo.bar.outage')
+          forks = 0
+          watchers = @watchers
+          worker.define_singleton_method(:fork_tube) { |name| forks += 1; super(name) }
+          worker.define_singleton_method(:create_thread) { |*args, &block| super(*args, &block).tap { |thread| watchers << thread } }
+          outage_forks = nil
+          silenced(20) do
+            worker.start(false)
+            sleep 0.5 # let the first child block in reserve
+            stop_beanstalkd
+            forks_before = forks
+            sleep 4
+            outage_forks = forks - forks_before
+            start_beanstalkd
+            @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.outage'
+            wait_for(10) { @templogger.body =~ /Completed TestJobNoopFork/ }
+          end
+          assert_operator outage_forks, :<=, 4, "forked #{outage_forks} children in 4 s"
+          assert_match(/Completed TestJobNoopFork/, @templogger.body)
+        end
+      end
+    end # beanstalkd down
+
     describe "fork_inner" do
 
       before do
