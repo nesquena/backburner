@@ -21,7 +21,8 @@ module Backburner
     end
 
     # Enqueues a job to be processed later by a worker.
-    # Options: `pri` (priority), `delay` (delay in secs), `ttr` (time to respond), `queue` (queue name)
+    # Options: `pri` (priority), `delay` (delay in secs, rounded up to whole seconds), `ttr` (time to respond),
+    # `queue` (queue name)
     #
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect.
     # @example
@@ -29,7 +30,7 @@ module Backburner
     #
     def self.enqueue(job_class, args=[], opts={})
       pri   = resolve_priority(opts[:pri] || job_class)
-      delay = [0, opts[:delay].to_i].max
+      delay = [0, opts[:delay].to_f.ceil].max
       ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
       res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
 
