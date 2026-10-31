@@ -16,7 +16,8 @@ require 'backburner/workers/forking'
 require 'backburner/workers/threads_on_fork'
 require 'backburner/workers/threading'
 require 'backburner/queue'
-require 'active_job/queue_adapters/backburner_adapter' if defined?(ActiveJob)
+# On Rails 7.2+ (which added AbstractAdapter) use this gem's Active Job adapter; older Rails autoload theirs
+require 'active_job/queue_adapters/backburner_adapter' if defined?(ActiveJob::QueueAdapters::AbstractAdapter)
 
 module Backburner
   class << self

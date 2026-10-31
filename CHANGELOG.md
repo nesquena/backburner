@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Fix apps on Rails 6.1, 7.0 and 7.1 failing to boot with backburner 1.7.0 (`uninitialized constant ActiveJob::QueueAdapters::AbstractAdapter` from `require 'backburner'`, or from `config.active_job.queue_adapter = :backburner`): the gem's Active Job adapter subclasses `AbstractAdapter` only on Rails 7.2+, which added it, and `require 'backburner'` loads it only there; older Rails autoload the adapter as before. CI now also runs the suite with Active Job 6.1
 * Fix ThreadsOnFork with one thread per tube: each forked child now opens its own beanstalkd connection instead of sharing the parent's socket, which mixed up replies between children (`undefined method 'ttr' for nil`, lost jobs) (reported by @Haerezis in #169 and @supremoUL in #175)
 * Fix workers never recovering after beanstalkd is down for more than a few seconds: a failed reconnect no longer leaves the connection unusable (`undefined method 'tubes'` in a busy loop), and the simple worker watches its tubes again after reconnecting; a job that fails while the connection is down no longer stops the simple worker either (reported by @activestylus in #137)
 * Fix `Connection#retryable` raising `NameError` instead of `Beaneater::NotConnected` once its retries are used up
