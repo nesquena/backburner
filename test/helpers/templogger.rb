@@ -17,6 +17,6 @@ class Templogger
   end
 
   def close
-    @file.close
+    @file.close! # unlink it now: a Tempfile finalizer left for GC calls Process.pid, which some tests mock
   end
 end
