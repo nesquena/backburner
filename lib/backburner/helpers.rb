@@ -44,7 +44,8 @@ module Backburner
     #   constantize("Module") # => Module
     #   constantize("Test::Unit") # => Test::Unit
     #
-    # NameError is raised when the constant is unknown.
+    # NameError is raised when the constant is unknown. Given a block, yields each module and the name
+    # of the constant it is about to look up in it, so a caller can tell which one failed.
     def constantize(camel_cased_word)
       camel_cased_word = camel_cased_word.to_s
 
@@ -58,6 +59,7 @@ module Backburner
       constant = Object
       names.each do |name|
         args = Module.method(:const_get).arity != 1 ? [false] : []
+        yield constant, name if block_given?
 
         if constant.const_defined?(name, *args)
           constant = constant.const_get(name)

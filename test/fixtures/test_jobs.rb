@@ -113,3 +113,9 @@ end
 module AutoloadingDemo
   def self.const_missing(name); raise LoadError, "cannot load such file -- autoloading_demo/#{name}"; end
 end
+
+# Job classes an app autoloads: whose files fail to load, and one whose file isn't there
+autoload :TestBrokenNameJob, File.expand_path('../autoload/test_broken_name_job', __FILE__)
+autoload :TestBrokenRequireJob, File.expand_path('../autoload/test_broken_require_job', __FILE__)
+autoload :TestBrokenNoMethodJob, File.expand_path('../autoload/test_broken_no_method_job', __FILE__)
+autoload :TestNoFileJob, File.expand_path('../autoload/test_no_such_job', __FILE__)

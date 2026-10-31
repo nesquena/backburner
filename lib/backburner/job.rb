@@ -83,8 +83,14 @@ module Backburner
     #
     def job_class
       handler = try_job_class
-      raise(JobNotFound, self.name) unless handler
+      raise(JobNotFound, @job_class_error ? "#{name} (#{@job_class_error.class}: #{@job_class_error.message})" : name) unless handler
       handler
+    end
+
+    # Whether the last lookup of the job's class found it missing (not defined, or an autoload whose
+    # file isn't there) rather than failing to load it (its file raised, or required a missing gem)
+    def job_class_missing?
+      !!@job_class_missing
     end
 
     protected
@@ -99,9 +105,28 @@ module Backburner
     end
 
     def try_job_class
-      constantize(self.name)
-    rescue NameError, LoadError # an autoloader may raise LoadError for a file that isn't there
+      @job_class_error = nil
+      @job_class_missing = false
+      segment = autoload_path = nil
+      constantize(self.name) do |mod, name|
+        segment = name
+        autoload_path = (mod.autoload?(name) rescue nil) # raises for a name that can't be a constant
+      end
+    rescue NameError, LoadError => e # an autoloader may raise LoadError for a file that isn't there
+      @job_class_error = e
+      @job_class_missing = missing_constant_error?(e, segment, autoload_path)
       nil
+    end
+
+    # Whether an error raised while looking up `segment` says that constant is missing, rather than
+    # coming from inside the file that defines it (a NameError for another constant, a NoMethodError,
+    # a require of a missing gem)
+    def missing_constant_error?(e, segment, autoload_path)
+      case e
+      when NoMethodError then false
+      when NameError then e.name.to_s == segment.to_s
+      else e.path.nil? || e.path == autoload_path # LoadError
+      end
     end
 
     # Timeout job within specified block after given time.
