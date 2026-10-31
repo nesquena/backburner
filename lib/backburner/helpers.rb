@@ -11,7 +11,7 @@ module Backburner
 
       base = File.expand_path(Dir.pwd) + '/'
       e.backtrace.each do |t|
-        msg << "   #{File.expand_path(t).gsub(/#{base}/, '')}"
+        msg << "   #{File.expand_path(t).gsub(base, '')}"
       end if e.backtrace
 
       msg.join("\n")
@@ -85,7 +85,7 @@ module Backburner
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
     def expand_tube_name(tube)
-      prefix = queue_config.tube_namespace || '' # nil, false or '' mean no prefix
+      prefix = queue_config.tube_namespace # nil or false mean no prefix; '' gives names that start with the separator, as in 1.7.0
       separator = queue_config.namespace_separator
       queue_name = if tube.is_a?(String)
         tube
@@ -100,8 +100,28 @@ module Backburner
         tube.to_s
       end
       tube_name = dasherize(queue_name)
-      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(/^#{prefix}/, '')].join(separator) unless prefix.empty?
-      tube_name.gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
+      tube_name = [separator.empty? ? prefix : prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) if prefix
+      tube_name = tube_name.gsub(/#{Regexp::escape(separator)}+/, separator) unless separator.empty? # /+/ isn't a regexp
+      tube_name.split(':').first
+    end
+
+    # What every tube name expand_tube_name gives starts with: the namespace and its separator ('' for a nil or false one)
+    #
+    # @example
+    #   expanded_tube_prefix # => "<prefix>."
+    #
+    def expanded_tube_prefix
+      expand_tube_name('').to_s
+    end
+
+    # The namespace as the pattern expand_tube_name strips from the start of a queue name.
+    # ceiling: a namespace that is a valid regexp is still matched as one ("app.prod" also strips "app-prod"), because
+    # matching it literally would move the jobs of the queue names it matches to other tubes; one that isn't ("app(")
+    # used to fail every enqueue and is matched literally.
+    def namespace_pattern(prefix)
+      Regexp.new("^#{prefix}")
+    rescue RegexpError
+      Regexp.new("^#{Regexp.escape(prefix)}")
     end
 
     # Resolves job priority based on the value given. Can be integer, a class or nothing
