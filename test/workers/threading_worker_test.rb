@@ -107,8 +107,13 @@ describe "Backburner::Workers::Threading worker" do
       assert_equal @thread_count, $worker_test_count
     end
 
+    # Its own tube and worker: the jobs it leaves reserved go back to ready when their connections are
+    # finalized, and must not reach another test's workers
     it 'forces an exit when a job is stuck' do
-      6.times { @worker_class.enqueue TestStuckJob, [1, 0], :queue => "threaded-shutdown" }
+      clear_jobs!("threaded-stuck")
+      @worker = @worker_class.new(["threaded-stuck:#{@thread_count}"])
+      @worker.exit_on_shutdown = false
+      6.times { @worker_class.enqueue TestStuckJob, [1, 0], :queue => "threaded-stuck" }
       Thread.new { sleep 0.1; @worker.self_write.puts("TERM") }
       capture_stdout do
         @worker.start
