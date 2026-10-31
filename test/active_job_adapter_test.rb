@@ -7,8 +7,9 @@ describe "Backburner as the Active Job adapter" do
     it "enqueues and works jobs when the app requires #{order.tr('_', ' ')}" do
       namespace = "demo.test.active_job.#{Process.pid}.#{order}"
       app = File.expand_path('../fixtures/active_job_app.rb', __FILE__)
-      out, status = Open3.capture2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), app, namespace, order)
+      out, status = Open3.capture2e(RbConfig.ruby, '-w', '-I', File.expand_path('../../lib', __FILE__), app, namespace, order)
       assert status.success?, out
+      refute_match(/circular require/, out)
       result = JSON.parse(out.lines.last)
 
       tube = "#{namespace}.adapter"
