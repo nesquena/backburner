@@ -85,7 +85,7 @@ module Backburner
     #   expand_tube_name(FooJob) # => <prefix>.foo-job
     #
     def expand_tube_name(tube)
-      prefix = queue_config.tube_namespace || '' # nil, false or '' mean no prefix
+      prefix = queue_config.tube_namespace # nil or false mean no prefix; '' gives names that start with the separator, as in 1.7.0
       separator = queue_config.namespace_separator
       queue_name = if tube.is_a?(String)
         tube
@@ -100,11 +100,11 @@ module Backburner
         tube.to_s
       end
       tube_name = dasherize(queue_name)
-      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) unless prefix.empty?
+      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) if prefix
       tube_name.gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
     end
 
-    # What every tube name expand_tube_name gives starts with: the namespace and its separator ('' without a namespace)
+    # What every tube name expand_tube_name gives starts with: the namespace and its separator ('' for a nil or false one)
     #
     # @example
     #   expanded_tube_prefix # => "<prefix>."

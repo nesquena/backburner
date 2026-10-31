@@ -187,8 +187,8 @@ module Backburner
     def all_existing_queues
       known_queues    = Backburner::Worker.known_queue_classes.select(&:name).map(&:queue) # an anonymous class can't be a job
       prefix          = expanded_tube_prefix # the start of every tube name enqueueing with this configuration gives
-      namespace       = queue_config.tube_namespace || ''
-      cut             = !namespace.empty? && "#{namespace}#{queue_config.namespace_separator}".include?(':') # every name is the prefix
+      namespace       = queue_config.tube_namespace
+      cut             = namespace && "#{namespace}#{queue_config.namespace_separator}".include?(':') # every name is the prefix
       existing_tubes  = self.connection.tubes.all.map(&:name).select do |tube| # only the names this configuration can give
         cut ? tube == prefix : tube.start_with?(prefix) && tube[prefix.size..-1] !~ /[A-Z_]/ # the rest is dasherized
       end

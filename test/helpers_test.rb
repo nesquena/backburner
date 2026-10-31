@@ -113,12 +113,14 @@ describe "Backburner::Helpers module" do
       assert_equal "email/send-news", expand_tube_name(test)
     end
 
-    it "removes prefix if configured as empty" do
+    # Tubes of 1.7.0 with an empty namespace hold queued jobs: keep their names
+    it "starts names with the separator if configured as empty" do
       Backburner.stubs(:configuration).returns(stub(:tube_namespace => "", :namespace_separator => '.', :primary_queue => "backburner-jobs"))
 
-      assert_equal "email/send-news", expand_tube_name("email/send_news")
-      assert_equal "email/send-news", expand_tube_name(stub(:queue => "email/send_news"))
-      assert_equal "backburner-jobs", expand_tube_name(RuntimeError)
+      assert_equal ".email/send-news", expand_tube_name("email/send_news")
+      assert_equal ".email/send-news", expand_tube_name(stub(:queue => "email/send_news"))
+      assert_equal ".backburner-jobs", expand_tube_name(RuntimeError)
+      assert_equal ".mailers", expand_tube_name("mailers")
     end
 
     # A tube name is where queued jobs wait, so a namespace that works keeps every name it gives, including
@@ -202,7 +204,7 @@ describe "Backburner::Helpers module" do
     end
 
     it "uses the bare primary queue without a prefix" do
-      [nil, false, ""].each do |namespace|
+      [nil, false].each do |namespace|
         Backburner.stubs(:configuration).returns(stub(:tube_namespace => namespace, :namespace_separator => '-', :primary_queue => "backburner-jobs"))
         assert_equal "backburner-jobs", expand_tube_name(RuntimeError), namespace.inspect
         assert_equal "queue-name", expand_tube_name("queue_name"), namespace.inspect

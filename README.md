@@ -113,7 +113,7 @@ The key options available are:
 | Option                | Description                                                          |
 | -----------------     | -------------------------------                                      |
 | `beanstalk_url`       | Address for beanstalkd connection i.e 'beanstalk://127.0.0.1'        |
-| `tube_namespace`      | Prefix used for all tubes related to this backburner queue (`nil` or `''` for no prefix; a worker given no tubes then watches every tube on the server without capitals or underscores, so give your tubes distinct names on a shared beanstalkd). |
+| `tube_namespace`      | Prefix used for all tubes related to this backburner queue (`nil` or `false` for no prefix; a worker given no tubes then watches every tube on the server without capitals or underscores, so give your tubes distinct names on a shared beanstalkd; `''` gives tube names that start with the separator, such as `.backburner-jobs`, as before). |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
 | `max_job_retries`     | Integer defines how many times to retry a job before burying.        |

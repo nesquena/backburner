@@ -289,14 +289,22 @@ describe "Backburner::Worker module" do
       connection.close if connection
     end
 
-    it "should enqueue on unprefixed tubes when tube_namespace is nil, false or empty" do
-      [nil, false, ""].each do |namespace|
+    it "should enqueue on unprefixed tubes when tube_namespace is nil or false" do
+      [nil, false].each do |namespace|
         Backburner.configuration.tube_namespace = namespace
         Backburner::Worker.enqueue TestJob, [1, namespace.inspect]
         Backburner::Worker.enqueue TestJob, [2, namespace.inspect], :queue => "test-no-namespace"
         assert_equal [1, namespace.inspect], reserve_from("backburner-jobs")["args"]
         assert_equal [2, namespace.inspect], reserve_from("test-no-namespace")["args"]
       end
+    end
+
+    it "should enqueue on the tubes 1.7.0 used when tube_namespace is empty" do
+      Backburner.configuration.tube_namespace = ""
+      Backburner::Worker.enqueue TestJob, [1, 2]
+      Backburner::Worker.enqueue TestJob, [3, 4], :queue => "test-no-namespace"
+      assert_equal [1, 2], reserve_from(".backburner-jobs")["args"]
+      assert_equal [3, 4], reserve_from(".test-no-namespace")["args"]
     end
 
     it "should list existing unprefixed tubes for a worker given no tubes" do
