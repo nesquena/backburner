@@ -434,6 +434,25 @@ describe "Backburner::Workers::Simple module" do
       end
     end # unknown class
 
+    it "should keep working when the on_error handler raises" do
+      clear_jobs!("foo.bar.onerror")
+      Backburner.configure { |config| config.on_error = lambda { |e| raise SocketError, "error reporter unreachable" } }
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar.onerror"
+      @worker_class.enqueue TestJob, [1, 2], :queue => "foo.bar.onerror"
+      worker = @worker_class.new('foo.bar.onerror')
+      out = silenced(4) do
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+      assert_match(/Finished TestFailJob.*attempt 1 of 1, burying/, out)
+      assert_match(/The on_error handler failed for TestFailJob: Exception SocketError -> error reporter unreachable/, out)
+      assert_equal 1, worker.connection.tubes["demo.test.foo.bar.onerror"].stats.current_jobs_buried
+      assert_equal 3, $worker_test_count
+    ensure
+      Backburner.configure { |config| config.on_error = nil }
+      clear_jobs!("foo.bar.onerror")
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')

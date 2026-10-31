@@ -231,6 +231,8 @@ module Backburner
           error_handler.call(e, name, args, job)
         end
       end
+    rescue => handler_error # an error reporter that fails (can't reach its service, say) mustn't stop the worker
+      log_error "The on_error handler failed for #{name}: #{exception_message(handler_error)}"
     end
 
     # Normalizes tube names given array of tube_names
