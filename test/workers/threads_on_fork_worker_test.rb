@@ -622,18 +622,19 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         conn.close
       end # one thread per tube
 
-      it "should bury a job whose class can't be found and keep its child working" do
+      it "should release a job whose class can't be found and keep its child working" do
         clear_jobs!('foo.bar.9')
         conn = beanstalk_connection
-        conn.tubes['demo.test.foo.bar.9'].put(Backburner.configuration.job_serializer_proc.call(:class => 'TestRemovedJobFork', :args => []))
+        conn.tubes['demo.test.foo.bar.9'].put(Backburner.configuration.job_serializer_proc.call(:class => 'TestRemovedJobFork', :args => []), :ttr => 100)
         @worker = @worker_class.new('foo.bar.9')
         @worker.start(false)
         @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.9'
 
         silenced(5) { @templogger.wait_for_match(/Completed TestJobNoopFork/m) }
-        assert_match(/Finished TestRemovedJobFork.*attempt 1 of 1, burying/, @templogger.body)
+        assert_match(/TestRemovedJobFork: class not found; released for 100s/, @templogger.body)
         refute_match(/Catastrophic failure/, @templogger.body)
-        assert_equal 1, conn.tubes['demo.test.foo.bar.9'].stats.current_jobs_buried
+        stats = conn.tubes['demo.test.foo.bar.9'].stats
+        assert_equal [0, 1], [stats.current_jobs_buried, stats.current_jobs_delayed]
       ensure
         conn.close if conn
         clear_jobs!('foo.bar.9')

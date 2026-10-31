@@ -399,10 +399,6 @@ describe "Backburner::Workers::Simple module" do
         clear_jobs!("foo.bar.unknown")
         @errors = []
         Backburner.configure { |config| config.on_error = lambda { |e| @errors << e } }
-        conn = beanstalk_connection
-        body = Backburner.configuration.job_serializer_proc.call(:class => "TestRemovedJob", :args => [1])
-        conn.tubes["demo.test.foo.bar.unknown"].put(body)
-        conn.close
         @worker = @worker_class.new('foo.bar.unknown')
       end
 
@@ -411,26 +407,44 @@ describe "Backburner::Workers::Simple module" do
         clear_jobs!("foo.bar.unknown")
       end
 
-      it "should bury it and keep working" do
+      def put_job(class_name, ttr)
+        body = Backburner.configuration.job_serializer_proc.call(:class => class_name, :args => [1])
+        @worker.connection.tubes["demo.test.foo.bar.unknown"].put(body, :ttr => ttr)
+      end
+
+      def tube_stats
+        @worker.connection.tubes["demo.test.foo.bar.unknown"].stats
+      end
+
+      it "should release it for its TTR instead of burying it, and keep working" do
+        put_job("TestRemovedJob", 100)
         out = silenced(2) do
           @worker.prepare
           @worker.work_one_job
         end
         assert_match(/Exception Backburner::Job::JobNotFound -> TestRemovedJob/, out)
-        assert_match(/Finished TestRemovedJob.*attempt 1 of 1, burying/, out)
-        assert_equal [Backburner::Job::JobNotFound], @errors.map(&:class)
-        assert_equal 1, @worker.connection.tubes["demo.test.foo.bar.unknown"].stats.current_jobs_buried
+        assert_match(/TestRemovedJob: class not found; released for 100s/, out)
+        assert_equal [], @errors, "on_error isn't called for a class this worker lacks"
+        assert_equal 0, tube_stats.current_jobs_buried
+        assert_equal 1, tube_stats.current_jobs_delayed
+        assert_equal 100, @worker.connection.tubes["demo.test.foo.bar.unknown"].peek(:delayed).stats.delay
       end
 
-      it "should retry it with the configured defaults before burying it" do
-        Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
-        out = silenced(4) do
+      it "should leave it for a worker that has its class, however many retries it is allowed" do
+        Backburner.configure { |config| config.max_job_retries = 0 }
+        put_job("TestRolloutJob", 2)
+        out = silenced(8) do
           @worker.prepare
-          2.times { @worker.work_one_job }
+          @worker.work_one_job # this worker doesn't have the class yet
+          Object.const_set(:TestRolloutJob, Class.new { def self.perform(x); $worker_test_count += x; end })
+          @worker.work_one_job # now it does: the job comes back after its TTR
         end
-        assert_match(/attempt 1 of 2, retrying in 0s/, out)
-        assert_match(/attempt 2 of 2, burying/, out)
-        assert_equal 1, @worker.connection.tubes["demo.test.foo.bar.unknown"].stats.current_jobs_buried
+        assert_match(/TestRolloutJob: class not found; released for 2s/, out)
+        assert_match(/Completed TestRolloutJob/, out)
+        assert_equal 1, $worker_test_count
+        assert_equal 0, tube_stats.current_jobs_buried
+      ensure
+        Object.send(:remove_const, :TestRolloutJob) if Object.const_defined?(:TestRolloutJob)
       end
     end # unknown class
 

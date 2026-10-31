@@ -147,12 +147,23 @@ module Backburner
       # NB: There's a slight chance here that the connection to beanstalkd has
       # gone down between the time we reserved / processed the job and here.
       begin
-        num_retries = job.stats.releases
         job_class = begin
           job.job_class
-        rescue Backburner::Job::JobNotFound # renamed or removed: retry and bury it with the configured defaults
+        rescue Backburner::Job::JobNotFound
           nil
         end
+        if job_class.nil?
+          # This worker doesn't have its class (renamed or removed, or a worker deployed before the code
+          # that enqueues it): give it back for a worker that has it rather than burying it, once per TTR
+          # as beanstalkd would, without on_error or the failure hooks (as before) or using up its retries.
+          # ceiling: beanstalkd still counts the release, so once a worker has the class, a failure there
+          # gets fewer retries; counting these releases apart would need a marker in the job body.
+          delay = job.ttr || queue_config.respond_timeout
+          job.task.release(:delay => delay)
+          self.log_warn "#{job.name}: class not found; released for #{delay}s for a worker that has it"
+          return
+        end
+        num_retries = job.stats.releases
         max_job_retries = resolve_max_job_retries(job_class)
         retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
         if num_retries < max_job_retries # retry again

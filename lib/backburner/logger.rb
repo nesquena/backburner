@@ -45,6 +45,15 @@ module Backburner
       logger ? logger.error(msg) : $stderr.puts(msg)
     end
 
+    # Print a warning to stderr
+    #
+    # @example
+    #   log_warn("Task released!")
+    #
+    def log_warn(msg)
+      logger ? logger.warn(msg) : $stderr.puts(msg)
+    end
+
     # Return logger if specified
     def logger
       Backburner.configuration.logger

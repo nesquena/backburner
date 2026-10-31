@@ -41,4 +41,21 @@ describe "Backburner::Logger module" do
       Backburner.configure { |config| config.logger = nil }
     end
   end # log_error
+
+  describe "for log_warn method" do
+    it "prints out to std err" do
+      output = capture_stdout { log_warn("baz") }
+      assert_equal "baz\n", output
+    end
+
+    it "can be configured to log to logger" do
+      Backburner.configure { |config| config.logger = @logger }
+      log_warn("baz")
+      assert_match(/W,.*?baz/, @strio.string)
+    end
+
+    after do
+      Backburner.configure { |config| config.logger = nil }
+    end
+  end # log_warn
 end
