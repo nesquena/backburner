@@ -100,7 +100,7 @@ module Backburner
         tube.to_s
       end
       tube_name = dasherize(queue_name)
-      tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) if prefix
+      tube_name = [separator.empty? ? prefix : prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) if prefix
       tube_name = tube_name.gsub(/#{Regexp::escape(separator)}+/, separator) unless separator.empty? # /+/ isn't a regexp
       tube_name.split(':').first
     end

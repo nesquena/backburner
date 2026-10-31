@@ -138,7 +138,7 @@ would leave queued jobs in the old tubes. A worker given no tubes watches the tu
 namespace and separator and whose rest has no capitals or underscores (the names this configuration could have produced),
 the tubes of the job classes it has loaded and the primary queue. On a shared beanstalkd, don't give one app a namespace
 that starts with another's namespace and separator (`app` and `app.prod`, `MyApp` and `MyApp.admin`): workers of the
-shorter one given no tubes take the other's jobs.
+shorter one given no tubes reserve the other's jobs, which they can't run.
 
 ## Breaking Changes
 

@@ -360,17 +360,20 @@ describe "Backburner::Worker module" do
         Backburner.configuration.tube_namespace = other_namespace
         Backburner.configuration.namespace_separator = other_separator
         other_tube = Backburner::Worker.expand_tube_name("reports")
-        Backburner::Worker.enqueue TestJob, [1, 2], :queue => "reports"
-        Backburner.configuration.tube_namespace = namespace
-        Backburner.configuration.namespace_separator = separator
-        worker = Backburner::Workers::Simple.new(nil)
-        capture_stdout { worker.prepare }
-        worker.connection.close
-        refute_includes worker.tube_names, other_tube, namespace
-        assert_equal ["bb"], worker.tube_names, namespace if namespace == "bb:disc" # a ':' cuts every tube name to "bb"
-        connection = beanstalk_connection
-        connection.tubes.find(other_tube).clear
-        connection.close
+        begin
+          Backburner::Worker.enqueue TestJob, [1, 2], :queue => "reports"
+          Backburner.configuration.tube_namespace = namespace
+          Backburner.configuration.namespace_separator = separator
+          worker = Backburner::Workers::Simple.new(nil)
+          capture_stdout { worker.prepare }
+          worker.connection.close
+          refute_includes worker.tube_names, other_tube, namespace
+          assert_equal ["bb"], worker.tube_names, namespace if namespace == "bb:disc" # a ':' cuts every tube name to "bb"
+        ensure
+          connection = beanstalk_connection
+          connection.tubes.find(other_tube).clear
+          connection.close
+        end
       end
     end
   end # given no tubes

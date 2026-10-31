@@ -224,6 +224,11 @@ describe "Backburner::Helpers module" do
       assert_equal "testqueue-name", expand_tube_name("queue_name")
       assert_equal "testbackburner-jobs", expand_tube_name(RuntimeError)
     end
+
+    it "keeps a trailing dot in the namespace when the separator is empty" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test.", :namespace_separator => '', :primary_queue => "backburner-jobs"))
+      assert_equal "test.queue-name", expand_tube_name("queue_name")
+    end
   end
 
   describe "for resolve_priority method" do
