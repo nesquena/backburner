@@ -101,7 +101,8 @@ module Backburner
       end
       tube_name = dasherize(queue_name)
       tube_name = [prefix.gsub(/\.$/, ''), tube_name.gsub(namespace_pattern(prefix), '')].join(separator) if prefix
-      tube_name.gsub(/#{Regexp::escape(separator)}+/, separator).split(':').first
+      tube_name = tube_name.gsub(/#{Regexp::escape(separator)}+/, separator) unless separator.empty? # /+/ isn't a regexp
+      tube_name.split(':').first
     end
 
     # What every tube name expand_tube_name gives starts with: the namespace and its separator ('' for a nil or false one)

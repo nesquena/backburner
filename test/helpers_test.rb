@@ -218,6 +218,12 @@ describe "Backburner::Helpers module" do
     it "uses alternative namespace separator" do
       assert_equal "test-queue-name", expand_tube_name("queue_name")
     end # simple string
+
+    it "joins the namespace and queue name without a separator if configured as empty" do
+      Backburner.stubs(:configuration).returns(stub(:tube_namespace => "test", :namespace_separator => '', :primary_queue => "backburner-jobs"))
+      assert_equal "testqueue-name", expand_tube_name("queue_name")
+      assert_equal "testbackburner-jobs", expand_tube_name(RuntimeError)
+    end
   end
 
   describe "for resolve_priority method" do
