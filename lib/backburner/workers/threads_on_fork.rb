@@ -134,18 +134,37 @@ module Backburner
         end
       end
 
+      # After a child fails, the parent waits before forking the next one: MIN_RESTART_DELAY seconds,
+      # doubling while children keep failing (beanstalkd is down, say) up to MAX_RESTART_DELAY, and
+      # starting over once a child is recycled (99) or runs for MAX_RESTART_DELAY seconds
+      MIN_RESTART_DELAY = 1
+      MAX_RESTART_DELAY = 30
+
       # Make the fork and create a thread to watch the child process
       # The exit code '99' means that the fork exited because of the garbage limit
       # Any other code is an error
       def fork_and_watch(name)
         create_thread(name) do |tube_name|
+          restart_delay = 0
           until self.class.shutdown
+            forked_at = monotonic_time
             pid = fork_tube(tube_name)
             _, status = wait_for_process(pid)
 
             # 99 = garbaged
-            if status.exitstatus != 99
-              log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}.")
+            if status.exitstatus == 99
+              restart_delay = 0
+            elsif self.class.shutdown # stopped by SIGTERM or SIGINT, or killed by finish_forks: not forked again
+              log_info(status.exitstatus == 0 ? "Tube #{tube_name} exited normally." : "Tube #{tube_name} stopped.")
+            else
+              ran_for = monotonic_time - forked_at
+              restart_delay = ran_for >= MAX_RESTART_DELAY ? MIN_RESTART_DELAY : (restart_delay * 2).clamp(MIN_RESTART_DELAY, MAX_RESTART_DELAY)
+              if status.exitstatus == 0 # stopped by a signal sent to the child alone, or a job called exit
+                log_warn("Tube #{tube_name} exited with code 0. Forking it again in #{restart_delay}s.")
+              else
+                log_error("Catastrophic failure: tube #{tube_name} exited with code #{status.exitstatus}. Forking it again in #{restart_delay}s.")
+              end
+              Kernel.sleep(restart_delay)
             end
           end
         end
@@ -182,18 +201,24 @@ module Backburner
           run_while_can
         else
           threads_count = Thread.list.count
+          failed = false
           @threads_number.times do
             create_thread do
               begin
                 conn = new_connection
                 watch_tube(name, conn)
                 run_while_can(conn)
+              rescue Exception
+                failed = true
+                raise
               ensure
                 conn.close if conn
               end
             end
           end
           sleep 0.1 while Thread.list.count > threads_count
+          # Fail like a single-threaded child whose connection raised, so the parent backs off
+          Kernel.exit!(1) if failed
         end
 
         coolest_exit
@@ -227,6 +252,11 @@ module Backburner
       # Create a thread. Easy to test
       def create_thread(*args, &block)
         Thread.new(*args, &block)
+      end
+
+      # Seconds on a clock that only moves forward. Easy to test
+      def monotonic_time
+        Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
       # Wait for a specific process. Easy to test

@@ -394,6 +394,143 @@ describe "Backburner::Workers::Simple module" do
       Backburner.configure { |config| config.on_error = nil }
     end
 
+    describe "with a job whose class can't be found" do
+      before do
+        clear_jobs!("foo.bar.unknown")
+        @errors = []
+        Backburner.configure { |config| config.on_error = lambda { |e| @errors << e } }
+        @worker = @worker_class.new('foo.bar.unknown')
+      end
+
+      after do
+        Backburner.configure { |config| config.on_error = nil }
+        clear_jobs!("foo.bar.unknown")
+      end
+
+      def put_job(class_name, ttr)
+        body = Backburner.configuration.job_serializer_proc.call(:class => class_name, :args => [1])
+        @worker.connection.tubes["demo.test.foo.bar.unknown"].put(body, :ttr => ttr)
+      end
+
+      def tube_stats
+        @worker.connection.tubes["demo.test.foo.bar.unknown"].stats
+      end
+
+      it "should release it for its TTR instead of burying it, and keep working" do
+        put_job("TestRemovedJob", 30)
+        out = silenced(2) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/Exception Backburner::Job::JobNotFound -> TestRemovedJob/, out)
+        assert_match(/TestRemovedJob: class not found; released for 30s/, out)
+        assert_equal [], @errors, "on_error isn't called for a class this worker lacks"
+        assert_equal 0, tube_stats.current_jobs_buried
+        assert_equal 1, tube_stats.current_jobs_delayed
+        assert_equal 30, @worker.connection.tubes["demo.test.foo.bar.unknown"].peek(:delayed).stats.delay
+      end
+
+      it "should leave it for a worker that has its class, however many retries it is allowed" do
+        Backburner.configure { |config| config.max_job_retries = 0 }
+        put_job("TestRolloutJob", 2)
+        out = silenced(8) do
+          @worker.prepare
+          @worker.work_one_job # this worker doesn't have the class yet
+          Object.const_set(:TestRolloutJob, Class.new { def self.perform(x); $worker_test_count += x; end })
+          @worker.work_one_job # now it does: the job comes back after its TTR
+        end
+        assert_match(/TestRolloutJob: class not found; released for 2s/, out)
+        assert_match(/Completed TestRolloutJob/, out)
+        assert_equal 1, $worker_test_count
+        assert_equal 0, tube_stats.current_jobs_buried
+      ensure
+        Object.send(:remove_const, :TestRolloutJob) if Object.const_defined?(:TestRolloutJob)
+      end
+
+      it "should release a job whose class an autoloader can't load" do
+        put_job("AutoloadingDemo::TestJobGone", 30)
+        out = silenced(2) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/AutoloadingDemo::TestJobGone: class not found; released for 30s/, out)
+        assert_equal [0, 1], [tube_stats.current_jobs_buried, tube_stats.current_jobs_delayed]
+      end
+
+      [["TestBrokenNameJob", "NameError"], ["TestBrokenRequireJob", "LoadError"], ["TestBrokenNoMethodJob", "NoMethodError"],
+       ["TestBrokenRuntimeJob", "ArgumentError"], ["TestSameNameJob", "NameError"], ["TestBrokenSyntaxJob", "SyntaxError"],
+       ["not a class", "NameError"], ["TestBrokenTimeoutJob", "Timeout::Error"]].each do |class_name, error|
+        it "should retry and bury a job whose class fails to load or can't exist (#{class_name}), calling on_error" do
+          Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+          put_job(class_name, 30)
+          out = silenced(4) do
+            @worker.prepare
+            2.times { @worker.work_one_job }
+          end
+          assert_match(/Exception Backburner::Job::JobNotFound -> #{class_name} \(#{error}: /, out)
+          assert_match(/attempt 1 of 2, retrying in 0s/, out)
+          assert_match(/attempt 2 of 2, burying/, out)
+          refute_match(/class not found/, out)
+          assert_equal [Backburner::Job::JobNotFound] * 2, @errors.map(&:class)
+          assert_equal 1, tube_stats.current_jobs_buried
+        end
+      end
+
+      %w(Backburner::TestGoneJob TestGoneNamespace::TestJob TestNoFileJob).each do |class_name|
+        it "should release a job whose class is missing (#{class_name})" do
+          put_job(class_name, 30)
+          out = silenced(2) do
+            @worker.prepare
+            @worker.work_one_job
+          end
+          assert_match(/#{class_name}: class not found; released for 30s/, out)
+          assert_equal [], @errors
+          assert_equal [0, 1], [tube_stats.current_jobs_buried, tube_stats.current_jobs_delayed]
+        end
+      end
+
+      it "should release it for at most MAX_CLASS_NOT_FOUND_DELAY seconds" do
+        put_job("TestRemovedJob", 3600)
+        out = silenced(2) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/TestRemovedJob: class not found; released for 60s/, out)
+        assert_equal 60, @worker.connection.tubes["demo.test.foo.bar.unknown"].peek(:delayed).stats.delay
+      end
+
+      it "should not call on_error when its TTR ran out before it could be released" do
+        put_job("TestRemovedJob", 1)
+        def @worker.reserve_job(*args); job = super; job.ttr; sleep 2.2; job; end # its TTR runs out first
+        out = silenced(6) do
+          @worker.prepare
+          @worker.work_one_job
+        end
+        assert_match(/TestRemovedJob was no longer reserved/, out)
+        assert_equal [], @errors
+        assert_equal [0, 1], [tube_stats.current_jobs_buried, tube_stats.current_jobs_ready]
+      end
+    end # unknown class
+
+    it "should keep working when the on_error handler raises" do
+      clear_jobs!("foo.bar.onerror")
+      Backburner.configure { |config| config.on_error = lambda { |e| raise SocketError, "error reporter unreachable" } }
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar.onerror"
+      @worker_class.enqueue TestJob, [1, 2], :queue => "foo.bar.onerror"
+      worker = @worker_class.new('foo.bar.onerror')
+      out = silenced(4) do
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+      assert_match(/Finished TestFailJob.*attempt 1 of 1, burying/, out)
+      assert_match(/The on_error handler failed for TestFailJob: Exception SocketError -> error reporter unreachable/, out)
+      assert_equal 1, worker.connection.tubes["demo.test.foo.bar.onerror"].stats.current_jobs_buried
+      assert_equal 3, $worker_test_count
+    ensure
+      Backburner.configure { |config| config.on_error = nil }
+      clear_jobs!("foo.bar.onerror")
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')

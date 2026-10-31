@@ -9,6 +9,10 @@ module Backburner
     include Backburner::Helpers
     include Backburner::Logger
 
+    # The longest a worker that doesn't have a job's class waits to hand the job out again (its TTR
+    # otherwise), so a worker that has it picks it up soon after a rollout
+    MAX_CLASS_NOT_FOUND_DELAY = 60
+
     # Backburner::Worker.known_queue_classes
     # List of known_queue_classes
     class << self
@@ -146,13 +150,32 @@ module Backburner
 
       # NB: There's a slight chance here that the connection to beanstalkd has
       # gone down between the time we reserved / processed the job and here.
+      class_missing = false
       begin
+        job_class = begin
+          job.job_class
+        rescue Backburner::Job::JobNotFound # missing, or its file failed to load: see below
+          nil
+        end
+        if job_class.nil? && job.job_class_missing?
+          # This worker doesn't have its class (renamed or removed, or a worker deployed before the code
+          # that enqueues it): give it back for a worker that has it rather than burying it, once per TTR
+          # (at most a minute) as beanstalkd would, without on_error or the failure hooks (as before) or
+          # using up its retries. A class whose file fails to load goes the normal failure path instead.
+          # ceiling: beanstalkd still counts the release, so once a worker has the class, a failure there
+          # gets fewer retries; counting these releases apart would need a marker in the job body.
+          class_missing = true
+          delay = [job.ttr || queue_config.respond_timeout, MAX_CLASS_NOT_FOUND_DELAY].min
+          job.task.release(:delay => delay)
+          self.log_warn "#{job.name}: class not found; released for #{delay}s for a worker that has it"
+          return
+        end
         num_retries = job.stats.releases
-        max_job_retries = resolve_max_job_retries(job.job_class)
+        max_job_retries = resolve_max_job_retries(job_class)
         retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
         if num_retries < max_job_retries # retry again
-          retry_delay = resolve_retry_delay(job.job_class)
-          delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
+          retry_delay = resolve_retry_delay(job_class)
+          delay = resolve_retry_delay_proc(job_class).call(retry_delay, num_retries) rescue retry_delay
           job.retry(num_retries + 1, delay)
           self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
         else # retries failed, bury
@@ -164,6 +187,7 @@ module Backburner
         # its TTR runs out or its client disconnects (unless the server restarted and lost it).
         # (An error raised in a rescue clause isn't caught by the method's other rescues, hence this one.)
         self.log_error "#{job.name} was no longer reserved (its TTR ran out, or the connection was lost), so it was neither retried nor buried"
+        return if class_missing # on_error isn't called for a class this worker lacks
       end
 
       handle_error(e, job.name, job.args, job)
@@ -241,6 +265,8 @@ module Backburner
           error_handler.call(e, name, args, job)
         end
       end
+    rescue => handler_error # an error reporter that fails (can't reach its service, say) mustn't stop the worker
+      log_error "The on_error handler failed for #{name}: #{exception_message(handler_error)}"
     end
 
     # Normalizes tube names given array of tube_names

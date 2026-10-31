@@ -41,4 +41,31 @@ describe "Backburner::Logger module" do
       Backburner.configure { |config| config.logger = nil }
     end
   end # log_error
+
+  describe "for log_warn method" do
+    it "prints out to std err" do
+      output = capture_stdout { log_warn("baz") }
+      assert_equal "baz\n", output
+    end
+
+    it "can be configured to log to logger" do
+      Backburner.configure { |config| config.logger = @logger }
+      log_warn("baz")
+      assert_match(/W,.*?baz/, @strio.string)
+    end
+
+    it "logs as an error to a logger without a public warn method" do
+      logged = []
+      logger = Object.new # the README asks a logger for info and error only
+      logger.define_singleton_method(:info) { |msg| logged << [:info, msg] }
+      logger.define_singleton_method(:error) { |msg| logged << [:error, msg] }
+      Backburner.configure { |config| config.logger = logger }
+      log_warn("baz")
+      assert_equal [[:error, "baz"]], logged
+    end
+
+    after do
+      Backburner.configure { |config| config.logger = nil }
+    end
+  end # log_warn
 end

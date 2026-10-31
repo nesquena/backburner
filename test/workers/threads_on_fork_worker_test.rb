@@ -157,22 +157,146 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       refute_match(/Catastrophic failure/, out)
     end
 
-    it "fork_and_watch thread should log an error if exitstatus is != 99" do
-      process_exit = stub('process_exit')
-      process_exit.expects(:exitstatus).twice.returns(0)
+    it "fork_and_watch thread should log a normal exit if exitstatus is 0 on shutdown" do
+      process_exit = stub('process_exit', :exitstatus => 0)
       worker = @worker_class.new(%(foo))
       worker.expects(:wait_for_process).with(12).returns([nil, process_exit])
 
       wc = @worker_class
-      # TODO: Is there a best way do do this?
       worker.define_singleton_method :fork_it do
         wc.shutdown = true
         12
       end
       def worker.create_thread(*args, &block); block.call(*args) end
       out = silenced(2) { worker.start(false) }
-      assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 0\./, out)
+      assert_match(/Tube demo\.test\.foo exited normally\./, out)
+      refute_match(/Catastrophic failure/, out)
     end
+
+    describe "restarting a failed child" do
+      before do
+        @worker = @worker_class.new(%(foo))
+        def @worker.create_thread(*args, &block); block.call(*args) end
+      end
+
+      # Runs fork_and_watch over children exiting with these codes, expecting it to sleep these delays in
+      # turn, and returns what it logged
+      def expect_restart_delays(codes, delays)
+        wc = @worker_class
+        left = codes.size
+        @worker.define_singleton_method(:fork_it) { left -= 1; wc.shutdown = true if left.zero?; 12 }
+        @worker.stubs(:wait_for_process).with(12).returns(*codes.map { |code| [12, stub(:exitstatus => code)] })
+        restarts = sequence('restarts')
+        delays.each { |delay| Kernel.expects(:sleep).with(delay).in_sequence(restarts) }
+        silenced(2) { @worker.start(false) }
+      end
+
+      it "should wait longer before each fork while children keep failing, up to MAX_RESTART_DELAY" do
+        expect_restart_delays([1] * 7, [1, 2, 4, 8, 16, 30])
+      end
+
+      it "should fork again at once after a recycled child and start the delays over" do
+        expect_restart_delays([1, 1, 99, 1, 1], [1, 2, 1])
+      end
+
+      it "should log an error if exitstatus is != 99, and fork again" do
+        out = expect_restart_delays([1, 99], [1])
+        assert_match(/Catastrophic failure: tube demo\.test\.foo exited with code 1\. Forking it again in 1s\./, out)
+      end
+
+      it "should log a child that stops while shutting down without forking it again" do
+        [nil, 1].each do |code| # killed by finish_forks, or exited with an error
+          @worker_class.shutdown = false
+          out = expect_restart_delays([code], [])
+          assert_match(/Tube demo\.test\.foo stopped\./, out)
+          refute_match(/Catastrophic failure|Forking it again/, out)
+        end
+      end
+
+      it "should log the warning with a logger that has no warn method" do
+        logged = []
+        logger = Object.new
+        logger.define_singleton_method(:info) { |msg| logged << [:info, msg] }
+        logger.define_singleton_method(:error) { |msg| logged << [:error, msg] }
+        Backburner.configure { |config| config.logger = logger }
+        expect_restart_delays([0, 1], [1])
+        assert_includes logged, [:error, "Tube demo.test.foo exited with code 0. Forking it again in 1s."]
+      ensure
+        Backburner.configure { |config| config.logger = nil }
+      end
+
+      it "should warn and wait before forking again after a child exits with code 0 outside a shutdown" do
+        out = expect_restart_delays([0, 1], [1])
+        assert_match(/Tube demo\.test\.foo exited with code 0\. Forking it again in 1s\./, out)
+        refute_match(/exited normally/, out)
+      end
+
+      it "should start the delays over after a child that ran for MAX_RESTART_DELAY" do
+        @worker.stubs(:monotonic_time).returns(0, 0.5, 1, 1.5, 4, 40, 41, 41.5)
+        expect_restart_delays([1, 1, 1, 1], [1, 2, 1])
+      end
+    end # restarting a failed child
+
+    describe "when beanstalkd is down while children start" do
+      before do
+        pick_beanstalkd_port
+        start_beanstalkd
+        @templogger = Templogger.new('/tmp')
+        @beanstalk_url = Backburner.configuration.beanstalk_url
+        Backburner.configure do |config|
+          config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
+          config.logger = @templogger.logger
+        end
+        @worker_class.garbage_after = 1
+        @watchers = []
+        @ignore_forks = true
+      end
+
+      after do
+        begin
+          @worker_class.shutdown = true
+          silenced do
+            @worker_class.stop_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+            @worker_class.kill_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          end
+        ensure
+          @watchers.each(&:kill) # once they've reaped the children: one waiting to fork again would wake up in a later test
+          stop_beanstalkd
+          Backburner.configure do |config|
+            config.beanstalk_url = @beanstalk_url
+            config.logger = nil
+          end
+          @templogger.close
+        end
+      end
+
+      [1, 2].each do |threads|
+        it "should back off instead of forking in a busy loop, and resume when it is back (#{threads} thread(s) per child)" do
+          @worker_class.threads_number = threads
+          worker = @worker_class.new('foo.bar.outage')
+          forks = 0
+          watchers = @watchers
+          worker.define_singleton_method(:fork_tube) { |name| forks += 1; super(name) }
+          worker.define_singleton_method(:create_thread) { |*args, &block| super(*args, &block).tap { |thread| watchers << thread } }
+          outage_forks = nil
+          silenced(20) do
+            worker.start(false)
+            sleep 0.5 # let the first child block in reserve
+            stop_beanstalkd
+            forks_before = forks
+            sleep 4
+            outage_forks = forks - forks_before
+            start_beanstalkd
+            @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.outage'
+            wait_for(10) { @templogger.body =~ /Completed TestJobNoopFork/ }
+          end
+          assert_operator outage_forks, :<=, 4, "forked #{outage_forks} children in 4 s"
+          assert_match(/Completed TestJobNoopFork/, @templogger.body)
+        end
+      end
+    end # beanstalkd down
 
     describe "fork_inner" do
 
@@ -514,6 +638,24 @@ describe "Backburner::Workers::ThreadsOnFork module" do
         end
         conn.close
       end # one thread per tube
+
+      it "should release a job whose class can't be found and keep its child working" do
+        clear_jobs!('foo.bar.9')
+        conn = beanstalk_connection
+        conn.tubes['demo.test.foo.bar.9'].put(Backburner.configuration.job_serializer_proc.call(:class => 'TestRemovedJobFork', :args => []), :ttr => 30)
+        @worker = @worker_class.new('foo.bar.9')
+        @worker.start(false)
+        @worker_class.enqueue TestJobNoopFork, [], :queue => 'foo.bar.9'
+
+        silenced(5) { @templogger.wait_for_match(/Completed TestJobNoopFork/m) }
+        assert_match(/TestRemovedJobFork: class not found; released for 30s/, @templogger.body)
+        refute_match(/Catastrophic failure/, @templogger.body)
+        stats = conn.tubes['demo.test.foo.bar.9'].stats
+        assert_equal [0, 1], [stats.current_jobs_buried, stats.current_jobs_delayed]
+      ensure
+        conn.close if conn
+        clear_jobs!('foo.bar.9')
+      end # unknown class
     end # practical tests
   end # forking and threading
 end # Backburner::Workers::ThreadsOnFork module
