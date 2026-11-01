@@ -15,16 +15,23 @@ module ActiveJob
     # To use Backburner set the queue_adapter config to +:backburner+.
     #
     #   Rails.application.config.active_job.queue_adapter = :backburner
+    #
+    # A job's TTR is its class's +queue_respond_timeout+ when it has one, as for a Backburner::Queue job
+    # (+ttr: job.class+ resolves it), else +config.respond_timeout+:
+    #
+    #   class ReportJob < ApplicationJob
+    #     def self.queue_respond_timeout; 3600; end
+    #   end
     class BackburnerAdapter < (rails_7_2_or_newer ? ::ActiveJob::QueueAdapters::AbstractAdapter : Object)
       def enqueue(job)
-        response = Backburner::Worker.enqueue(JobWrapper, [job.serialize], queue: job.queue_name, pri: job.priority)
+        response = Backburner::Worker.enqueue(JobWrapper, [job.serialize], queue: job.queue_name, pri: job.priority, ttr: job.class)
         job.provider_job_id = response[:id] if response.is_a?(Hash)
         response
       end
 
       def enqueue_at(job, timestamp)
         delay = timestamp - Time.current.to_f
-        response = Backburner::Worker.enqueue(JobWrapper, [job.serialize], queue: job.queue_name, pri: job.priority, delay: delay)
+        response = Backburner::Worker.enqueue(JobWrapper, [job.serialize], queue: job.queue_name, pri: job.priority, delay: delay, ttr: job.class)
         job.provider_job_id = response[:id] if response.is_a?(Hash)
         response
       end

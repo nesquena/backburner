@@ -34,15 +34,21 @@ class AdapterTestJob < ActiveJob::Base
   end
 end
 
+class LongAdapterTestJob < AdapterTestJob
+  def self.queue_respond_timeout; 3600; end
+end
+
 enqueued = {
   'now' => AdapterTestJob.perform_later('now'),
   'urgent' => AdapterTestJob.set(priority: 3).perform_later('urgent'),
-  'later' => AdapterTestJob.set(wait: 3).perform_later('later')
+  'later' => AdapterTestJob.set(wait: 3).perform_later('later'),
+  'long' => LongAdapterTestJob.perform_later('long'),
+  'long later' => LongAdapterTestJob.set(wait: 3).perform_later('long later')
 }
 beanstalk = Beaneater.new('127.0.0.1')
 jobs = enqueued.map do |name, job|
   stats = job.provider_job_id && beanstalk.jobs.find(job.provider_job_id).stats
-  [name, stats && { 'tube' => stats.tube, 'pri' => stats.pri, 'state' => stats.state, 'delay' => stats.delay }]
+  [name, stats && { 'tube' => stats.tube, 'pri' => stats.pri, 'ttr' => stats.ttr, 'state' => stats.state, 'delay' => stats.delay }]
 end.to_h
 beanstalk.close
 
