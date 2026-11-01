@@ -73,6 +73,7 @@ module Backburner
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
+      @existing_tube_names = nil # set by all_existing_queues, read by expand_tube_name
       @connection = new_connection
       @tube_names = self.process_tube_names(tube_names)
       register_signal_handlers!
@@ -256,7 +257,7 @@ module Backburner
     # Leaves the server's tube names all_existing_queues found as they are: expanding one again can change it
     # ("MyApp.default" would become "MyApp.my-app.default")
     def expand_tube_name(tube)
-      defined?(@existing_tube_names) && @existing_tube_names && @existing_tube_names.include?(tube) ? tube : super
+      @existing_tube_names && @existing_tube_names.include?(tube) ? tube : super
     end
     public :expand_tube_name
 

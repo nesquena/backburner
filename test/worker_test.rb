@@ -464,12 +464,18 @@ describe "Backburner::Worker module" do
       lib = File.expand_path('../../lib', __FILE__)
       script = "require 'backburner'
         Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
-        Backburner.configuration.tube_namespace = 'demo.test'
+        Backburner.configuration.tube_namespace = 'demo.test.ivar_warnings.#{Process.pid}'
         Backburner.configuration.logger = Logger.new(nil)
         Backburner::EnqueuePool.current
-        Backburner::Workers::Simple.new(['test-warnings']).prepare
-        worker = Backburner::Workers::ThreadsOnFork.new(['test-warnings'])
-        worker.on_reconnect(worker.connection)"
+        Backburner::Workers::Simple.new(['jobs']).prepare
+        worker = Backburner::Workers::ThreadsOnFork.new(['jobs'])
+        worker.on_reconnect(worker.connection)
+        Backburner::Workers::Threading.threads_number = 1
+        threading = Backburner::Workers::Threading.new(['jobs'])
+        threading.exit_on_shutdown = false
+        threading.start(false) # its pool thread works jobs until the shutdown
+        sleep 0.5
+        threading.shutdown"
       out, status = Open3.capture2e(RbConfig.ruby, '-w', '-I', lib, '-e', script)
       assert status.success?, out
       refute_match(/^#{Regexp.escape(lib)}\/.*instance variable @\w+ not initialized/, out)

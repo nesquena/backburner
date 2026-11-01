@@ -69,6 +69,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
+        @watching_tube = nil
         super
         self.process_tube_options
       end
@@ -246,7 +247,7 @@ module Backburner
       end
 
       def on_reconnect(conn)
-        watch_tube(@watching_tube, conn) if defined?(@watching_tube) && @watching_tube
+        watch_tube(@watching_tube, conn) if @watching_tube
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to
