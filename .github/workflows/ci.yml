@@ -30,7 +30,9 @@ jobs:
     - name: Download & Extract beanstalkd
       run: curl -fsSL https://github.com/beanstalkd/beanstalkd/archive/refs/tags/v1.13.tar.gz | tar xz
     - name: Make beanstalkd
-      run: make
+      # beanstalkd 1.13 builds with -Werror and predates C23, which newer compilers default to: build it
+      # as C17, and keep the const pointer newer C libraries' memchr() returns to prot.c a warning
+      run: make CFLAGS='-std=gnu17 -Wno-error=discarded-qualifiers'
       working-directory: beanstalkd-1.13
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
