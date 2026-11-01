@@ -97,7 +97,7 @@ module Backburner
     # gets from `core` (Object, or Object's singleton class for a class method) or the modules mixed
     # into it, from Backburner's own modules, or Ruby's method_missing hook. A method with the same name
     # as one of core's must be the app's own definition: one that method_missing would handle, or one
-    # from an anonymous module (Delegator's copy of Kernel), is refused too.
+    # from Delegator's copy of Kernel (the module delegate.rb aliases __raise__ in), is refused too.
     def self.perform_job_method(receiver, methods_of, core, method, args)
       owner = begin
         methods_of.instance_method(method).owner
@@ -107,7 +107,7 @@ module Backburner
       refused = if owner && (core.ancestors.include?(owner) || [InstanceMethods, ClassMethods, Backburner::Queue::ClassMethods].include?(owner))
         true
       elsif core.method_defined?(method) || core.private_method_defined?(method)
-        owner.nil? || method.to_sym == :method_missing || (owner.name.nil? && !owner.singleton_class?)
+        owner.nil? || method.to_sym == :method_missing || (defined?(::Delegator) && owner.equal?(::Delegator.instance_method(:__raise__).owner))
       end
       if refused
         kind = methods_of.singleton_class? ? "class method" : "method"

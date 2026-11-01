@@ -62,6 +62,20 @@ class PrivateAsyncTestObj < TestObj
   handle_static_asynchronously :class_secret
 end
 
+class AnonymousSourcesTestObj < Struct.new(:id)
+  include Backburner::Performable
+  prepend(Module.new { def print; "traced #{super}"; end })
+  def self.find(id); new(id) if id == TestObj::ID; end
+  def print; "printed"; end
+end
+
+class AnonymousSourcesTestStruct < Struct.new(:id) do
+    def display; "displayed"; end
+  end
+  include Backburner::Performable
+  def self.find(id); new(id); end
+end
+
 class DelegatorJobTestObj < SimpleDelegator
   include Backburner::Performable
   def self.find(id); new(TestObj.new) if id == TestObj::ID; end
@@ -142,6 +156,11 @@ describe "Backburner::Performable module" do
       id = JobMethodsTestObj::ID
       assert_raises(NoMethodError) { JobMethodsTestObj.perform(id, :method_missing, :dynamic) }
       assert_raises(NoMethodError) { JobMethodsTestObj.perform(id, :system, "true") }
+    end
+
+    it "calls the app's methods named like a core method from an anonymous module or superclass" do
+      assert_equal "traced printed", AnonymousSourcesTestObj.perform(TestObj::ID, :print)
+      assert_equal "displayed", AnonymousSourcesTestStruct.perform(1, :display)
     end
 
     it "calls a Delegator's delegated methods, but not its copy of Kernel's" do
