@@ -69,17 +69,23 @@ describe "Backburner::Workers::Threading worker" do
 
   describe 'working a queue' do
     before do
-      @worker = @worker_class.new(["foo:3"])
+      @worker = @worker_class.new(["threaded-work:3"])
       capture_stdout { @worker.prepare }
       $worker_test_count = 0
       $worker_success = false
     end
 
+    # Its threads would otherwise keep taking jobs from its tube for the rest of the run
+    after do
+      @worker.exit_on_shutdown = false
+      capture_stdout { @worker.shutdown }
+    end
+
     it 'runs work_on_job per thread' do
-      clear_jobs!("foo")
+      clear_jobs!("threaded-work")
       job_count=10
       # TestJob adds the given arguments together and then to $worker_test_count
-      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "foo" }
+      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "threaded-work" }
       capture_stdout do
         @worker.start(false) # don't wait for shutdown
         sleep 0.5 # Wait for threads to do their work
