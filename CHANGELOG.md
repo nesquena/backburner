@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Fix the Threading worker taking `shutdown_timeout` (10 seconds by default) to exit on `TERM` or `INT` when it had no jobs to work: its threads waited in `reserve` until the shutdown gave up on them and killed them. Each thread now waits for a job at most a second at a time (or `config.reserve_timeout`, if shorter), so an idle worker exits within about a second. A busy worker is unchanged: its in-flight jobs get up to `shutdown_timeout` to finish before their threads are killed. A job a thread reserves as the shutdown begins is worked like any in-flight job; one still running when its thread is killed is not lost: beanstalkd puts it back in the queue when the worker exits, and it runs again. **What to do:** nothing; an idle Threading worker now sends beanstalkd a `reserve-with-timeout` once a second per thread
+* Fix the Threading worker taking `shutdown_timeout` (10 seconds by default) to exit on `TERM` or `INT` when it had no jobs to work: its threads waited in `reserve` until the shutdown gave up on them and killed them. Each thread now waits for a job at most a second at a time (or `config.reserve_timeout`, if shorter; a negative one, which made beanstalkd wait forever, counts as a second), so an idle worker exits within about a second. A busy worker is unchanged: its in-flight jobs get up to `shutdown_timeout` to finish before their threads are killed. A job a thread reserves as the shutdown begins is worked like any in-flight job; one still running when its thread is killed is not lost: beanstalkd puts it back in the queue when the worker exits, and it runs again. **What to do:** nothing; an idle Threading worker now sends beanstalkd a `reserve-with-timeout` once a second per thread
 
 ## Version 1.8.0 (Oct 31 2026)
 

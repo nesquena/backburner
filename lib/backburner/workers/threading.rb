@@ -163,7 +163,9 @@ module Backburner
       # ceiling: each idle thread sends beanstalkd a reserve once a second; waking the waiting
       # reserves at shutdown instead would avoid that polling
       def reserve_job(conn, reserve_timeout = Backburner.configuration.reserve_timeout)
-        super(conn, [reserve_timeout || SHUTDOWN_CHECK_INTERVAL, SHUTDOWN_CHECK_INTERVAL].min)
+        timeout = reserve_timeout.to_i if reserve_timeout # beanstalkd reads "5", 2.5 and 5.seconds as whole seconds too
+        timeout = SHUTDOWN_CHECK_INTERVAL if timeout.nil? || timeout < 0 || timeout > SHUTDOWN_CHECK_INTERVAL
+        super(conn, timeout)
       end
     end # Threading
   end # Workers
