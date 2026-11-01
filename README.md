@@ -573,6 +573,54 @@ Often using hooks is much easier then trying to monkey patch the externals.
 
 Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
+### Active Job
+
+Backburner is an [Active Job](https://guides.rubyonrails.org/active_job_basics.html) adapter. Set it in
+`config/application.rb` (or an environment file):
+
+```ruby
+config.active_job.queue_adapter = :backburner
+```
+
+An Active Job queue is a tube named like any other queue: the `tube_namespace`, the separator and the queue name,
+dasherized. With the namespace `myapp.production`, `queue_as :low_priority` uses the tube `myapp.production.low-priority`;
+a `queue_name_prefix` is part of the queue name (`production_mailers` uses `myapp.production.production-mailers`).
+A job's priority (`queue_with_priority`, `set(priority: 10)`) is its beanstalkd priority (lower runs first), and
+`set(wait: ...)` or `set(wait_until: ...)` delays it (rounded up to whole seconds).
+
+Start workers with `-q` listing the Active Job queues, named as Active Job names them (with any prefix):
+
+```
+bundle exec backburner -q default,mailers,low_priority
+```
+
+A worker started without `-q` only watches the tubes that are on the server when it starts (and those of the
+`Backburner::Queue` classes it has loaded, and the primary queue), so the jobs of a queue first used after it started
+aren't worked until it restarts.
+
+A job's time to run (TTR) is its class's `queue_respond_timeout` when it defines one, otherwise `config.respond_timeout`
+(120 seconds by default). A job still running when its TTR is up is stopped with `Backburner::Job::JobTimeout`:
+
+```ruby
+class ReportJob < ApplicationJob
+  def self.queue_respond_timeout
+    3600 # seconds; subclasses inherit it
+  end
+end
+```
+
+Active Job's `retry_on` and Backburner's `max_job_retries` add up: once `retry_on` gives up and the error reaches
+Backburner, it retries the job `max_job_retries` more times before burying it, calling `on_error` each time. Keep
+`max_job_retries` at 0 (the default) for Active Job jobs and retry with `retry_on`, or expect both.
+
+Backburner's [hooks](#hooks) don't run for Active Job jobs (they are all enqueued as the adapter's wrapper class):
+use Active Job's callbacks (`before_perform`, `around_perform`, `after_enqueue` and so on) instead. `config.on_error`
+is still called when a job raises.
+
+In a Rails app, a worker runs each job (Active Job or not) in the app's reloader, as Rails does: `CurrentAttributes` are
+reset between jobs, a job's database connections go back to the pool when it's done, and in development jobs run the
+latest code.
+
 ### Workers in Production
 
 Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
