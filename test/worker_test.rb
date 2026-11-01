@@ -415,31 +415,46 @@ describe "Backburner::Worker module" do
   end # start
 
   describe "for a worker stopped by TERM" do
+    # Starts a Simple worker process after `setup`, TERMs it once it waits for a job (not while it writes a
+    # line, which would hold the lock), and returns its output and exit status
+    def term_worker(setup)
+      script = "require 'backburner'; $stdout.sync = true; #{setup}
+        Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
+        Backburner.configuration.tube_namespace = 'demo.test'
+        Backburner::Workers::Simple.start(['test-term'])"
+      beanstalk = Beaneater.new('127.0.0.1')
+      Open3.popen2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), '-e', script) do |stdin, out, wait|
+        stdin.close
+        begin
+          output = Timeout.timeout(20) do
+            sleep 0.1 until (beanstalk.tubes['demo.test.test-term'].stats.current_waiting > 0 rescue false) || !wait.alive?
+            Process.kill('TERM', wait.pid) if wait.alive?
+            out.read
+          end
+          [output, wait.value]
+        ensure
+          Process.kill('KILL', wait.pid) if wait.alive?
+        end
+      end
+    ensure
+      beanstalk.close if beanstalk
+    end
+
     # A logger's lock can't be taken in the trap handler, so the line is logged from another thread
     { "a logger" => "Backburner.configuration.logger = Logger.new($stdout)", "no logger" => "" }.each do |label, setup|
       it "should log that it's exiting, with #{label}" do
-        script = "require 'backburner'; $stdout.sync = true; #{setup}
-          Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
-          Backburner.configuration.tube_namespace = 'demo.test'
-          Backburner::Workers::Simple.start(['test-term'])"
-        beanstalk = Beaneater.new('127.0.0.1')
-        Open3.popen2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), '-e', script) do |stdin, out, wait|
-          stdin.close
-          begin
-            output = Timeout.timeout(20) do
-              # TERM it once it waits for a job (not while it writes a line, which would hold the lock)
-              sleep 0.1 until (beanstalk.tubes['demo.test.test-term'].stats.current_waiting > 0 rescue false) || !wait.alive?
-              Process.kill('TERM', wait.pid) if wait.alive?
-              out.read
-            end
-            assert wait.value.success?, output
-            assert_includes output, 'Worker exiting...'
-          ensure
-            Process.kill('KILL', wait.pid) if wait.alive?
-          end
-        end
-        beanstalk.close
+        output, status = term_worker(setup)
+        assert status.success?, output
+        assert_includes output, 'Worker exiting...'
       end
+    end
+
+    it "should exit even when logging that it's exiting fails" do
+      output, status = term_worker("class FailingLogger < Logger
+          def info(msg) msg.include?('exiting') ? raise(IOError, 'the log is gone') : super end
+        end
+        Backburner.configuration.logger = FailingLogger.new($stdout)")
+      assert status.success?, output
     end
   end # stopped by TERM
 
