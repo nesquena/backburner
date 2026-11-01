@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Rails apps: a worker now runs each job inside the app's reloader (`Rails.application.reloader.wrap`), as Rails does for its own Active Job jobs and as Sidekiq does. **Behaviour change:** `ActiveSupport::CurrentAttributes` (a `Current.user` or tenant a job sets) no longer leak into the next job the worker runs; the database connections a job uses go back to the pool when it finishes; and in development a job runs the app's latest code after a file changes (a reload waits for the jobs running in other threads to finish). On Rails 7.0 and newer, an error a job raises is now also reported to `Rails.error`, as an Active Job job's error already was (including a job whose class this worker doesn't have, each time it's released): an error tracker subscribed to `Rails.error` that `config.on_error` also calls may get it twice. Active Job jobs are wrapped once, as before. Outside Rails nothing changes. **What to do:** nothing, unless a job relies on state an earlier job left in `CurrentAttributes`: pass it as an argument instead
 * Fix "Worker exiting..." never being logged when a worker stops on `TERM` or `INT`: the process exited before the thread that logs it ran. The worker now waits up to a second for that line to be written before it exits. **What to do:** nothing
 
 ## Version 1.8.0 (Oct 31 2026)

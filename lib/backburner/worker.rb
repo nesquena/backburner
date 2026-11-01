@@ -137,7 +137,7 @@ module Backburner
       end
 
       self.log_job_begin(job.name, job.args)
-      job.process
+      wrap_in_rails_reloader { job.process }
       self.log_job_end(job.name)
 
     rescue Backburner::Job::JobFormatInvalid => e
@@ -202,6 +202,14 @@ module Backburner
     # Return a new connection instance
     def new_connection
       Connection.new(Backburner.configuration.beanstalk_url) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    end
+
+    # Runs the block (a job's processing) in the Rails app's reloader when there is one, as Rails does for Active Job
+    # jobs (whose own wrap, inside this one, then does nothing): each job starts with fresh CurrentAttributes, gives
+    # back its database connections when it's done and, in development, runs the app's latest code
+    def wrap_in_rails_reloader(&block)
+      app = ::Rails.application if defined?(::Rails) && ::Rails.respond_to?(:application)
+      app.respond_to?(:reloader) ? app.reloader.wrap(&block) : yield
     end
 
     # Reserve a job from the watched queues
