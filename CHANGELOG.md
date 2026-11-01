@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Fix the Threading worker taking `shutdown_timeout` (10 seconds by default) to exit on `TERM` or `INT` when it had no jobs to work: its threads waited in `reserve` until the shutdown gave up on them and killed them. Each thread now waits for a job at most a second at a time (or `config.reserve_timeout`, if shorter; a negative one, which made beanstalkd wait forever, counts as a second), so an idle worker exits within about a second. A busy worker is unchanged: its in-flight jobs get up to `shutdown_timeout` to finish before their threads are killed. A job a thread reserves as the shutdown begins is worked like any in-flight job; one still running when its thread is killed is not lost: beanstalkd puts it back in the queue when the worker exits, and it runs again. **What to do:** nothing; an idle Threading worker now sends beanstalkd a `reserve-with-timeout` once a second per thread
+
 ## Version 1.8.0 (Oct 31 2026)
 
 * Fix ThreadsOnFork and Forking children crashing on Ruby 3.3 with `[BUG] lazy sweeping underway when freeing object space` when they stopped on a `TERM` or `INT`, on an error, or when a job called `exit`, if a thread in the parent was running finalizers when the child was forked (an interpreter bug fixed in Ruby 3.4). On Ruby 3.3 a forked child now disables the GC as it exits, so its `at_exit` handlers (the app's, and those it inherited from the parent) run with the GC off, and a child running several threads stops its job threads before those handlers run (a job they were working on goes back to the queue and runs again). Other Rubies are unchanged. **What to do:** nothing; on Ruby 3.3 an `at_exit` handler that allocates a lot in a child now grows the child's memory until it exits
