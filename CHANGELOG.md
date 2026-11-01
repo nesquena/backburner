@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## Version 1.9.0 (Nov 1 2026)
 
 * The gem now ships only `lib/`, `bin/`, `README.md`, `HOOKS.md`, `CHANGELOG.md` and `LICENSE` (no tests, examples or CI files), and its rubygems.org page links the source, the changelog and the issue tracker. **Behaviour change for the gem's owners:** pushing a release to rubygems.org now requires MFA (`rubygems_mfa_required`); the release workflow's trusted publishing is unaffected. **What to do:** owners who push by hand need MFA enabled on their rubygems.org account
 * Docs: the README's Simple Async Jobs example says a `Backburner::Performable` class's queue defaults to the primary queue (`backburner-jobs`), not one named after the class, and its Persistence examples show the JSON jobs are stored as (`null`, double quotes) on the class's queue
