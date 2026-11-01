@@ -1,7 +1,7 @@
 # Backburner jobs in a Rails app, without Rails itself: Rails.application stands in for an app, with a real
 # Active Support executor and reloader set up as railties sets them up (CurrentAttributes reset as an execution
-# starts and ends, Active Job's execute wrapped in the reloader). rails_reloader_test.rb runs it in a child process, so Active
-# Job (and Active Support) stay out of the suite's own process. Argument: the tube namespace.
+# starts and ends, Active Job's execute wrapped in the reloader). rails_reloader_test.rb runs it in a child
+# process, so Active Job (and Active Support) stay out of the suite's own process. Argument: the tube namespace.
 require 'json'
 require 'logger' # Active Support 6.1 and 7.0 need Logger loaded first (with concurrent-ruby 1.3.5+)
 require 'active_support'
