@@ -16,7 +16,7 @@ module Backburner
     # garbage collected. A class-level lock would need replacing after a fork, as a thread that
     # doesn't exist in the child may hold it.
     def self.current
-      pool = @current
+      pool = @current if defined?(@current)
       pool && pool.pid == Process.pid ? pool : (@current = new)
     end
 

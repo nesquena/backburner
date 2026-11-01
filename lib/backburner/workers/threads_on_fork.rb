@@ -246,7 +246,7 @@ module Backburner
       end
 
       def on_reconnect(conn)
-        watch_tube(@watching_tube, conn) if @watching_tube
+        watch_tube(@watching_tube, conn) if defined?(@watching_tube) && @watching_tube
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to

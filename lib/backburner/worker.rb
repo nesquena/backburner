@@ -236,7 +236,7 @@ module Backburner
     # Leaves the server's tube names all_existing_queues found as they are: expanding one again can change it
     # ("MyApp.default" would become "MyApp.my-app.default")
     def expand_tube_name(tube)
-      @existing_tube_names && @existing_tube_names.include?(tube) ? tube : super
+      defined?(@existing_tube_names) && @existing_tube_names && @existing_tube_names.include?(tube) ? tube : super
     end
     public :expand_tube_name
 

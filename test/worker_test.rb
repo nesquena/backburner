@@ -443,6 +443,24 @@ describe "Backburner::Worker module" do
     end
   end # stopped by TERM
 
+  describe "in a process with warnings on" do
+    # Ruby 2.7 warns about reading an instance variable before it is set (Ruby 3.0 and newer don't)
+    it "should not read instance variables before setting them" do
+      lib = File.expand_path('../../lib', __FILE__)
+      script = "require 'backburner'
+        Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
+        Backburner.configuration.tube_namespace = 'demo.test'
+        Backburner.configuration.logger = Logger.new(nil)
+        Backburner::EnqueuePool.current
+        Backburner::Workers::Simple.new(['test-warnings']).prepare
+        worker = Backburner::Workers::ThreadsOnFork.new(['test-warnings'])
+        worker.on_reconnect(worker.connection)"
+      out, status = Open3.capture2e(RbConfig.ruby, '-w', '-I', lib, '-e', script)
+      assert status.success?, out
+      refute_match(/^#{Regexp.escape(lib)}\/.*instance variable @\w+ not initialized/, out)
+    end
+  end # warnings on
+
   describe "for gc_disabled_on_exit? class method" do
     it "should be true only on CRuby 3.3, the Ruby whose forked children can crash as they exit" do
       assert Backburner::Worker.gc_disabled_on_exit?("ruby", "3.3.6")
