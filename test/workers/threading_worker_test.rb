@@ -127,11 +127,11 @@ describe "Backburner::Workers::Threading worker" do
       @worker_class.shutdown_timeout = previous
     end
 
-    # A reserve_timeout read from the environment is a String, and a negative one waits forever
+    # A reserve_timeout read from the environment is a String, a negative one waits forever, and Infinity has no to_i
     it 'exits promptly and works jobs with a String or negative reserve_timeout' do
       previous = Backburner.configuration.reserve_timeout
       previous_shutdown_timeout, @worker_class.shutdown_timeout = @worker_class.shutdown_timeout, 10
-      ["5", -1].each do |timeout|
+      ["5", -1, Float::INFINITY].each do |timeout|
         Backburner.configure { |config| config.reserve_timeout = timeout }
         worker = @worker_class.new(["threaded-work:3"])
         worker.exit_on_shutdown = false
