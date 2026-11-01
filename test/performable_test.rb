@@ -32,6 +32,24 @@ class AsyncSettingsTestObj < TestObj
   handle_static_asynchronously :bar
 end
 
+module JobMethodsTestMixin
+  def mixed_in; "mixed in"; end
+end
+
+class JobMethodsTestObj < TestObj
+  include Backburner::Performable
+  include JobMethodsTestMixin
+  def self.find(id); new if id == ID; end
+  def to_s; "own to_s"; end
+  def self.to_s; "own class to_s"; end
+  def method_missing(name, *args); name == :dynamic ? "dynamic" : super; end
+  def respond_to_missing?(name, include_private = false); name == :dynamic || super; end
+  private
+  def hidden; "hidden"; end
+  def self.class_hidden; "class hidden"; end
+  private_class_method :class_hidden
+end
+
 class QueueThenPerformableTestObj < TestObj
   include Backburner::Queue
   queue "queue-then-performable"
@@ -67,6 +85,44 @@ describe "Backburner::Performable module" do
     it "should work for class level" do
       assert_equal "baz false true", PerformableTestObj.perform(nil, :bar, false, true)
     end # class
+
+    it "calls a method named by a string, as a job body has it" do
+      assert_equal "bar 1 2", PerformableTestObj.perform(PerformableTestObj::ID, "foo", 1, 2)
+      assert_equal "baz 1 2", PerformableTestObj.perform(nil, "bar", 1, 2)
+    end
+
+    it "calls methods the class overrides, gets from a module it includes, or handles in method_missing" do
+      id = JobMethodsTestObj::ID
+      assert_equal "own to_s", JobMethodsTestObj.perform(id, :to_s)
+      assert_equal "own class to_s", JobMethodsTestObj.perform(nil, :to_s)
+      assert_equal "mixed in", JobMethodsTestObj.perform(id, :mixed_in)
+      assert_equal "dynamic", JobMethodsTestObj.perform(id, :dynamic)
+    end
+
+    it "only calls methods the job class defines, not ones every object or class has" do
+      id = JobMethodsTestObj::ID
+      [[id, :frozen?], [id, "instance_variables"], [nil, :instance_variable_set, :@probe, 1], [nil, "name"]].each do |args|
+        error = assert_raises(NoMethodError) { JobMethodsTestObj.perform(*args) }
+        assert_equal args[1].to_sym, error.name
+      end
+      refute JobMethodsTestObj.instance_variable_defined?(:@probe)
+    end
+
+    it "only calls public methods" do
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(JobMethodsTestObj::ID, :hidden) }
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :class_hidden) }
+    end
+
+    it "doesn't call Backburner's own class methods" do
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :queue_priority, 99) }
+      assert_nil JobMethodsTestObj.queue_priority
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :perform, nil, :bar, 1, 2) }
+    end
+
+    it "still raises NoMethodError for a method nothing defines" do
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(JobMethodsTestObj::ID, :nonexistent) }
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :nonexistent) }
+    end
   end # perform
 
   describe "for handle_asynchronously class method" do

@@ -70,6 +70,9 @@ Depending on your platform, this should be as simple as (for Ubuntu):
 
     $ sudo apt-get install beanstalkd
 
+beanstalkd has no authentication: anyone who can connect to it can add jobs, so make it reachable only
+from your app's own hosts (bind it to `127.0.0.1` or a private network, or firewall its port).
+
 Add this line to your application's Gemfile:
 
     gem 'backburner'
@@ -262,6 +265,9 @@ User.async(:pri => 100, :delay => 10.seconds).reset_password(@user.id)
 This automatically enqueues a job for that user record that will run `activate` with the specified argument.
 Note that you can set the queue name and queue priority at the class level and
 you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
+
+The worker calls only public methods the class (or a module it includes) defines; a job naming a private method,
+or one every object or class has (`to_s`, `instance_variable_get`, `name`, ...), fails with `NoMethodError`.
 
 The queue name used by default is `{namespace}.backburner-jobs` if not otherwise
 specified.

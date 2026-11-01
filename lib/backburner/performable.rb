@@ -28,14 +28,16 @@ module Backburner
         Backburner::AsyncProxy.new(self, nil, opts)
       end
 
-      # Defines perform method for job processing
+      # Defines perform method for job processing. It calls a public method the class (or a module
+      # it includes) defines, and raises NoMethodError for any other.
       # @example
       #   perform(55, :do_something, "foo", "bar")
       def perform(id, method, *args)
         if id # instance
-          find(id).send(method, *args)
+          record = find(id)
+          Backburner::Performable.perform_job_method(record, record.class, Object, method, args)
         else # class method
-          send(method, *args)
+          Backburner::Performable.perform_job_method(self, singleton_class, Class, method, args)
         end
       end # perform
 
@@ -89,6 +91,22 @@ module Backburner
       end
     end
     private_class_method :_handle_asynchronously
+
+    # Calls a job's method on `receiver` with public_send. A method that `methods_of` (the receiver's
+    # class, or the singleton class for a class method) gets only from `base` (Object or Class) and
+    # their modules, or from Backburner's own modules, isn't a job method: it raises NoMethodError.
+    # A method the class doesn't define (one method_missing handles) is left to public_send.
+    def self.perform_job_method(receiver, methods_of, base, method, args)
+      owner = begin
+        methods_of.instance_method(method).owner
+      rescue NameError
+        nil
+      end
+      if owner && (base.ancestors.include?(owner) || [InstanceMethods, ClassMethods, Backburner::Queue::ClassMethods].include?(owner))
+        raise NoMethodError.new("undefined job method '#{method}' for #{methods_of}", method.to_sym, receiver: receiver)
+      end
+      receiver.public_send(method, *args)
+    end
 
 
   end # Performable
