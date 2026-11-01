@@ -57,7 +57,7 @@ Beanstalkd supports the following features out of the box:
 | **Fast**            | Processes thousands of jobs per second without breaking a sweat. |
 | **Priorities**      | Specify priority so important jobs can be processed quickly. |
 | **Persistence**     | Jobs are stored in memory for speed, but logged to disk for safe keeping. |
-| **Federation**      | Horizontal scalability provided through federation by the client. |
+| **Federation**      | Horizontal scalability provided through federation by the client (Backburner connects to a single beanstalkd: given several `beanstalk_url`s, it uses the first). |
 | **Error Handling**  | Bury any job which causes an error for later debugging and inspection.|
 
 Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
@@ -474,7 +474,7 @@ For more information on the threads_on_fork worker, check out the
 
 #### More info: Threading Worker (thread-pool-based)
 
-Configuration options for the Threading worker are similar to the threads_on_fork worker, sans the garbage option. When running via the `backburner` CLI, it's simplest to provide the queue names and maximum number of threads in the format "{queue name}:{max threads in pool}[,{name}:{threads}]":
+Configuration options for the Threading worker are similar to the threads_on_fork worker, sans the garbage option. The `backburner` CLI runs the default worker, so set `config.default_worker = Backburner::Workers::Threading` in the app it loads; then it's simplest to provide the queue names and maximum number of threads in the format "{queue name}:{max threads in pool}[,{name}:{threads}]" (the Simple and Forking workers ignore the thread counts):
 
 ```
 $ bundle exec backburner -q queue1:4,queue2:4  # and then other options, like environment, pidfile, app root, etc. See docs for the CLI
@@ -623,7 +623,7 @@ latest code.
 
 ### Workers in Production
 
-Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
+Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](https://beanstalkd.github.io/download.html)
 is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
 
 ```ruby
@@ -722,8 +722,8 @@ Thanks to these projects for inspiration and certain design and implementation d
 
 ## Links
 
- * Code: `git clone git://github.com/nesquena/backburner.git`
- * Home: <http://github.com/nesquena/backburner>
- * Docs: <http://rdoc.info/github/nesquena/backburner/master/frames>
- * Bugs: <http://github.com/nesquena/backburner/issues>
- * Gems: <http://gemcutter.org/gems/backburner>
+ * Code: `git clone https://github.com/nesquena/backburner.git`
+ * Home: <https://github.com/nesquena/backburner>
+ * Docs: <https://www.rubydoc.info/gems/backburner>
+ * Bugs: <https://github.com/nesquena/backburner/issues>
+ * Gems: <https://rubygems.org/gems/backburner>

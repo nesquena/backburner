@@ -10,7 +10,7 @@ module Backburner
         opts.on("-r", "--require PATH", String, "The path to load as the environment.") do |req|
           options[:require] = req
         end
-        opts.on("-q", "--queues PATH", String, "The specific queues to work.") do |queues|
+        opts.on("-q", "--queues QUEUES", String, "The specific queues to work (comma-separated).") do |queues|
           options[:queues] = queues
         end
         opts.on("-e", "--environment ENVIRONMENT", String, "The environment to run Backburner within") do |environment|
