@@ -147,7 +147,7 @@ describe "Backburner::Workers::Simple module" do
         worker.prepare
         2.times { worker.work_one_job }
       end
-      assert_match(/NoMethodError.*undefined job method 'name'/, out)
+      assert_match(/NoMethodError.*undefined job class method 'name' for TestAsyncJob/, out)
       assert_match(/attempt 1 of 1, burying/, out)
       assert_equal 15, $worker_test_count
     end # async, not a job method

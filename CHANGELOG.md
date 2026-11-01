@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* `Backburner::Performable` jobs (enqueued with `async`, `handle_asynchronously` or `handle_static_asynchronously`) now call only public methods their class defines, itself or through a superclass (such as `ActiveRecord::Base`) or a module it includes. A job naming a private or protected method, a method the class only gets from `Object`, `Kernel` or `BasicObject` (or, for a class method, from `Class` or `Module`), such as `to_s` or `name`, or one of Backburner's own (`queue`, `perform`), now fails with `NoMethodError`, and is retried and then buried like any other failure. **What to do:** if your app enqueues such a method (`User.async.name`, or a private method), define a public method on the class that calls it and enqueue that instead
+* `Backburner::Performable` jobs (enqueued with `async`, `handle_asynchronously` or `handle_static_asynchronously`) now call only methods the app defines on the class, its superclasses (such as `ActiveRecord::Base`) or the modules they include, private ones too. **Behaviour change:** a job naming a method the class only gets from Ruby itself (`Object`, `Kernel` and `BasicObject`, or for a class method `Class` and `Module`, including what libraries add to them, such as `to_s`, `frozen?`, `name` or `try`), one of Backburner's own (`queue`, `perform`), or `method_missing` now fails with `NoMethodError`, and is retried and then buried like any other failure. A class that overrides such a method (`def to_s`) still has its own called. **What to do:** if your app enqueues such a method (`User.async.name`), define a method on the class that calls it and enqueue that instead
 
 ## Version 1.8.0 (Oct 31 2026)
 

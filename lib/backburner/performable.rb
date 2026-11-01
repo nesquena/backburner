@@ -28,8 +28,8 @@ module Backburner
         Backburner::AsyncProxy.new(self, nil, opts)
       end
 
-      # Defines perform method for job processing. It calls a public method the class (or a module
-      # it includes) defines, and raises NoMethodError for any other.
+      # Defines perform method for job processing. It calls a method the app defines on the class,
+      # its superclasses or the modules they include, and raises NoMethodError for any other.
       # @example
       #   perform(55, :do_something, "foo", "bar")
       def perform(id, method, *args)
@@ -37,7 +37,7 @@ module Backburner
           record = find(id)
           Backburner::Performable.perform_job_method(record, record.class, Object, method, args)
         else # class method
-          Backburner::Performable.perform_job_method(self, singleton_class, Class, method, args)
+          Backburner::Performable.perform_job_method(self, singleton_class, Object.singleton_class, method, args)
         end
       end # perform
 
@@ -92,22 +92,29 @@ module Backburner
     end
     private_class_method :_handle_asynchronously
 
-    # Calls a job's method on `receiver` with public_send. A method that `methods_of` (the receiver's
-    # class, or the singleton class for a class method) gets only from `base` (Object or Class) and
-    # their modules, or from Backburner's own modules, isn't a job method: it raises NoMethodError.
-    # A method the class doesn't define (one method_missing handles) is left to public_send.
-    def self.perform_job_method(receiver, methods_of, base, method, args)
+    # Calls a job's method on `receiver`. It raises NoMethodError when the method isn't one the app
+    # defined: one that `methods_of` (the receiver's class, or the singleton class for a class method)
+    # gets from `core` (Object, or Object's singleton class for a class method) or the modules mixed
+    # into it, from Backburner's own modules, or Ruby's method_missing hook. A method with the same name
+    # as one of core's must be the app's own definition: one that method_missing would handle, or one
+    # from an anonymous module (Delegator's copy of Kernel), is refused too.
+    def self.perform_job_method(receiver, methods_of, core, method, args)
       owner = begin
         methods_of.instance_method(method).owner
       rescue NameError
         nil
       end
-      if owner && (base.ancestors.include?(owner) || [InstanceMethods, ClassMethods, Backburner::Queue::ClassMethods].include?(owner))
-        raise NoMethodError.new("undefined job method '#{method}' for #{methods_of}", method.to_sym, receiver: receiver)
+      refused = if owner && (core.ancestors.include?(owner) || [InstanceMethods, ClassMethods, Backburner::Queue::ClassMethods].include?(owner))
+        true
+      elsif core.method_defined?(method) || core.private_method_defined?(method)
+        owner.nil? || method.to_sym == :method_missing || (owner.name.nil? && !owner.singleton_class?)
       end
-      receiver.public_send(method, *args)
+      if refused
+        kind = methods_of.singleton_class? ? "class method" : "method"
+        raise NoMethodError.new("undefined job #{kind} '#{method}' for #{methods_of.singleton_class? ? receiver : methods_of}", method.to_sym, receiver: receiver)
+      end
+      receiver.__send__(method, *args)
     end
-
 
   end # Performable
 end # Backburner

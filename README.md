@@ -266,8 +266,9 @@ This automatically enqueues a job for that user record that will run `activate` 
 Note that you can set the queue name and queue priority at the class level and
 you are also able to pass `pri`, `ttr`, `delay` and `queue` directly as options into `async`.
 
-The worker calls only public methods the class (or a module it includes) defines; a job naming a private method,
-or one every object or class has (`to_s`, `instance_variable_get`, `name`, ...), fails with `NoMethodError`.
+The worker calls only methods your app defines on the class, its superclasses or the modules they include (private
+ones too). A job naming a method every object or class has (`frozen?`, `instance_variable_get`, `name`, ...), or one
+of Backburner's own (`queue`, `perform`), fails with `NoMethodError`.
 
 The queue name used by default is `{namespace}.backburner-jobs` if not otherwise
 specified.
