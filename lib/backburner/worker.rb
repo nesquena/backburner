@@ -206,10 +206,30 @@ module Backburner
 
     # Runs the block (a job's processing) in the Rails app's reloader when there is one, as Rails does for Active Job
     # jobs (whose own wrap, inside this one, then does nothing): each job starts with fresh CurrentAttributes, gives
-    # back its database connections when it's done and, in development, runs the app's latest code
-    def wrap_in_rails_reloader(&block)
+    # back its database connections when it's done and, in development, runs the app's latest code. On Rails 7.0+ the
+    # wrap reports the errors that leave it to Rails.error (with the source "job.backburner" on 7.1+); a RetryJob, a
+    # request to retry rather than a failure, is raised again outside it instead.
+    # ceiling: config.on_error and the on_retry and on_bury hooks run after the wrap ends, so they don't see the job's
+    # CurrentAttributes, and a database connection they use is outside the executor; running work_one_job's failure
+    # handling inside the wrap would lift it.
+    def wrap_in_rails_reloader
       app = ::Rails.application if defined?(::Rails) && ::Rails.respond_to?(:application)
-      app.respond_to?(:reloader) ? app.reloader.wrap(&block) : yield
+      return yield unless app.respond_to?(:reloader)
+      retry_job = nil
+      work = proc do
+        begin
+          yield
+        rescue Backburner::Job::RetryJob => e
+          retry_job = e
+        end
+      end
+      # Rails 7.1+ take the source the executor reports errors with; older ones take no options
+      if app.reloader.method(:wrap).parameters.any? { |type, name| type == :keyrest || name == :source }
+        app.reloader.wrap(source: "job.backburner", &work)
+      else
+        app.reloader.wrap(&work)
+      end
+      raise retry_job if retry_job
     end
 
     # Reserve a job from the watched queues

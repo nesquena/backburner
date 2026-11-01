@@ -25,6 +25,18 @@ Rails.define_singleton_method(:application) { app }
 $executions = 0
 app.executor.to_run { $executions += 1 }
 $ran = []
+$retried = []
+
+# What the executor reports to Rails.error (Active Support 7.0+; railties makes ActiveSupport.error_reporter Rails.error)
+$reported = []
+if defined?(ActiveSupport::ErrorReporter)
+  ActiveSupport.error_reporter ||= ActiveSupport::ErrorReporter.new if ActiveSupport.respond_to?(:error_reporter=)
+  ActiveSupport::ExecutionWrapper.error_reporter.subscribe(Class.new do
+    def report(error, **options)
+      $reported << [error.class.name, options[:source]]
+    end
+  end.new)
+end
 
 ActiveJob::Base.logger = Logger.new(nil)
 ActiveJob::Base.queue_adapter = :backburner
@@ -65,12 +77,34 @@ class ReadTenantActiveJob < ActiveJob::Base
   end
 end
 
+class RetryingJob
+  include Backburner::Queue
+  queue "reloader"
+  queue_max_job_retries 1
+  def self.perform
+    raise Backburner::Job::RetryJob # retry without an error
+  end
+  def self.on_retry_record(count, _delay)
+    $retried << count
+  end
+end
+
+class FailingActiveJob < ActiveJob::Base
+  queue_as :reloader
+  def perform
+    raise "failed"
+  end
+end
+
 Backburner.enqueue SetTenantJob, "acme"
 Backburner.enqueue ReadTenantJob
 ReadTenantActiveJob.perform_later
+Backburner.enqueue RetryingJob
+FailingActiveJob.perform_later
 
 worker = Backburner::Workers::Simple.new(['reloader'])
 worker.prepare
-3.times { worker.work_one_job }
+5.times { worker.work_one_job }
 
-puts JSON.generate('ran' => $ran, 'executions' => $executions, 'active_after' => !!app.executor.active?)
+puts JSON.generate('ran' => $ran, 'executions' => $executions, 'active_after' => !!app.executor.active?,
+  'retried' => $retried, 'reported' => $reported, 'active_support' => ActiveSupport::VERSION::STRING)
