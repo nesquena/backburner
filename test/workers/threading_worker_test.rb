@@ -107,6 +107,20 @@ describe "Backburner::Workers::Threading worker" do
       assert_equal @thread_count, $worker_test_count
     end
 
+    # Its threads wait in reserve: they must see the shutdown, not be killed at shutdown_timeout
+    it 'exits promptly when idle' do
+      previous, @worker_class.shutdown_timeout = @worker_class.shutdown_timeout, 10
+      Thread.new { sleep 0.5; @worker.self_write.puts("TERM") }
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      capture_stdout do
+        @worker.start
+      end
+
+      assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started, :<, 3
+    ensure
+      @worker_class.shutdown_timeout = previous
+    end
+
     # Its own tube and worker: the jobs it leaves reserved go back to ready when their connections are
     # finalized, and must not reach another test's workers
     it 'forces an exit when a job is stuck' do
