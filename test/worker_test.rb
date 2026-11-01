@@ -418,23 +418,22 @@ describe "Backburner::Worker module" do
     # Starts a Simple worker process after `setup`, TERMs it once it waits for a job (not while it writes a
     # line, which would hold the lock), and returns its output and exit status
     def term_worker(setup)
+      namespace = "demo.test.term_worker.#{Process.pid}" # the underscore keeps its tube out of the workers given no tubes
       script = "require 'backburner'; $stdout.sync = true; #{setup}
         Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
-        Backburner.configuration.tube_namespace = 'demo.test'
-        Backburner::Workers::Simple.start(['test-term'])"
-      beanstalk = Beaneater.new('127.0.0.1')
+        Backburner.configuration.tube_namespace = '#{namespace}'
+        Backburner::Workers::Simple.start(['term'])"
+      beanstalk = beanstalk_connection
       Open3.popen2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), '-e', script) do |stdin, out, wait|
         stdin.close
         begin
-          output = Timeout.timeout(20) do
-            sleep 0.1 until (beanstalk.tubes['demo.test.test-term'].stats.current_waiting > 0 rescue false) || !wait.alive?
-            Process.kill('TERM', wait.pid) if wait.alive?
-            out.read
-          end
-          [output, wait.value]
+          wait_for(20) { (beanstalk.tubes["#{namespace}.term"].stats.current_waiting > 0 rescue false) || !wait.alive? }
+          Process.kill('TERM', wait.pid) if wait.alive?
+          wait_for(20) { !wait.alive? }
         ensure
           Process.kill('KILL', wait.pid) if wait.alive?
         end
+        [out.read, wait.value]
       end
     ensure
       beanstalk.close if beanstalk
