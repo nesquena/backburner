@@ -625,8 +625,9 @@ use Active Job's callbacks (`before_perform`, `around_perform`, `after_enqueue` 
 is still called when a job raises.
 
 In a Rails app, a worker runs each job (Active Job or not) in the app's reloader, as Rails does: `CurrentAttributes` are
-reset between jobs, a job's database connections go back to the pool when it's done, and in development jobs run the
-latest code.
+reset between jobs, a job's database connections go back to the pool when it's done, Active Record's query cache is on
+while a job runs (a job that waits for a change another process makes reads it in `ActiveRecord::Base.uncached { ... }`),
+and in development jobs run the latest code (a reload waits for the jobs running in other threads).
 
 ### Workers in Production
 

@@ -96,6 +96,14 @@ class FailingActiveJob < ActiveJob::Base
   end
 end
 
+class ExitingJob
+  include Backburner::Queue
+  queue "reloader"
+  def self.perform
+    exit # as the worker's TERM and INT handling does
+  end
+end
+
 Backburner.enqueue SetTenantJob, "acme"
 Backburner.enqueue ReadTenantJob
 ReadTenantActiveJob.perform_later
@@ -105,6 +113,13 @@ FailingActiveJob.perform_later
 worker = Backburner::Workers::Simple.new(['reloader'])
 worker.prepare
 5.times { worker.work_one_job }
+Backburner.enqueue ExitingJob
+exited = begin
+  worker.work_one_job
+  false
+rescue SystemExit
+  true
+end
 
 puts JSON.generate('ran' => $ran, 'executions' => $executions, 'active_after' => !!app.executor.active?,
-  'retried' => $retried, 'reported' => $reported, 'active_support' => ActiveSupport::VERSION::STRING)
+  'retried' => $retried, 'reported' => $reported, 'exited' => exited, 'active_support' => ActiveSupport::VERSION::STRING)
