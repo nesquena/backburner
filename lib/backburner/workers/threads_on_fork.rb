@@ -69,6 +69,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
+        @watching_tube = nil
         super
         self.process_tube_options
       end

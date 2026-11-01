@@ -18,6 +18,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
+        @in_shutdown = false
         super
         self.process_tube_options
         @exit_on_shutdown = true

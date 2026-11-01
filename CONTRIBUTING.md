@@ -3,7 +3,8 @@ We love pull requests. Here's a quick guide:
 1. Fork the repo.
 
 2. Run the tests. We only take pull requests with passing tests, and it's great
-to know that you have a clean slate: `bundle && rake test`
+to know that you have a clean slate: `bundle && rake test`. The tests need a
+beanstalkd listening on 127.0.0.1:11300 (`beanstalkd -l 127.0.0.1 -p 11300 &`).
 
 3. Add a test for your change. Only refactoring and documentation changes
 require no new tests. If you are adding functionality or fixing a bug, we need

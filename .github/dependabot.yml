@@ -1,0 +1,7 @@
+# Keeps the workflows' pinned actions (commit SHAs with version comments) up to date
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -73,6 +73,7 @@ module Backburner
     # @example
     #   Worker.new(['test.job'])
     def initialize(tube_names=nil)
+      @existing_tube_names = nil # set by all_existing_queues, read by expand_tube_name
       @connection = new_connection
       @tube_names = self.process_tube_names(tube_names)
       register_signal_handlers!
@@ -104,9 +105,12 @@ module Backburner
 
     # Triggers this worker to shutdown
     def shutdown
-      Thread.new do
-        log_info 'Worker exiting...'
-      end
+      # Logs from another thread, since a trap handler can't take a logger's lock, and waits for it (a
+      # second at most): the process exits right after, and an unjoined thread never got to run
+      # ceiling: if the signal lands while the main thread holds the logger's lock, the line is lost after a
+      # second; handling the signal outside the trap (the self-pipe Threading uses) would lift it
+      Thread.new { log_info 'Worker exiting...' }.join(1)
+    ensure
       Kernel.exit
     end
 
@@ -136,7 +140,7 @@ module Backburner
       end
 
       self.log_job_begin(job.name, job.args)
-      job.process
+      wrap_in_rails_reloader { job.process }
       self.log_job_end(job.name)
 
     rescue Backburner::Job::JobFormatInvalid => e
@@ -201,6 +205,36 @@ module Backburner
     # Return a new connection instance
     def new_connection
       Connection.new(Backburner.configuration.beanstalk_url) { |conn| Backburner::Hooks.invoke_hook_events(self, :on_reconnect, conn) }
+    end
+
+    # Runs the block (a job's processing) in the Rails app's reloader when there is one, as Rails does for Active Job
+    # jobs (whose own wrap, inside this one, then does nothing): each job starts with fresh CurrentAttributes, gives
+    # back its database connections when it's done and, in development, runs the app's latest code. On Rails 7.0+ the
+    # wrap reports the errors that leave it to Rails.error (with the source "job.backburner" on 7.1+); a RetryJob, a
+    # request to retry rather than a failure, and a SystemExit (a TERM or INT the worker stops on, or a job calling
+    # exit), which Rails 7.2+ would report too, are raised again outside it instead.
+    # ceiling: config.on_error and the on_retry and on_bury hooks run after the wrap ends, so they don't see the job's
+    # CurrentAttributes, and a database connection they use is outside the executor; running work_one_job's failure
+    # handling inside the wrap would lift it. In development, a Forking or ThreadsOnFork parent never runs the wrap, so
+    # after a file change each child reloads the app once.
+    def wrap_in_rails_reloader
+      app = ::Rails.application if defined?(::Rails) && ::Rails.respond_to?(:application)
+      return yield unless app.respond_to?(:reloader)
+      deferred = nil
+      work = proc do
+        begin
+          yield
+        rescue Backburner::Job::RetryJob, SystemExit => e
+          deferred = e
+        end
+      end
+      # Active Support 7.1+ take the source the executor reports errors with; older ones take no options
+      if ActiveSupport.gem_version >= Gem::Version.new("7.1")
+        app.reloader.wrap(source: "job.backburner", &work)
+      else
+        app.reloader.wrap(&work)
+      end
+      raise deferred if deferred
     end
 
     # Reserve a job from the watched queues

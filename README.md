@@ -57,7 +57,7 @@ Beanstalkd supports the following features out of the box:
 | **Fast**            | Processes thousands of jobs per second without breaking a sweat. |
 | **Priorities**      | Specify priority so important jobs can be processed quickly. |
 | **Persistence**     | Jobs are stored in memory for speed, but logged to disk for safe keeping. |
-| **Federation**      | Horizontal scalability provided through federation by the client. |
+| **Federation**      | Horizontal scalability provided through federation by the client (Backburner connects to a single beanstalkd: given several `beanstalk_url`s, it uses the first). |
 | **Error Handling**  | Bury any job which causes an error for later debugging and inspection.|
 
 Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
@@ -241,7 +241,7 @@ includes `Backburner::Performable`. Async enqueuing works for both instance and 
 ```ruby
 class User
   include Backburner::Performable
-  queue "user-jobs"  # defaults to 'user'
+  queue "user-jobs"  # defaults to the primary queue, 'backburner-jobs'
   queue_priority 500 # most urgent priority is 0
   queue_respond_timeout 300 # number of seconds before job times out (minimum 1; 0 does not disable it)
 
@@ -379,12 +379,12 @@ example from above. We'll run the following code to create a job:
 User.async.reset_password(@user.id)
 ```
 
-The following JSON will be put on the `{namespace}.backburner-jobs` queue:
+The following JSON will be put on the `{namespace}.user-jobs` queue (the class's queue; `{namespace}.backburner-jobs` for a class without one):
 
 ``` javascript
 {
-    'class': 'User',
-    'args': [nil, 'reset_password', 123]
+    "class": "User",
+    "args": [null, "reset_password", 123]
 }
 ```
 
@@ -400,8 +400,8 @@ would be stored as:
 
 ``` javascript
 {
-    'class': 'User',
-    'args': [246, 'activate', 987]
+    "class": "User",
+    "args": [246, "activate", 987]
 }
 ```
 
@@ -481,7 +481,7 @@ For more information on the threads_on_fork worker, check out the
 
 #### More info: Threading Worker (thread-pool-based)
 
-Configuration options for the Threading worker are similar to the threads_on_fork worker, sans the garbage option. When running via the `backburner` CLI, it's simplest to provide the queue names and maximum number of threads in the format "{queue name}:{max threads in pool}[,{name}:{threads}]":
+Configuration options for the Threading worker are similar to the threads_on_fork worker, sans the garbage option. The `backburner` CLI runs the default worker, so set `config.default_worker = Backburner::Workers::Threading` in the app it loads; then it's simplest to provide the queue names and maximum number of threads in the format "{queue name}:{max threads in pool}[,{name}:{threads}]" (the Simple and Forking workers ignore the thread counts):
 
 ```
 $ bundle exec backburner -q queue1:4,queue2:4  # and then other options, like environment, pidfile, app root, etc. See docs for the CLI
@@ -580,9 +580,58 @@ Often using hooks is much easier then trying to monkey patch the externals.
 
 Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md) for a detailed overview on using hooks.
 
+### Active Job
+
+Backburner is an [Active Job](https://guides.rubyonrails.org/active_job_basics.html) adapter. Set it in
+`config/application.rb` (or an environment file):
+
+```ruby
+config.active_job.queue_adapter = :backburner
+```
+
+An Active Job queue is a tube named like any other queue: the `tube_namespace`, the separator and the queue name,
+dasherized. With the namespace `myapp.production`, `queue_as :low_priority` uses the tube `myapp.production.low-priority`;
+a `queue_name_prefix` is part of the queue name (`production_mailers` uses `myapp.production.production-mailers`).
+A job's priority (`queue_with_priority`, `set(priority: 10)`) is its beanstalkd priority (lower runs first), and
+`set(wait: ...)` or `set(wait_until: ...)` delays it (rounded up to whole seconds).
+
+Start workers with `-q` listing the Active Job queues, named as Active Job names them (with any prefix):
+
+```
+bundle exec backburner -q default,mailers,low_priority
+```
+
+A worker started without `-q` only watches the tubes that are on the server when it starts (and those of the
+`Backburner::Queue` classes it has loaded, and the primary queue), so the jobs of a queue first used after it started
+aren't worked until it restarts.
+
+A job's time to run (TTR) is its class's `queue_respond_timeout` when it defines one, otherwise `config.respond_timeout`
+(120 seconds by default). A job still running when its TTR is up is stopped with `Backburner::Job::JobTimeout`:
+
+```ruby
+class ReportJob < ApplicationJob
+  def self.queue_respond_timeout
+    3600 # seconds; subclasses inherit it
+  end
+end
+```
+
+Active Job's `retry_on` and Backburner's `max_job_retries` add up: once `retry_on` gives up and the error reaches
+Backburner, it retries the job `max_job_retries` more times before burying it, calling `on_error` each time. Keep
+`max_job_retries` at 0 (the default) for Active Job jobs and retry with `retry_on`, or expect both.
+
+Backburner's [hooks](#hooks) don't run for Active Job jobs (they are all enqueued as the adapter's wrapper class):
+use Active Job's callbacks (`before_perform`, `around_perform`, `after_enqueue` and so on) instead. `config.on_error`
+is still called when a job raises.
+
+In a Rails app, a worker runs each job (Active Job or not) in the app's reloader, as Rails does: `CurrentAttributes` are
+reset between jobs, a job's database connections go back to the pool when it's done, Active Record's query cache is on
+while a job runs (a job that waits for a change another process makes reads it in `ActiveRecord::Base.uncached { ... }`),
+and in development jobs run the latest code (a reload waits for the jobs running in other threads).
+
 ### Workers in Production
 
-Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
+Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](https://beanstalkd.github.io/download.html)
 is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
 
 ```ruby
@@ -681,8 +730,8 @@ Thanks to these projects for inspiration and certain design and implementation d
 
 ## Links
 
- * Code: `git clone git://github.com/nesquena/backburner.git`
- * Home: <http://github.com/nesquena/backburner>
- * Docs: <http://rdoc.info/github/nesquena/backburner/master/frames>
- * Bugs: <http://github.com/nesquena/backburner/issues>
- * Gems: <http://gemcutter.org/gems/backburner>
+ * Code: `git clone https://github.com/nesquena/backburner.git`
+ * Home: <https://github.com/nesquena/backburner>
+ * Docs: <https://www.rubydoc.info/gems/backburner>
+ * Bugs: <https://github.com/nesquena/backburner/issues>
+ * Gems: <https://rubygems.org/gems/backburner>
