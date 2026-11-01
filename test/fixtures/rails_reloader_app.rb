@@ -27,11 +27,11 @@ app.executor.to_run { $executions += 1 }
 $ran = []
 $retried = []
 
-# What the executor reports to Rails.error (Active Support 7.0+; railties makes ActiveSupport.error_reporter Rails.error)
+# What the executor reports to Rails.error (Active Support 7.0+), which is the app executor's error reporter
 $reported = []
 if defined?(ActiveSupport::ErrorReporter)
   ActiveSupport.error_reporter ||= ActiveSupport::ErrorReporter.new if ActiveSupport.respond_to?(:error_reporter=)
-  ActiveSupport::ExecutionWrapper.error_reporter.subscribe(Class.new do
+  app.executor.error_reporter.subscribe(Class.new do
     def report(error, **options)
       $reported << [error.class.name, options[:source]]
     end
