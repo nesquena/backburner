@@ -6,11 +6,16 @@ Gem::Specification.new do |s|
   s.email         = ["nesquena@gmail.com"]
   s.description   = %q{Beanstalk background job processing made easy}
   s.summary       = %q{Reliable beanstalk background job processing made easy for Ruby and Sinatra}
-  s.homepage      = "http://github.com/nesquena/backburner"
+  s.homepage      = "https://github.com/nesquena/backburner"
+  s.metadata      = {
+    "source_code_uri"       => "https://github.com/nesquena/backburner",
+    "changelog_uri"         => "https://github.com/nesquena/backburner/blob/master/CHANGELOG.md",
+    "bug_tracker_uri"       => "https://github.com/nesquena/backburner/issues",
+    "rubygems_mfa_required" => "true"
+  }
 
-  s.files         = `git ls-files`.split($\)
+  s.files         = `git ls-files -z -- lib bin README.md HOOKS.md CHANGELOG.md LICENSE`.split("\x0")
   s.executables   = s.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-  s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.name          = "backburner"
   s.require_paths = ["lib"]
   s.version       = Backburner::VERSION
