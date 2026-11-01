@@ -238,7 +238,7 @@ includes `Backburner::Performable`. Async enqueuing works for both instance and 
 ```ruby
 class User
   include Backburner::Performable
-  queue "user-jobs"  # defaults to 'user'
+  queue "user-jobs"  # defaults to the primary queue, 'backburner-jobs'
   queue_priority 500 # most urgent priority is 0
   queue_respond_timeout 300 # number of seconds before job times out (minimum 1; 0 does not disable it)
 
@@ -372,12 +372,12 @@ example from above. We'll run the following code to create a job:
 User.async.reset_password(@user.id)
 ```
 
-The following JSON will be put on the `{namespace}.backburner-jobs` queue:
+The following JSON will be put on the `{namespace}.user-jobs` queue (the class's queue; `{namespace}.backburner-jobs` for a class without one):
 
 ``` javascript
 {
-    'class': 'User',
-    'args': [nil, 'reset_password', 123]
+    "class": "User",
+    "args": [null, "reset_password", 123]
 }
 ```
 
@@ -393,8 +393,8 @@ would be stored as:
 
 ``` javascript
 {
-    'class': 'User',
-    'args': [246, 'activate', 987]
+    "class": "User",
+    "args": [246, "activate", 987]
 }
 ```
 
