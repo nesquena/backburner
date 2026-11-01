@@ -107,6 +107,8 @@ module Backburner
     def shutdown
       # Logs from another thread, since a trap handler can't take a logger's lock, and waits for it (a
       # second at most): the process exits right after, and an unjoined thread never got to run
+      # ceiling: if the signal lands while the main thread holds the logger's lock, the line is lost after a
+      # second; handling the signal outside the trap (the self-pipe Threading uses) would lift it
       Thread.new { log_info 'Worker exiting...' }.join(1)
     ensure
       Kernel.exit
