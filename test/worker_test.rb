@@ -1,6 +1,8 @@
 require File.expand_path('../test_helper', __FILE__)
 require File.expand_path('../fixtures/test_jobs', __FILE__)
 require File.expand_path('../fixtures/hooked', __FILE__)
+require 'open3'
+require 'rbconfig'
 
 describe "Backburner::Worker module" do
   before do
@@ -411,6 +413,35 @@ describe "Backburner::Worker module" do
       Backburner::Worker.start("foo")
     end
   end # start
+
+  describe "for a worker stopped by TERM" do
+    # A logger's lock can't be taken in the trap handler, so the line is logged from another thread
+    { "a logger" => "Backburner.configuration.logger = Logger.new($stdout)", "no logger" => "" }.each do |label, setup|
+      it "should log that it's exiting, with #{label}" do
+        script = "require 'backburner'; $stdout.sync = true; #{setup}
+          Backburner.configuration.beanstalk_url = 'beanstalk://127.0.0.1'
+          Backburner.configuration.tube_namespace = 'demo.test'
+          Backburner::Workers::Simple.start(['test-term'])"
+        beanstalk = Beaneater.new('127.0.0.1')
+        Open3.popen2e(RbConfig.ruby, '-I', File.expand_path('../../lib', __FILE__), '-e', script) do |stdin, out, wait|
+          stdin.close
+          begin
+            output = Timeout.timeout(20) do
+              # TERM it once it waits for a job (not while it writes a line, which would hold the lock)
+              sleep 0.1 until (beanstalk.tubes['demo.test.test-term'].stats.current_waiting > 0 rescue false) || !wait.alive?
+              Process.kill('TERM', wait.pid) if wait.alive?
+              out.read
+            end
+            assert wait.value.success?, output
+            assert_includes output, 'Worker exiting...'
+          ensure
+            Process.kill('KILL', wait.pid) if wait.alive?
+          end
+        end
+        beanstalk.close
+      end
+    end
+  end # stopped by TERM
 
   describe "for gc_disabled_on_exit? class method" do
     it "should be true only on CRuby 3.3, the Ruby whose forked children can crash as they exit" do

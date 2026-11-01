@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Fix "Worker exiting..." never being logged when a worker stops on `TERM` or `INT`: the process exited before the thread that logs it ran. The worker now waits up to a second for that line to be written before it exits. **What to do:** nothing
+
 ## Version 1.8.0 (Oct 31 2026)
 
 * Fix ThreadsOnFork and Forking children crashing on Ruby 3.3 with `[BUG] lazy sweeping underway when freeing object space` when they stopped on a `TERM` or `INT`, on an error, or when a job called `exit`, if a thread in the parent was running finalizers when the child was forked (an interpreter bug fixed in Ruby 3.4). On Ruby 3.3 a forked child now disables the GC as it exits, so its `at_exit` handlers (the app's, and those it inherited from the parent) run with the GC off, and a child running several threads stops its job threads before those handlers run (a job they were working on goes back to the queue and runs again). Other Rubies are unchanged. **What to do:** nothing; on Ruby 3.3 an `at_exit` handler that allocates a lot in a child now grows the child's memory until it exits

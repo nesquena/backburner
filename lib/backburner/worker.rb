@@ -104,9 +104,10 @@ module Backburner
 
     # Triggers this worker to shutdown
     def shutdown
-      Thread.new do
-        log_info 'Worker exiting...'
-      end
+      # Logs from another thread, since a trap handler can't take a logger's lock, and waits for it (a
+      # second at most): the process exits right after, and an unjoined thread never got to run
+      Thread.new { log_info 'Worker exiting...' }.join(1)
+    ensure
       Kernel.exit
     end
 
