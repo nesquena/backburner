@@ -1,7 +1,7 @@
 God.watch do |w|
   w.name   = "backburner-worker-1"
   w.dir    = '/path/to/app/dir'
-  w.env = { 'PADRINO_ENV' => 'production', 'QUEUES' => 'newsletter-sender,push-message' }
+  w.env = { 'PADRINO_ENV' => 'production', 'QUEUE' => 'newsletter-sender,push-message' }
   w.group    = 'backburner-workers'
   w.interval = 30.seconds
   w.start = "bundle exec rake -f Rakefile backburner:work"

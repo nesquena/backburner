@@ -7,6 +7,9 @@ module Backburner
 
       @shutdown_timeout = 10
 
+      # The longest a pool thread waits in reserve at a time (beanstalkd takes whole seconds)
+      SHUTDOWN_CHECK_INTERVAL = 1
+
       class << self
         attr_accessor :threads_number
         attr_accessor :shutdown_timeout
@@ -15,6 +18,7 @@ module Backburner
       # Custom initializer just to set @tubes_data
       def initialize(*args)
         @tubes_data = {}
+        @in_shutdown = false
         super
         self.process_tube_options
         @exit_on_shutdown = true
@@ -151,6 +155,18 @@ module Backburner
             self_write.puts(sig)
           end
         end
+      end
+
+      protected
+
+      # Reserves for at most SHUTDOWN_CHECK_INTERVAL seconds, so an idle thread sees a shutdown
+      # and stops instead of waiting in reserve until shutdown_timeout kills it
+      # ceiling: each idle thread sends beanstalkd a reserve once a second; waking the waiting
+      # reserves at shutdown instead would avoid that polling
+      def reserve_job(conn, reserve_timeout = Backburner.configuration.reserve_timeout)
+        timeout = reserve_timeout.to_s.to_i if reserve_timeout # as beanstalkd reads what beaneater sends: "5", 2.5, 5.seconds
+        timeout = SHUTDOWN_CHECK_INTERVAL if timeout.nil? || timeout < 0 || timeout > SHUTDOWN_CHECK_INTERVAL
+        super(conn, timeout)
       end
     end # Threading
   end # Workers

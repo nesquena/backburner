@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Unreleased
+
+* The gem now ships only `lib/`, `bin/`, `README.md`, `HOOKS.md`, `CHANGELOG.md` and `LICENSE` (no tests, examples or CI files), and its rubygems.org page links the source, the changelog and the issue tracker. **Behaviour change for the gem's owners:** pushing a release to rubygems.org now requires MFA (`rubygems_mfa_required`); the release workflow's trusted publishing is unaffected. **What to do:** owners who push by hand need MFA enabled on their rubygems.org account
+* Docs: the README's Simple Async Jobs example says a `Backburner::Performable` class's queue defaults to the primary queue (`backburner-jobs`), not one named after the class, and its Persistence examples show the JSON jobs are stored as (`null`, double quotes) on the class's queue
+* Docs: the README says Backburner uses only the first of several `beanstalk_url`s (no client-side federation), and that the Threading worker's `queue:threads` CLI format needs `config.default_worker = Backburner::Workers::Threading`; `examples/god.rb` sets `QUEUE` (which the rake tasks read) instead of `QUEUES`; `examples/custom.rb` enqueues on the queue it works; CONTRIBUTING says the tests need beanstalkd on 127.0.0.1:11300; `backburner --help` shows `-q, --queues QUEUES`; dead links point to beanstalkd.github.io, rubygems.org and rubydoc.info; the 1.5.0 and 1.6.0 changelog entries are filled in from their commits, with their release dates
+* Docs: the README has an Active Job section: setting the adapter, how queues map to tubes, starting workers with `-q` for the Active Job queues (a worker started without `-q` doesn't pick up a queue first used after it started), the TTR, how `retry_on` and `max_job_retries` add up, and using Active Job callbacks rather than Backburner's hooks
+* Active Job: a job's TTR is now its class's `queue_respond_timeout` when it defines one (`def self.queue_respond_timeout; 3600; end`; subclasses inherit it), as for a `Backburner::Queue` job; before, every Active Job job got `config.respond_timeout` (120 seconds by default), so a job that ran longer was stopped with `Backburner::Job::JobTimeout` and retried or buried. Jobs of classes without one still get `config.respond_timeout`. **What to do:** give long-running Active Job classes a `queue_respond_timeout` longer than they take
+* Rails apps: a worker now runs each job inside the app's reloader (`Rails.application.reloader.wrap`), as Rails does for its own Active Job jobs and as Sidekiq does. **Behaviour change:** `ActiveSupport::CurrentAttributes` (a `Current.user` or tenant a job sets) no longer leak into the next job the worker runs; the database connections a job uses go back to the pool when it finishes; Active Record's query cache is on while a job runs, as it is for requests and Active Job jobs; and in development a job runs the app's latest code after a file changes (a reload waits for the jobs running in other threads to finish). On Rails 7.0 and newer, an error a job raises is now also reported to `Rails.error`, as an Active Job job's error already was (including a job whose class this worker doesn't have, each time it's released), but not a `Backburner::Job::RetryJob`, nor the `SystemExit` of a worker stopped by `TERM` or `INT` (or of a job that calls `exit`): an error tracker subscribed to `Rails.error` that `config.on_error` also calls may get it twice. An Active Job job runs in the worker's wrap, so Active Job's own wrap inside it does nothing: it's still wrapped once, but on Rails 7.1 and newer its errors, like other jobs', are now reported with the source `"job.backburner"` instead of `"application.active_support"` (a `Rails.error` subscriber that filters on the source sees the new one). `config.on_error` and the `on_retry` and `on_bury` hooks run after the job's wrap ends, so they no longer see the `CurrentAttributes` the job set, and a database connection they use is taken outside the executor (the `on_failure` hooks still run inside it). Outside Rails nothing changes. **What to do:** nothing, unless a job relies on state an earlier job left in `CurrentAttributes` (pass it as an argument instead), a job waits for a change another process makes to the database (read it inside `ActiveRecord::Base.uncached { ... }`, as the query cache would return the first result again), or an `on_error` handler or retry or bury hook reads the job's `CurrentAttributes` (pass what it needs in the job's arguments, or read it in an `on_failure` hook)
+* Fix "Worker exiting..." never being logged when a worker stops on `TERM` or `INT`: the process exited before the thread that logs it ran. The worker now waits up to a second for that line to be written before it exits. **What to do:** nothing
+* `Backburner::Performable` jobs (enqueued with `async`, `handle_asynchronously` or `handle_static_asynchronously`) now call only methods the app defines on the class, its superclasses (such as `ActiveRecord::Base`) or the modules they include, private ones too. **Behaviour change:** a job naming a method the class only gets from Ruby itself (`Object`, `Kernel` and `BasicObject`, or for a class method `Class` and `Module`, including what libraries add to them, such as `to_s`, `frozen?`, `name` or `try`), one of Backburner's own (`queue`, `perform`), or `method_missing` now fails with `NoMethodError`, and is retried and then buried like any other failure. A class that overrides such a method (`def to_s`) still has its own called. **What to do:** if your app enqueues such a method (`User.async.name`), define a method on the class that calls it and enqueue that instead; jobs already queued that name such a method fail the same way once the workers are upgraded, so kick them from the buried list after deploying the new method
+* Fix the Threading worker taking `shutdown_timeout` (10 seconds by default) to exit on `TERM` or `INT` when it had no jobs to work: its threads waited in `reserve` until the shutdown gave up on them and killed them. Each thread now waits for a job at most a second at a time (or `config.reserve_timeout`, if shorter; a negative one, which made beanstalkd wait forever, counts as a second), so an idle worker exits within about a second. A busy worker is unchanged: its in-flight jobs get up to `shutdown_timeout` to finish before their threads are killed. A job a thread reserves as the shutdown begins is worked like any in-flight job; one still running when its thread is killed is not lost: beanstalkd puts it back in the queue when the worker exits, and it runs again. **What to do:** nothing; an idle Threading worker now sends beanstalkd a `reserve-with-timeout` once a second per thread
+
 ## Version 1.8.0 (Oct 31 2026)
 
 * Fix ThreadsOnFork and Forking children crashing on Ruby 3.3 with `[BUG] lazy sweeping underway when freeing object space` when they stopped on a `TERM` or `INT`, on an error, or when a job called `exit`, if a thread in the parent was running finalizers when the child was forked (an interpreter bug fixed in Ruby 3.4). On Ruby 3.3 a forked child now disables the GC as it exits, so its `at_exit` handlers (the app's, and those it inherited from the parent) run with the GC off, and a child running several threads stops its job threads before those handlers run (a job they were working on goes back to the queue and runs again). Other Rubies are unchanged. **What to do:** nothing; on Ruby 3.3 an `at_exit` handler that allocates a lot in a child now grows the child's memory until it exits
@@ -37,13 +49,21 @@
 
 * Change `File.exists?`` to `File.exist?` as latest ruby versions have removed support (@ShrutiSaagar).
 
-## Version 1.6.0 (December 30 2021)
+## Version 1.6.0 (Dec 30 2021)
 
-* TBD (please help backfill)
+* Allow per-job `queue_retry_delay`, `queue_retry_delay_proc` and `queue_max_job_retries` (@boncey in #162)
+* Fix the beanstalkd links in the README (@a112121788 in #171)
 
-## Version 1.5.0 (September 10 2018)
+## Version 1.5.0 (Sep 19 2018)
 
-* TBD
+* Add `Backburner::Job::RetryJob`: raise it from a job to retry it without logging an error (@eltone in #159)
+* Threading worker: shut down gracefully on `TERM` or `INT`, letting running jobs finish; a second signal stops it at once (@eltone in #157)
+* Make the logger's job timings thread-safe (@eltone in #157)
+* Log, retry and bury jobs whose class is unknown instead of raising while handling their failure (@eltone in #154)
+* Fix Ruby warnings about a shadowed and an unused variable (@utilum in #153)
+* Allow concurrent-ruby 1.x after 1.0.1 (`~> 1.0`, `>= 1.0.1`)
+* Docs: fix the link to Adam Wiggins' beanstalkd comparison (@dplummer in #152); add a CI badge (@szTheory in #151)
+* CI: test against Ruby 2.x (@nicolasleger in #150)
 
 ## Version 1.4.1 (June 10 2017)
 

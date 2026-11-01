@@ -9,6 +9,8 @@ module Backburner
   class EnqueuePool
     MAX_IDLE_CONNECTIONS = 5
 
+    @current = nil
+
     # The pool of this process: a forked child gets a new one and leaves its parent's
     # sockets (and a lock another thread may have held at the fork) alone.
     # ceiling: no lock, so threads that race on the first enqueue (or the first after a fork) may

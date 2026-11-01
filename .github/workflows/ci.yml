@@ -11,29 +11,42 @@ permissions:
 
 jobs:
   test:
-    name: test (${{ matrix.ruby-version }}${{ matrix.activejob-version && format(', activejob {0}', matrix.activejob-version) || '' }})
+    name: test (${{ matrix.ruby-version }}${{ matrix.activejob-version && format(', activejob {0}', matrix.activejob-version) || '' }}${{ matrix.frozen-string-literals && ', frozen string literals' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         ruby-version: ['2.7', '3.0', '3.1', '3.2', '3.3', '3.4', '4.0']
         activejob-version: [''] # the newest the Ruby version allows
+        frozen-string-literals: [false]
         include:
           # Rails before 7.2 ship their own Active Job adapter and have no AbstractAdapter
           - ruby-version: '3.1'
             activejob-version: '6.1'
+          - ruby-version: '3.1'
+            activejob-version: '7.0'
+          - ruby-version: '3.3'
+            activejob-version: '8.0'
+          # every string literal frozen (--enable-frozen-string-literal)
+          - ruby-version: '3.3'
+            frozen-string-literals: true
     env:
       ACTIVEJOB_VERSION: ${{ matrix.activejob-version }} # read by the Gemfile
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Download & Extract beanstalkd
-      run: curl -fsSL https://github.com/beanstalkd/beanstalkd/archive/refs/tags/v1.13.tar.gz | tar xz
+      run: |
+        curl -fsSL -o beanstalkd-1.13.tar.gz https://github.com/beanstalkd/beanstalkd/archive/refs/tags/v1.13.tar.gz
+        echo "26292dcdc0a7011d2f8ad968612f2cd8b2ef07687224876015399ae85e9e5263  beanstalkd-1.13.tar.gz" | sha256sum -c -
+        tar xzf beanstalkd-1.13.tar.gz
     - name: Make beanstalkd
-      run: make
+      # beanstalkd 1.13 builds with -Werror and predates C23, which newer compilers default to: build it
+      # as C17, and keep the const pointer newer C libraries' memchr() returns to prot.c a warning
+      run: make CFLAGS='-std=gnu17 -Wno-error=discarded-qualifiers'
       working-directory: beanstalkd-1.13
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
@@ -42,4 +55,5 @@ jobs:
     - name: Run tests
       run: bundle exec rake test
       env:
+        RUBYOPT: ${{ matrix.frozen-string-literals && '--enable-frozen-string-literal' || '' }}
         BEANSTALKD_BIN: ${{ github.workspace }}/beanstalkd-1.13/beanstalkd # for the outage test, which stops and restarts its own server

@@ -4,7 +4,7 @@ require 'backburner'
 # Define ruby job
 class TestJob
   include Backburner::Queue
-  # queue "test-job"
+  queue "test-job"
 
   def self.perform(value, user)
     puts "[TestJob] Running perform with args: [#{value}, #{user}]"

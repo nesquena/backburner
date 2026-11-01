@@ -14,11 +14,14 @@ describe "Backburner as the Active Job adapter" do
       result = JSON.parse(out.lines.last)
 
       tube = "#{namespace}.adapter"
-      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'ready', 'delay' => 0 }, result['jobs']['now'])
-      assert_equal({ 'tube' => tube, 'pri' => 3, 'state' => 'ready', 'delay' => 0 }, result['jobs']['urgent'])
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'ttr' => 120, 'state' => 'ready', 'delay' => 0 }, result['jobs']['now'])
+      assert_equal({ 'tube' => tube, 'pri' => 3, 'ttr' => 120, 'state' => 'ready', 'delay' => 0 }, result['jobs']['urgent'])
       # wait: 3 reaches the adapter a little under 3 seconds ahead: rounded up, so it doesn't run early
-      assert_equal({ 'tube' => tube, 'pri' => 7, 'state' => 'delayed', 'delay' => 3 }, result['jobs']['later'])
-      assert_equal %w(later now urgent), result['performed']
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'ttr' => 120, 'state' => 'delayed', 'delay' => 3 }, result['jobs']['later'])
+      # the TTR of a job class with a queue_respond_timeout
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'ttr' => 3600, 'state' => 'ready', 'delay' => 0 }, result['jobs']['long'])
+      assert_equal({ 'tube' => tube, 'pri' => 7, 'ttr' => 3600, 'state' => 'delayed', 'delay' => 3 }, result['jobs']['long later'])
+      assert_equal ['later', 'long', 'long later', 'now', 'urgent'], result['performed']
     end
   end
 end

@@ -69,17 +69,23 @@ describe "Backburner::Workers::Threading worker" do
 
   describe 'working a queue' do
     before do
-      @worker = @worker_class.new(["foo:3"])
+      @worker = @worker_class.new(["threaded-work:3"])
       capture_stdout { @worker.prepare }
       $worker_test_count = 0
       $worker_success = false
     end
 
+    # Its threads would otherwise keep taking jobs from its tube for the rest of the run
+    after do
+      @worker.exit_on_shutdown = false
+      capture_stdout { @worker.shutdown }
+    end
+
     it 'runs work_on_job per thread' do
-      clear_jobs!("foo")
+      clear_jobs!("threaded-work")
       job_count=10
       # TestJob adds the given arguments together and then to $worker_test_count
-      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "foo" }
+      job_count.times { @worker_class.enqueue TestJob, [1, 0], :queue => "threaded-work" }
       capture_stdout do
         @worker.start(false) # don't wait for shutdown
         sleep 0.5 # Wait for threads to do their work
@@ -105,6 +111,44 @@ describe "Backburner::Workers::Threading worker" do
       end
 
       assert_equal @thread_count, $worker_test_count
+    end
+
+    # Its threads wait in reserve: they must see the shutdown, not be killed at shutdown_timeout
+    it 'exits promptly when idle' do
+      previous, @worker_class.shutdown_timeout = @worker_class.shutdown_timeout, 10
+      Thread.new { sleep 0.5; @worker.self_write.puts("TERM") }
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      capture_stdout do
+        @worker.start
+      end
+
+      assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started, :<, 3
+    ensure
+      @worker_class.shutdown_timeout = previous
+    end
+
+    # A reserve_timeout read from the environment is a String, a negative one waits forever, and Infinity has no to_i
+    it 'exits promptly and works jobs with a String or negative reserve_timeout' do
+      previous = Backburner.configuration.reserve_timeout
+      previous_shutdown_timeout, @worker_class.shutdown_timeout = @worker_class.shutdown_timeout, 10
+      ["5", -1, Float::INFINITY].each do |timeout|
+        Backburner.configure { |config| config.reserve_timeout = timeout }
+        worker = @worker_class.new(["threaded-work:3"])
+        worker.exit_on_shutdown = false
+        capture_stdout { worker.prepare }
+        $worker_test_count = 0
+        clear_jobs!("threaded-work")
+        @worker_class.enqueue TestJob, [1, 0], :queue => "threaded-work"
+        Thread.new { sleep 0.5; worker.self_write.puts("TERM") }
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        capture_stdout { worker.start }
+
+        assert_equal 1, $worker_test_count, "reserve_timeout #{timeout.inspect}"
+        assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started, :<, 3, "reserve_timeout #{timeout.inspect}"
+      end
+    ensure
+      Backburner.configure { |config| config.reserve_timeout = previous }
+      @worker_class.shutdown_timeout = previous_shutdown_timeout
     end
 
     # Its own tube and worker: the jobs it leaves reserved go back to ready when their connections are
