@@ -1,4 +1,5 @@
 require File.expand_path('../test_helper', __FILE__)
+require 'delegate'
 
 class TestObj
   ID = 56
@@ -30,6 +31,54 @@ class AsyncSettingsTestObj < TestObj
   queue_max_job_retries 3
   handle_asynchronously :foo
   handle_static_asynchronously :bar
+end
+
+module JobMethodsTestMixin
+  def mixed_in; "mixed in"; end
+end
+
+class JobMethodsTestObj < TestObj
+  include Backburner::Performable
+  include JobMethodsTestMixin
+  def self.find(id); new if id == ID; end
+  def to_s; "own to_s"; end
+  def self.to_s; "own class to_s"; end
+  def method_missing(name, *args); name == :dynamic ? "dynamic" : super; end
+  def respond_to_missing?(name, include_private = false); name == :dynamic || super; end
+  private
+  def hidden; "hidden"; end
+  def self.class_hidden; "class hidden"; end
+  private_class_method :class_hidden
+end
+
+class PrivateAsyncTestObj < TestObj
+  include Backburner::Performable
+  def self.find(id); new if id == ID; end
+  private
+  def secret(a); "secret #{a}"; end
+  def self.class_secret(a); "class secret #{a}"; end
+  private_class_method :class_secret
+  handle_asynchronously :secret
+  handle_static_asynchronously :class_secret
+end
+
+class AnonymousSourcesTestObj < Struct.new(:id)
+  include Backburner::Performable
+  prepend(Module.new { def print; "traced #{super}"; end })
+  def self.find(id); new(id) if id == TestObj::ID; end
+  def print; "printed"; end
+end
+
+class AnonymousSourcesTestStruct < Struct.new(:id) do
+    def display; "displayed"; end
+  end
+  include Backburner::Performable
+  def self.find(id); new(id); end
+end
+
+class DelegatorJobTestObj < SimpleDelegator
+  include Backburner::Performable
+  def self.find(id); new(TestObj.new) if id == TestObj::ID; end
 end
 
 class QueueThenPerformableTestObj < TestObj
@@ -67,6 +116,73 @@ describe "Backburner::Performable module" do
     it "should work for class level" do
       assert_equal "baz false true", PerformableTestObj.perform(nil, :bar, false, true)
     end # class
+
+    it "calls a method named by a string, as a job body has it" do
+      assert_equal "bar 1 2", PerformableTestObj.perform(PerformableTestObj::ID, "foo", 1, 2)
+      assert_equal "baz 1 2", PerformableTestObj.perform(nil, "bar", 1, 2)
+    end
+
+    it "calls methods the class overrides, gets from a module it includes, or handles in method_missing" do
+      id = JobMethodsTestObj::ID
+      assert_equal "own to_s", JobMethodsTestObj.perform(id, :to_s)
+      assert_equal "own class to_s", JobMethodsTestObj.perform(nil, :to_s)
+      assert_equal "mixed in", JobMethodsTestObj.perform(id, :mixed_in)
+      assert_equal "dynamic", JobMethodsTestObj.perform(id, :dynamic)
+    end
+
+    it "only calls methods the job class defines, not ones every object or class has" do
+      id = JobMethodsTestObj::ID
+      [[id, :frozen?], [id, "instance_variables"], [nil, :instance_variable_set, :@probe, 1], [nil, "name"]].each do |args|
+        error = assert_raises(NoMethodError) { JobMethodsTestObj.perform(*args) }
+        assert_equal args[1].to_sym, error.name
+      end
+      refute JobMethodsTestObj.instance_variable_defined?(:@probe)
+    end
+
+    it "calls the class's private methods, as handle_asynchronously does for a private method" do
+      assert_equal "hidden", JobMethodsTestObj.perform(JobMethodsTestObj::ID, :hidden)
+      assert_equal "class hidden", JobMethodsTestObj.perform(nil, :class_hidden)
+      assert_equal "secret 1", PrivateAsyncTestObj.perform(PrivateAsyncTestObj::ID, :secret_without_async, 1)
+      assert_equal "class secret 2", PrivateAsyncTestObj.perform(nil, :class_secret_without_async, 2)
+    end
+
+    it "doesn't call a method Object's singleton class gets from a library" do
+      require 'psych'
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :yaml_tag, "!backburner-test") }
+      refute Psych.load_tags.key?("!backburner-test")
+    end
+
+    it "doesn't call method_missing itself, or core methods it would handle" do
+      id = JobMethodsTestObj::ID
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(id, :method_missing, :dynamic) }
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(id, :system, "true") }
+    end
+
+    it "calls the app's methods named like a core method from an anonymous module or superclass" do
+      assert_equal "traced printed", AnonymousSourcesTestObj.perform(TestObj::ID, :print)
+      assert_equal "displayed", AnonymousSourcesTestStruct.perform(1, :display)
+    end
+
+    it "calls a Delegator's delegated methods, but not its copy of Kernel's" do
+      id = TestObj::ID
+      assert_equal "bar 1 2", DelegatorJobTestObj.perform(id, :foo, 1, 2)
+      [[:send, :instance_variable_set, :@probe, 1], [:instance_variable_set, :@probe, 1], [:system, "true"], [:public_send, :foo, 1, 2]].each do |args|
+        error = assert_raises(NoMethodError) { DelegatorJobTestObj.perform(id, *args) }
+        assert_equal args[0], error.name
+      end
+      refute DelegatorJobTestObj.find(id).instance_variable_defined?(:@probe)
+    end
+
+    it "doesn't call Backburner's own class methods" do
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :queue_priority, 99) }
+      assert_nil JobMethodsTestObj.queue_priority
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :perform, nil, :bar, 1, 2) }
+    end
+
+    it "still raises NoMethodError for a method nothing defines" do
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(JobMethodsTestObj::ID, :nonexistent) }
+      assert_raises(NoMethodError) { JobMethodsTestObj.perform(nil, :nonexistent) }
+    end
   end # perform
 
   describe "for handle_asynchronously class method" do

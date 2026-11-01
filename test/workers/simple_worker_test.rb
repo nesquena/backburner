@@ -138,6 +138,20 @@ describe "Backburner::Workers::Simple module" do
       assert_equal 15, $worker_test_count
     end # async
 
+    it "should fail an async job naming a method its class doesn't define, and keep working" do
+      clear_jobs!('foo.bar')
+      @worker_class.enqueue TestAsyncJob, [nil, "name"], :queue => 'foo.bar'
+      TestAsyncJob.async(:queue => 'foo.bar').foo(3, 5)
+      worker = @worker_class.new('foo.bar')
+      out = silenced(4) do
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+      assert_match(/NoMethodError.*undefined job class method 'name' for TestAsyncJob/, out)
+      assert_match(/attempt 1 of 1, burying/, out)
+      assert_equal 15, $worker_test_count
+    end # async, not a job method
+
     it "should support retrying jobs and burying" do
       clear_jobs!('foo.bar')
       Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
