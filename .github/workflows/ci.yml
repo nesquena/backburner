@@ -30,7 +30,9 @@ jobs:
     - name: Download & Extract beanstalkd
       run: curl -fsSL https://github.com/beanstalkd/beanstalkd/archive/refs/tags/v1.13.tar.gz | tar xz
     - name: Make beanstalkd
-      run: make
+      # beanstalkd 1.13 builds with -Werror; newer C libraries make memchr() return a const pointer
+      # for a const argument, which its prot.c assigns to a plain char *
+      run: make CFLAGS=-Wno-error=discarded-qualifiers
       working-directory: beanstalkd-1.13
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
