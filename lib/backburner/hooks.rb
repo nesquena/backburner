@@ -57,9 +57,10 @@ module Backburner
       # doesn't end in Object's modules or that doesn't list its methods with Kernel#methods).
       def class_hook_events(hookable, pattern)
         return unless Class === hookable
-        singleton = hookable.singleton_class
+        singleton = SINGLETON_CLASS.bind_call(hookable)
         listing = singleton.instance_method(:methods)
-        return unless listing.owner.equal?(Kernel) && listing.source_location.nil? && singleton.public_method_defined?(:methods)
+        return unless listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil? &&
+          singleton.public_method_defined?(:methods)
         object = Object.singleton_class
         ancestors = ANCESTORS.bind_call(singleton)
         objects = ANCESTORS.bind_call(object)
@@ -79,7 +80,8 @@ module Backburner
       HOOK_PATTERNS = %i[before_enqueue after_enqueue before_perform around_perform after_perform on_failure on_bury
         on_retry on_reconnect].to_h { |event| [event, /^#{event}/] }.freeze
 
-      # Module's own reflection, whatever a module defines for itself
+      # Kernel's and Module's own reflection, whatever a class or module defines for itself
+      SINGLETON_CLASS = Kernel.instance_method(:singleton_class)
       ANCESTORS = Module.instance_method(:ancestors)
       INSTANCE_METHODS = Module.instance_method(:instance_methods)
       PUBLIC_METHOD_DEFINED = Module.instance_method(:public_method_defined?)

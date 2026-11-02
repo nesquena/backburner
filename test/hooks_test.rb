@@ -189,5 +189,29 @@ describe "Backburner::Hooks module" do
       assert_equal (extended + [:before_perform_object]).sort, hooks_called(object, :before_perform)
       assert_equal ([:before_perform_basic] + extended).sort, hooks_called(basic, :before_perform)
     end
+
+    it "calls a hook once when a class and its superclass both define it" do
+      parent = hook_class { hook :before_perform_a }
+      job = hook_class(parent) { hook :before_perform_a }
+      assert_equal [:before_perform_a], hooks_called(job, :before_perform)
+    end
+
+    it "calls only the hooks whose names start with the event" do
+      job = hook_class { hook :before_perform_a, :my_before_perform_b }
+      assert_equal [:before_perform_a], hooks_called(job, :before_perform)
+    end
+
+    it "uses the class's own singleton class even when the class redefines singleton_class" do
+      other = hook_class { hook :before_perform_other }
+      job = hook_class { hook :before_perform_a }
+      job.define_singleton_method(:singleton_class) { other.singleton_class }
+      assert_equal [:before_perform_a], hooks_called(job, :before_perform)
+    end
+
+    it "raises as before for a class whose methods is private" do
+      job = hook_class { hook :before_perform_a }
+      job.singleton_class.send(:private, :methods)
+      assert_raises(NoMethodError) { hooks_called(job, :before_perform) }
+    end
   end # finding a class's hooks
 end # Hooks
