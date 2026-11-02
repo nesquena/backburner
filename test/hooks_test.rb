@@ -213,5 +213,20 @@ describe "Backburner::Hooks module" do
       job.singleton_class.send(:private, :methods)
       assert_raises(NoMethodError) { hooks_called(job, :before_perform) }
     end
+
+    it "raises as before for a class whose methods is undefined" do
+      job = hook_class { hook :before_perform_a }
+      job.singleton_class.send(:undef_method, :methods)
+      assert_raises(NoMethodError) { hooks_called(job, :before_perform) }
+    end
+
+    it "finds a plain class's hooks without listing its methods" do
+      job = hook_class { hook :before_perform_a }
+      lookup = ->(hookable) { Backburner::Hooks.send(:class_hook_events, hookable, /^before_perform/) }
+      assert_equal [:before_perform_a], lookup.(job)
+      assert_nil lookup.(Module.new), "a module takes the general lookup"
+      assert_nil lookup.(Object.new), "an object takes the general lookup"
+      assert_nil lookup.(Class.new(BasicObject)), "a class that isn't an Object takes the general lookup"
+    end
   end # finding a class's hooks
 end # Hooks

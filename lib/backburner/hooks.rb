@@ -58,9 +58,9 @@ module Backburner
       def class_hook_events(hookable, pattern)
         return unless Class === hookable
         singleton = SINGLETON_CLASS.bind_call(hookable)
-        listing = singleton.instance_method(:methods)
-        return unless listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil? &&
-          singleton.public_method_defined?(:methods)
+        return unless PUBLIC_METHOD_DEFINED.bind_call(singleton, :methods)
+        listing = INSTANCE_METHOD.bind_call(singleton, :methods)
+        return unless listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil?
         object = Object.singleton_class
         ancestors = ANCESTORS.bind_call(singleton)
         objects = ANCESTORS.bind_call(object)
@@ -84,6 +84,7 @@ module Backburner
       SINGLETON_CLASS = Kernel.instance_method(:singleton_class)
       ANCESTORS = Module.instance_method(:ancestors)
       INSTANCE_METHODS = Module.instance_method(:instance_methods)
+      INSTANCE_METHOD = Module.instance_method(:instance_method)
       PUBLIC_METHOD_DEFINED = Module.instance_method(:public_method_defined?)
       PROTECTED_METHOD_DEFINED = Module.instance_method(:protected_method_defined?)
     end
