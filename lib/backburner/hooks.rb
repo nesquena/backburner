@@ -59,7 +59,7 @@ module Backburner
       def class_hook_events(hookable, pattern)
         return unless Class === hookable
         singleton = SINGLETON_CLASS.bind_call(hookable)
-        object = Object.singleton_class
+        object = SINGLETON_CLASS.bind_call(Object)
         return unless kernel_listing?(singleton) && kernel_listing?(object)
         ancestors = ANCESTORS.bind_call(singleton)
         objects = ANCESTORS.bind_call(object)

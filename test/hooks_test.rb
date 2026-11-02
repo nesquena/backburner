@@ -228,5 +228,16 @@ describe "Backburner::Hooks module" do
       assert_nil lookup.(Object.new), "an object takes the general lookup"
       assert_nil lookup.(Class.new(BasicObject)), "a class that isn't an Object takes the general lookup"
     end
+
+    it "raises as before when Object's methods is private, even for a class that lists its own" do
+      job = hook_class { hook :before_perform_a }
+      job.singleton_class.prepend(Kernel) # the class lists its methods with Kernel's own public methods again
+      Object.singleton_class.send(:private, :methods)
+      assert_nil Backburner::Hooks.send(:class_hook_events, job, /^before_perform/)
+      assert_raises(NoMethodError) { hooks_called(job, :before_perform) }
+    ensure
+      Object.singleton_class.send(:remove_method, :methods) # drops the entry `private` added
+      assert_equal [:before_perform_a], Backburner::Hooks.send(:class_hook_events, hook_class { hook :before_perform_a }, /^before_perform/)
+    end
   end # finding a class's hooks
 end # Hooks
