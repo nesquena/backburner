@@ -54,14 +54,13 @@ module Backburner
       # each class has: a class's methods are looked up in its own modules (its singleton class, its superclasses'
       # and the modules they extend) and then in Object's, so a name none of its own modules define is looked up
       # as on Object, and Object.methods has it too. nil for anything else (an instance, a module, a class that
-      # doesn't end in Object's modules or that doesn't list its methods with Kernel#methods).
+      # doesn't end in Object's modules, or a class or Object that doesn't list its methods with Kernel's own public
+      # #methods).
       def class_hook_events(hookable, pattern)
         return unless Class === hookable
         singleton = SINGLETON_CLASS.bind_call(hookable)
-        return unless PUBLIC_METHOD_DEFINED.bind_call(singleton, :methods)
-        listing = INSTANCE_METHOD.bind_call(singleton, :methods)
-        return unless listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil?
         object = Object.singleton_class
+        return unless kernel_listing?(singleton) && kernel_listing?(object)
         ancestors = ANCESTORS.bind_call(singleton)
         objects = ANCESTORS.bind_call(object)
         own = ancestors.size - objects.size
@@ -69,6 +68,13 @@ module Backburner
         # a name the class lists is public or protected where it is looked up, so one of them lists it
         names = ancestors.first(own).flat_map { |mod| INSTANCE_METHODS.bind_call(mod, false).grep(pattern) }
         names.uniq.select { |name| listed?(singleton, name) && !listed?(object, name) }
+      end
+
+      # Whether an object whose singleton class is `singleton` lists its methods with Kernel's own public #methods
+      def kernel_listing?(singleton)
+        return false unless PUBLIC_METHOD_DEFINED.bind_call(singleton, :methods)
+        listing = INSTANCE_METHOD.bind_call(singleton, :methods)
+        listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil?
       end
 
       # Whether an object whose singleton class is `singleton` lists the method in #methods (a public or protected one)
