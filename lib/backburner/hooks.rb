@@ -46,8 +46,53 @@ module Backburner
       #   # => ['before_enqueue_foo', 'before_enqueue_bar']
       #
       def find_hook_events(hookable, event)
-        (hookable.methods - Object.methods).grep(/^#{event}/).sort
+        pattern = HOOK_PATTERNS[event] || /^#{event}/
+        (class_hook_events(hookable, pattern) || (hookable.methods - Object.methods).grep(pattern)).sort
       end
+
+      # The names (hookable.methods - Object.methods).grep(pattern) gives for a class, without listing every method
+      # each class has: a class's methods are looked up in its own modules (its singleton class, its superclasses'
+      # and the modules they extend) and then in Object's, so a name none of its own modules define is looked up
+      # as on Object, and Object.methods has it too. nil for anything else (an instance, a module, a class that
+      # doesn't end in Object's modules, or a class or Object that doesn't list its methods with Kernel's own public
+      # #methods).
+      def class_hook_events(hookable, pattern)
+        return unless Class === hookable
+        singleton = SINGLETON_CLASS.bind_call(hookable)
+        object = SINGLETON_CLASS.bind_call(Object)
+        return unless kernel_listing?(singleton) && kernel_listing?(object)
+        ancestors = ANCESTORS.bind_call(singleton)
+        objects = ANCESTORS.bind_call(object)
+        own = ancestors.size - objects.size
+        return unless own > 0 && ancestors.last(objects.size) == objects
+        # a name the class lists is public or protected where it is looked up, so one of them lists it
+        names = ancestors.first(own).flat_map { |mod| INSTANCE_METHODS.bind_call(mod, false).grep(pattern) }
+        names.uniq.select { |name| listed?(singleton, name) && !listed?(object, name) }
+      end
+
+      # Whether an object whose singleton class is `singleton` lists its methods with Kernel's own public #methods
+      def kernel_listing?(singleton)
+        return false unless PUBLIC_METHOD_DEFINED.bind_call(singleton, :methods)
+        listing = INSTANCE_METHOD.bind_call(singleton, :methods)
+        listing.owner.equal?(Kernel) && listing.original_name == :methods && listing.source_location.nil?
+      end
+
+      # Whether an object whose singleton class is `singleton` lists the method in #methods (a public or protected one)
+      def listed?(singleton, name)
+        PUBLIC_METHOD_DEFINED.bind_call(singleton, name) || PROTECTED_METHOD_DEFINED.bind_call(singleton, name)
+      end
+
+      # The patterns of the events Backburner triggers, compiled once
+      HOOK_PATTERNS = %i[before_enqueue after_enqueue before_perform around_perform after_perform on_failure on_bury
+        on_retry on_reconnect].to_h { |event| [event, /^#{event}/] }.freeze
+
+      # Kernel's and Module's own reflection, whatever a class or module defines for itself
+      SINGLETON_CLASS = Kernel.instance_method(:singleton_class)
+      ANCESTORS = Module.instance_method(:ancestors)
+      INSTANCE_METHODS = Module.instance_method(:instance_methods)
+      INSTANCE_METHOD = Module.instance_method(:instance_method)
+      PUBLIC_METHOD_DEFINED = Module.instance_method(:public_method_defined?)
+      PROTECTED_METHOD_DEFINED = Module.instance_method(:protected_method_defined?)
     end
   end # Hooks
 end # Backburner

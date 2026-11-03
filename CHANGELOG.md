@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Faster hook lookup: finding a job class's hooks (`before_enqueue`, `before_perform` and the others) no longer lists every method each class has, so Backburner's own work per job is lighter: enqueueing takes about 35% less time and working a job about 25-30% less, measured with no-op jobs against a local beanstalkd. The same hooks run, in the same order
+
 ## Version 1.9.0 (Nov 1 2026)
 
 * The gem now ships only `lib/`, `bin/`, `README.md`, `HOOKS.md`, `CHANGELOG.md` and `LICENSE` (no tests, examples or CI files), and its rubygems.org page links the source, the changelog and the issue tracker. **Behaviour change for the gem's owners:** pushing a release to rubygems.org now requires MFA (`rubygems_mfa_required`); the release workflow's trusted publishing is unaffected. **What to do:** owners who push by hand need MFA enabled on their rubygems.org account
