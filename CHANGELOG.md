@@ -2,7 +2,7 @@
 
 ## Version 1.9.1 (Nov 5 2026)
 
-* Faster hook lookup: finding a job class's hooks (`before_enqueue`, `before_perform` and the others) no longer lists every method each class has, so Backburner's own work per job is lighter: enqueueing takes about 35% less time and working a job about 25-30% less, measured with no-op jobs against a local beanstalkd. The same hooks run, in the same order
+* Faster hook lookup: finding a job class's hooks (`before_enqueue`, `before_perform` and the others) no longer lists every method each class has, so Backburner's own work per job is lighter: enqueueing takes about 30-40% less time and working a job about 15-30% less (more with Active Support loaded), measured with no-op jobs against a local beanstalkd. The same hooks run, in the same order
 
 ## Version 1.9.0 (Nov 1 2026)
 
