@@ -574,6 +574,65 @@ describe "Backburner::Workers::Simple module" do
       clear_jobs!("foo.bar.onerror")
     end
 
+    it "should dispatch on_error handlers with arity 3, arity 4, and variadic arity" do
+      clear_jobs!("foo.bar.onerror-arity")
+      worker = @worker_class.new('foo.bar.onerror-arity')
+      capture_stdout { worker.prepare }
+
+      received = nil
+      Backburner.configure { |config| config.on_error = lambda { |e, name, args| received = [e, name, args] } }
+      @worker_class.enqueue TestFailJob, [1, 2], :queue => "foo.bar.onerror-arity"
+      silenced(2) { worker.work_one_job }
+      assert_equal 3, received.size
+      assert_kind_of RuntimeError, received[0]
+      assert_equal "TestFailJob", received[1]
+      assert_equal [1, 2], received[2]
+
+      received = nil
+      Backburner.configure { |config| config.on_error = lambda { |e, name, args, job| received = [e, name, args, job] } }
+      @worker_class.enqueue TestFailJob, [3, 4], :queue => "foo.bar.onerror-arity"
+      silenced(2) { worker.work_one_job }
+      assert_equal 4, received.size
+      assert_kind_of RuntimeError, received[0]
+      assert_equal "TestFailJob", received[1]
+      assert_equal [3, 4], received[2]
+      assert_kind_of Backburner::Job, received[3]
+      assert_equal "TestFailJob", received[3].name
+
+      received = nil
+      Backburner.configure { |config| config.on_error = proc { |*args| received = args } }
+      @worker_class.enqueue TestFailJob, [5, 6], :queue => "foo.bar.onerror-arity"
+      silenced(2) { worker.work_one_job }
+      assert_equal 4, received.size
+      assert_kind_of RuntimeError, received[0]
+      assert_equal "TestFailJob", received[1]
+      assert_equal [5, 6], received[2]
+      assert_kind_of Backburner::Job, received[3]
+    ensure
+      worker.connection.close if worker && worker.connection
+      Backburner.configure { |config| config.on_error = nil }
+      clear_jobs!("foo.bar.onerror-arity")
+    end
+
+    it "should retry without logging an error when a job raises RetryJob" do
+      Backburner.configure { |config| config.max_job_retries = 1; config.retry_delay = 0 }
+      clear_jobs!("foo.bar.silent-retry")
+      @worker_class.enqueue TestSilentRetryJob, [], :queue => "foo.bar.silent-retry"
+      worker = @worker_class.new('foo.bar.silent-retry')
+      out = silenced(4) do
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+      refute_match(/Exception Backburner::Job::RetryJob/, out)
+      assert_match(/Finished TestSilentRetryJob.*attempt 1 of 2, retrying in 0s/, out)
+      assert_match(/Completed TestSilentRetryJob/, out)
+      assert_equal 2, $worker_test_count
+      assert_equal true, $worker_success
+    ensure
+      worker.connection.close if worker && worker.connection
+      clear_jobs!("foo.bar.silent-retry")
+    end
+
     it "should use the connection given as an argument" do
       worker = @worker_class.new('foo.bar')
       connection = mock('connection')
