@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Fix the Forking worker watching the wrong tubes after reconnecting to beanstalkd: `Forking#on_reconnect` called `prepare` again, re-expanding `tube_names` (so e.g. `MyApp.default` became `MyApp.my-app.default`); it now re-watches its already-expanded tubes directly, matching `Simple#on_reconnect` (#XXXX)
+
 ## Version 1.9.1 (Nov 5 2026)
 
 * Faster hook lookup: finding a job class's hooks (`before_enqueue`, `before_perform` and the others) no longer lists every method each class has, so Backburner's own work per job is lighter: enqueueing takes about 30-40% less time and working a job about 15-30% less (more with Active Support loaded), measured with no-op jobs against a local beanstalkd. The same hooks run, in the same order
