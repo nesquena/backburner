@@ -61,6 +61,14 @@ class TestRetryJob
   end
 end
 
+class TestSilentRetryJob
+  def self.perform
+    $worker_test_count += 1
+    raise Backburner::Job::RetryJob if $worker_test_count == 1
+    $worker_success = true
+  end
+end
+
 class TestFloatRetryDelayJob
   include Backburner::Queue
   queue_retry_delay 1.5

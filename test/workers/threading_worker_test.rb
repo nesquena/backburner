@@ -165,5 +165,102 @@ describe "Backburner::Workers::Threading worker" do
 
       assert_equal 0, $worker_test_count
     end
+
+    it 'logs exceptions escaping work_one_job in the pool loop and keeps working' do
+      clear_jobs!("threaded-loop-rescue")
+      @worker_class.enqueue TestJob, [2, 3], :queue => "threaded-loop-rescue"
+      worker = @worker_class.new(["threaded-loop-rescue:1"])
+      worker.exit_on_shutdown = false
+      calls = 0
+      worker.define_singleton_method(:work_one_job) do |conn = connection|
+        calls += 1
+        if calls == 1
+          raise Beaneater::NotConnected, "lost connection"
+        elsif calls == 2
+          super(conn)
+          self_write.puts("TERM")
+        end
+      end
+
+      out = silenced(5) { worker.start }
+      assert_match(/Exception caught in thread pool loop\. Continuing\. -> lost connection/, out)
+      assert_equal 5, $worker_test_count
+    ensure
+      worker.connection.close if worker && worker.connection
+      clear_jobs!("threaded-loop-rescue")
+    end
+
+    it 'skips wait_for_termination once shutdown_timeout is exhausted and kills only running pools' do
+      previous_timeout = @worker_class.shutdown_timeout
+      @worker_class.shutdown_timeout = 0
+      worker = @worker_class.new(["threaded-a:1", "threaded-b:1"])
+      worker.exit_on_shutdown = false
+
+      done_pool = mock('done_pool')
+      done_pool.expects(:shutdown)
+      done_pool.expects(:wait_for_termination).never
+      done_pool.expects(:shutdown?).returns(true)
+      done_pool.expects(:kill).never
+
+      stuck_pool = mock('stuck_pool')
+      stuck_pool.expects(:shutdown)
+      stuck_pool.expects(:wait_for_termination).never
+      stuck_pool.expects(:shutdown?).returns(false)
+      stuck_pool.expects(:kill).once
+
+      worker.instance_variable_set(:@thread_pools, { "a" => done_pool, "b" => stuck_pool })
+      capture_stdout { worker.shutdown_threadpools }
+    ensure
+      @worker_class.shutdown_timeout = previous_timeout
+      worker.connection.close if worker && worker.connection
+    end
+
+    it 'aborts graceful shutdown on Interrupt and kills remaining pools immediately' do
+      worker = @worker_class.new(["threaded-abort:1"])
+      worker.exit_on_shutdown = false
+
+      done_pool = mock('done_pool')
+      done_pool.expects(:shutdown)
+      done_pool.expects(:wait_for_termination).raises(Interrupt)
+      done_pool.expects(:shutdown?).returns(true)
+      done_pool.expects(:kill).never
+
+      stuck_pool = mock('stuck_pool')
+      stuck_pool.expects(:shutdown)
+      stuck_pool.expects(:shutdown?).returns(false)
+      stuck_pool.expects(:kill).once
+
+      worker.instance_variable_set(:@thread_pools, { "a" => done_pool, "b" => stuck_pool })
+      out = capture_stdout { worker.shutdown_threadpools }
+      assert_match(/graceful shutdown aborted, shutting down immediately/, out)
+    ensure
+      worker.connection.close if worker && worker.connection
+    end
+
+    it 'writes the signal to self_write before shutdown and raises Interrupt on a second signal' do
+      prev_term = Signal.trap('TERM', 'DEFAULT')
+      Signal.trap('TERM', prev_term)
+      prev_int = Signal.trap('INT', 'DEFAULT')
+      Signal.trap('INT', prev_int)
+
+      worker = @worker_class.new(["threaded-signal:1"])
+      Process.kill('TERM', Process.pid)
+      assert IO.select([worker.self_read], nil, nil, 2), "expected TERM trap to write to self_write"
+      assert_equal "TERM\n", worker.self_read.gets
+
+      worker.instance_variable_set(:@in_shutdown, true)
+      assert_raises(Interrupt) do
+        Timeout.timeout(2) do
+          Process.kill('TERM', Process.pid)
+          loop { Thread.pass }
+        end
+      end
+    ensure
+      Signal.trap('TERM', prev_term) if prev_term
+      Signal.trap('INT', prev_int) if prev_int
+      worker.self_read.close if worker && worker.self_read && !worker.self_read.closed?
+      worker.self_write.close if worker && worker.self_write && !worker.self_write.closed?
+      worker.connection.close if worker && worker.connection
+    end
   end
 end

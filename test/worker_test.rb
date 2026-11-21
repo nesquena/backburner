@@ -127,6 +127,19 @@ describe "Backburner::Worker module" do
         assert_equal [6, 7], body["args"]
       end
     end
+
+    it "should return nil when an after_enqueue hook returns false after putting the job" do
+      clear_jobs!("test.after-enqueue-false")
+      result = Backburner::Worker.enqueue HookedObjectAfterEnqueueReturnsFalse, [1, 2], :queue => "test.after-enqueue-false"
+      assert_nil result
+      pop_one_job("test.after-enqueue-false") do |job, body|
+        assert_equal "HookedObjectAfterEnqueueReturnsFalse", body["class"]
+        assert_equal [1, 2], body["args"]
+        job.delete
+      end
+    ensure
+      clear_jobs!("test.after-enqueue-false")
+    end
   end # enqueue
 
   describe "for the enqueue connections" do
