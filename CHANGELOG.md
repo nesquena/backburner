@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+* Docs: note in the Active Job section of the README that without Bundler, `backburner` must be required before `active_job` (or `active_job/railtie`) so Active Job's own adapter does not shadow the gem's and ignore per-job `queue_respond_timeout` (@nesquena)
+
 ## Version 1.9.1 (Nov 5 2026)
 
 * Faster hook lookup: finding a job class's hooks (`before_enqueue`, `before_perform` and the others) no longer lists every method each class has, so Backburner's own work per job is lighter: enqueueing takes about 30-40% less time and working a job about 15-30% less (more with Active Support loaded), measured with no-op jobs against a local beanstalkd. The same hooks run, in the same order
