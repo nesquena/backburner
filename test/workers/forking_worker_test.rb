@@ -100,7 +100,7 @@ describe "Backburner::Workers::Forking module" do
   describe "practical tests" do
 
     before do
-      @templogger = Templogger.new('/tmp')
+      @templogger = Templogger.new
       Backburner.configure { |config| config.logger = @templogger.logger }
       $worker_test_count = 0
       $worker_success = false
@@ -113,8 +113,8 @@ describe "Backburner::Workers::Forking module" do
     end
 
     after do
-      @templogger.close
       Backburner.configure { |config| config.max_job_retries = 0; config.retry_delay = 5; config.logger = nil }
+      @templogger.close if @templogger
       clear_jobs!('response')
       clear_jobs!('bar.foo.1', 'bar.foo.2', 'bar.foo.3', 'bar.foo.4', 'bar.foo.5')
     end

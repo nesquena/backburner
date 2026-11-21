@@ -593,7 +593,7 @@ describe "Backburner::Workers::Simple module" do
   describe "when beanstalkd is down for longer than the reconnect window" do
     before do
       pick_beanstalkd_port
-      @templogger = Templogger.new('/tmp')
+      @templogger = Templogger.new
       @beanstalk_url = Backburner.configuration.beanstalk_url
       Backburner.configure do |config|
         config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
