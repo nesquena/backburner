@@ -58,6 +58,31 @@ describe "Backburner::Workers::Forking module" do
     end # all read
   end # prepare
 
+  describe "for on_reconnect method" do
+    before { @tube_namespace = Backburner.configuration.tube_namespace }
+    after  { Backburner.configuration.tube_namespace = @tube_namespace }
+
+    [["a lowercase", "demo.test"], ["an uppercase", "MyApp"]].each do |label, namespace|
+      it "should re-watch its already-expanded tubes on reconnect with #{label} namespace" do
+        Backburner.configuration.tube_namespace = namespace
+        expected = ["#{namespace}.foo", "#{namespace}.bar"]
+        worker = @worker_class.new(["foo", "bar"])
+        begin
+          capture_stdout { worker.prepare }
+          assert_equal expected, worker.tube_names
+          assert_same_elements expected, worker.connection.tubes.watched.map(&:name)
+
+          out = capture_stdout { worker.connection.reconnect! }
+          assert_equal expected, worker.tube_names
+          assert_same_elements expected, worker.connection.tubes.watched.map(&:name)
+          refute_match(/Working \d+ queues/, out)
+        ensure
+          worker.connection.close if worker && worker.connection
+        end
+      end
+    end
+  end # on_reconnect
+
   describe "for fork_one_job method" do
 
     it "should fork, work job, and exit" do

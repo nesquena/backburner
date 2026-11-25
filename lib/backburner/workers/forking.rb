@@ -37,9 +37,9 @@ module Backburner
         Process.wait(pid)
       end
 
+      # A reconnected connection only watches the default tube: watch ours again
       def on_reconnect(conn)
-        @connection = conn
-        prepare
+        conn.tubes.watch!(*self.tube_names)
       end
 
       # Exit with Kernel.exit! to avoid at_exit callbacks that should belongs to
