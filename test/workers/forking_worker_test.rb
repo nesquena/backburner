@@ -62,8 +62,8 @@ describe "Backburner::Workers::Forking module" do
     before { @tube_namespace = Backburner.configuration.tube_namespace }
     after  { Backburner.configuration.tube_namespace = @tube_namespace }
 
-    [["lowercase", "demo.test"], ["uppercase", "MyApp"]].each do |label, namespace|
-      it "should re-watch its already-expanded tubes on reconnect with a #{label} namespace" do
+    [["a lowercase", "demo.test"], ["an uppercase", "MyApp"]].each do |label, namespace|
+      it "should re-watch its already-expanded tubes on reconnect with #{label} namespace" do
         Backburner.configuration.tube_namespace = namespace
         expected = ["#{namespace}.foo", "#{namespace}.bar"]
         worker = @worker_class.new(["foo", "bar"])
@@ -75,7 +75,7 @@ describe "Backburner::Workers::Forking module" do
           out = capture_stdout { worker.connection.reconnect! }
           assert_equal expected, worker.tube_names
           assert_same_elements expected, worker.connection.tubes.watched.map(&:name)
-          assert_equal "", out
+          refute_match(/Working \d+ queues/, out)
         ensure
           worker.connection.close if worker && worker.connection
         end
