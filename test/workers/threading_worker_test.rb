@@ -186,6 +186,7 @@ describe "Backburner::Workers::Threading worker" do
       assert_match(/Exception caught in thread pool loop\. Continuing\. -> lost connection/, out)
       assert_equal 5, $worker_test_count
     ensure
+      worker.instance_variable_set(:@in_shutdown, true) if worker # stops the pool loop if the test failed before TERM
       worker.connection.close if worker && worker.connection
       clear_jobs!("threaded-loop-rescue")
     end
@@ -244,6 +245,10 @@ describe "Backburner::Workers::Threading worker" do
       Signal.trap('INT', prev_int)
 
       worker = @worker_class.new(["threaded-signal:1"])
+      term_handler = Signal.trap('TERM', 'DEFAULT')
+      Signal.trap('TERM', term_handler)
+      assert_kind_of Proc, term_handler, "expected the worker to trap TERM"
+      refute_same prev_term, term_handler
       Process.kill('TERM', Process.pid)
       assert IO.select([worker.self_read], nil, nil, 2), "expected TERM trap to write to self_write"
       assert_equal "TERM\n", worker.self_read.gets
