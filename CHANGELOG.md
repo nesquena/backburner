@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Fix the Forking worker watching the wrong tubes after reconnecting to beanstalkd: `Forking#on_reconnect` called `prepare` again, re-expanding `tube_names` (so e.g. `MyApp.default` became `MyApp.my-app.default`); it now re-watches its already-expanded tubes directly, matching `Simple#on_reconnect` (#XXXX)
+* Fix the Forking worker watching the wrong tubes after reconnecting to beanstalkd: `Forking#on_reconnect` called `prepare` again, re-expanding `tube_names` (so e.g. `MyApp.default` became `MyApp.my-app.default`); it now re-watches its already-expanded tubes directly, matching `Simple#on_reconnect` (#205)
 
 ## Version 1.9.1 (Nov 5 2026)
 
