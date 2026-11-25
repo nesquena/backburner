@@ -24,6 +24,12 @@ class HookedObjectAfterEnqueueFail
   end
 end
 
+class HookedObjectAfterEnqueueReturnsFalse
+  def self.after_enqueue_stop(*args)
+    false
+  end
+end
+
 class HookedObjectBeforePerformFail
   include Backburner::Performable
 

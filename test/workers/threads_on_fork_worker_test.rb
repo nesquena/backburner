@@ -241,7 +241,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       before do
         pick_beanstalkd_port
         start_beanstalkd
-        @templogger = Templogger.new('/tmp')
+        @templogger = Templogger.new
         @beanstalk_url = Backburner.configuration.beanstalk_url
         Backburner.configure do |config|
           config.beanstalk_url = "beanstalk://127.0.0.1:#{@port}"
@@ -268,7 +268,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
             config.beanstalk_url = @beanstalk_url
             config.logger = nil
           end
-          @templogger.close
+          @templogger.close if @templogger
         end
       end
 
@@ -582,7 +582,7 @@ describe "Backburner::Workers::ThreadsOnFork module" do
     describe "practical tests" do
 
       before do
-        @templogger = Templogger.new('/tmp')
+        @templogger = Templogger.new
         Backburner.configure { |config| config.logger = @templogger.logger }
         $worker_test_count = 0
         $worker_success = false
@@ -601,16 +601,20 @@ describe "Backburner::Workers::ThreadsOnFork module" do
       end
 
       after do
-        @templogger.close
-        clear_jobs!('response')
-        clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7', 'foo.bar.8')
-        @worker_class.threads_number = 1
-        @worker_class.shutdown = true
-        silenced do
-          @worker_class.stop_forks
-          Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
-          @worker_class.kill_forks
-          Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+        begin
+          clear_jobs!('response')
+          clear_jobs!('foo.bar.1', 'foo.bar.2', 'foo.bar.3', 'foo.bar.4', 'foo.bar.5', 'foo.bar.6', 'foo.bar.7', 'foo.bar.8')
+          @worker_class.threads_number = 1
+          @worker_class.shutdown = true
+          silenced do
+            @worker_class.stop_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+            @worker_class.kill_forks
+            Timeout::timeout(2) { sleep 0.1 while @worker_class.child_pids.length > 0 }
+          end
+        ensure
+          Backburner.configure { |config| config.logger = nil }
+          @templogger.close if @templogger
         end
       end
 

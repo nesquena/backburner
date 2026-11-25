@@ -21,6 +21,14 @@ describe "Backburner::Connection class" do
       connection = @connection.beanstalk.connection
       assert_equal '127.0.0.1:11300', connection.address
     end
+
+    it "should use the first address when given an array of urls" do
+      connection = Backburner::Connection.new(["beanstalk://127.0.0.1:11300", "beanstalk://127.0.0.1:11301"])
+      assert_equal '127.0.0.1:11300', connection.beanstalk.connection.address
+      assert_equal true, connection.connected?
+    ensure
+      connection.close if connection
+    end
   end # initialize
 
   describe "for bad uri" do
@@ -47,6 +55,18 @@ describe "Backburner::Connection class" do
     it "should know if its connection is open" do
       assert_equal true, @connection.connected?
       @connection.close
+      assert_equal false, @connection.connected?
+    end
+
+    it "should allow closing an already-closed connection" do
+      @connection.close
+      @connection.close
+      assert_nil @connection.beanstalk
+      assert_equal false, @connection.connected?
+    end
+
+    it "should return false from connected? if inspecting the socket raises" do
+      @connection.beanstalk.connection.connection.expects(:closed?).raises(IOError, "broken socket")
       assert_equal false, @connection.connected?
     end
 
