@@ -616,6 +616,9 @@ class ReportJob < ApplicationJob
 end
 ```
 
+Without Bundler, require `backburner` before `active_job` (or `active_job/railtie`): otherwise Active Job's own
+`backburner_adapter` is found first on the load path and per-job `queue_respond_timeout` is not applied.
+
 Active Job's `retry_on` and Backburner's `max_job_retries` add up: once `retry_on` gives up and the error reaches
 Backburner, it retries the job `max_job_retries` more times before burying it, calling `on_error` each time. Keep
 `max_job_retries` at 0 (the default) for Active Job jobs and retry with `retry_on`, or expect both.

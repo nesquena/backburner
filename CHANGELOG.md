@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Fix the Forking worker watching the wrong tubes when its connection is reconnected (`Connection#reconnect!`): `Forking#on_reconnect` ran `prepare` again, re-expanding `tube_names` (with an uppercase `tube_namespace`, `MyApp.default` became `MyApp.my-app.default`). It now re-watches its already-expanded tubes, as `Simple#on_reconnect` does, and no longer runs `prepare` on reconnect (#205)
+* Docs: note in the Active Job section of the README that without Bundler, `backburner` must be required before `active_job` (or `active_job/railtie`) so Active Job's own adapter does not shadow the gem's and ignore per-job `queue_respond_timeout` (#XXXX, @nesquena)
 
 ## Version 1.9.1 (Nov 5 2026)
 
