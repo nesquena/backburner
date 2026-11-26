@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Fix Active Job jobs ignoring their class's `queue_respond_timeout` on Rails 7.2 and newer when, without Bundler, Active Job is required before backburner (`require 'rails/all'` or `require 'active_job'`, then `require 'backburner'`): Active Job's own adapter loaded instead of this gem's, so every job got `config.respond_timeout` as its TTR. `require 'backburner'` now loads this gem's adapter, unless Active Job has already loaded its own. Nothing changes on Rails before 7.2. An app without Bundler that never requires backburner itself still gets Active Job's adapter: add `require 'backburner'` (#207)
 * Fix the Forking worker watching the wrong tubes when its connection is reconnected (`Connection#reconnect!`): `Forking#on_reconnect` ran `prepare` again, re-expanding `tube_names` (with an uppercase `tube_namespace`, `MyApp.default` became `MyApp.my-app.default`). It now re-watches its already-expanded tubes, as `Simple#on_reconnect` does, and no longer runs `prepare` on reconnect (#205)
 
 ## Version 1.9.1 (Nov 5 2026)
