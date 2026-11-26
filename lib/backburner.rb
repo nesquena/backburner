@@ -18,9 +18,11 @@ require 'backburner/workers/threading'
 require 'backburner/queue'
 # On Rails 7.2+ (which added AbstractAdapter) use this gem's Active Job adapter; older Rails autoload theirs.
 # Not when Rails' autoload has already loaded the adapter or is loading it (an adapter file requires backburner).
+# By its own path: Rails' adapter file has the same name, and comes first on the load path when Active Job was
+# activated before this gem (without Bundler).
 if defined?(ActiveJob::QueueAdapters::AbstractAdapter) && (ActiveJob::QueueAdapters.autoload?(:BackburnerAdapter) ||
    !ActiveJob::QueueAdapters.constants(false).include?(:BackburnerAdapter))
-  require 'active_job/queue_adapters/backburner_adapter'
+  require File.expand_path('../active_job/queue_adapters/backburner_adapter', __FILE__)
 end
 
 module Backburner
